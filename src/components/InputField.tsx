@@ -7,12 +7,13 @@ export const InputField: React.FC<InputFieldProps> = ({
   value,
   onChange,
   type = 'text',
-  icon
+  icon,
+  error, // תמיכה בהצגת שגיאות
 }) => {
   return (
     <View style={styles.container}>
       <Text style={styles.label}>{label}</Text>
-      <View style={styles.inputContainer}>
+      <View style={[styles.inputContainer, error ? styles.inputError : null]}>
         <TextInput
           value={value}
           onChangeText={onChange}
@@ -28,6 +29,7 @@ export const InputField: React.FC<InputFieldProps> = ({
           />
         )}
       </View>
+      {error && <Text style={styles.errorText}>{error}</Text>}
     </View>
   );
 };
@@ -58,10 +60,20 @@ const styles = StyleSheet.create({
     textAlign: 'center',
     color: '#1F2937', 
   },
+  inputError: {
+    borderColor: 'red',
+    borderWidth: 2,
+  },
   icon: {
     width: 24,
     height: 24,
     resizeMode: 'contain',
     marginLeft: 8,
+  },
+  errorText: {
+    color: 'red',
+    fontSize: 14,
+    marginTop: 4,
+    textAlign: 'center',
   },
 });

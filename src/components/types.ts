@@ -5,6 +5,7 @@ export interface InputFieldProps {
   type?: "text" | "password" | "email" | "number";
   icon?: string;
   keyboardType?: "default" | "numeric" | "email-address" | "phone-pad";
+  error?: string;
 }
   
   export interface SocialButtonProps {

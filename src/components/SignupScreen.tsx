@@ -1,53 +1,41 @@
-import React, { useState } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, ScrollView, SafeAreaView, Image, StatusBar, Alert } from 'react-native';
-import { launchImageLibrary } from 'react-native-image-picker';
-import { InputField } from './InputField';
-
-interface IAddress {
-  city: string;
-  street: string;
-  building: number;
-}
+import React, { useState } from "react";
+import { View, Text, StyleSheet, TouchableOpacity, ScrollView, SafeAreaView, Image, StatusBar } from "react-native";
+import { useForm, Controller } from "react-hook-form";
+import { zodResolver } from "@hookform/resolvers/zod";
+import { launchImageLibrary } from "react-native-image-picker";
+import { InputField } from "./InputField";
+import { signUpSchema } from "../utils/validations";
 
 export const SignUp = () => {
-  const [formData, setFormData] = useState({
-    name: '',
-    userName: '',
-    email: '',
-    address: {
-      city: '',
-      street: '',
-      building: 0,
-    } as IAddress,
-    password: '',
-    confirmPassword: '',
+  const {
+    control,
+    handleSubmit,
+    formState: { errors, isValid },
+  } = useForm({
+    resolver: zodResolver(signUpSchema),
+    mode: "onChange",
   });
 
   const [profileImage, setProfileImage] = useState<any>(null);
 
   const pickImage = () => {
-    launchImageLibrary({ mediaType: 'photo' }, (response) => {
-      if (response.didCancel) {
-        console.log('User cancelled image picker');
-      } else if (response.errorMessage) {
-        console.error('ImagePicker Error: ', response.errorMessage);
-      } else if (response.assets && response.assets.length > 0) {
-        const image = response.assets[0];
-        setProfileImage(image);
+    launchImageLibrary({ mediaType: "photo" }, (response) => {
+      if (response.assets && response.assets.length > 0) {
+        setProfileImage(response.assets[0]);
       }
     });
   };
 
-  const handleSignUp = async () => {
+  const onSubmit = async (formData: any) => {
     try {
       const form = new FormData();
-
-      form.append("name", formData.name);
-      form.append("userName", formData.userName);
-      form.append("email", formData.email);
-      form.append("password", formData.password);
-      form.append("confirmPassword", formData.confirmPassword);
-      form.append("address", JSON.stringify(formData.address));
+      Object.entries(formData).forEach(([key, value]) => {
+        if (key === "address") {
+          form.append(key, JSON.stringify(value));
+        } else {
+          form.append(key, value);
+        }
+      });
 
       if (profileImage) {
         form.append("profileImage", {
@@ -59,19 +47,12 @@ export const SignUp = () => {
 
       const response = await fetch("http://10.0.2.2:3000/user/register", {
         method: "POST",
-        headers: {
-          "Content-Type": "multipart/form-data",
-        },
+        headers: { "Content-Type": "multipart/form-data" },
         body: form,
       });
 
       const data = await response.json();
-
-      if (response.ok) {
-        console.log("Registration successful:", data);
-      } else {
-        console.error("Registration failed:", data);
-      }
+      console.log(response.ok ? "Registration successful:" : "Registration failed:", data);
     } catch (error) {
       console.error("Error during registration:", error);
     }
@@ -86,77 +67,96 @@ export const SignUp = () => {
         </View>
 
         <View style={styles.formContainer}>
-          <InputField
-            label="Full Name"
-            value={formData.name}
-            onChange={(text) => setFormData({ ...formData, name: text })}
+          <Controller
+            control={control}
+            name="name"
+            render={({ field }) => (
+              <InputField label="Full Name" value={field.value} onChange={field.onChange} error={errors.name?.message} />
+            )}
           />
 
-          <InputField
-            label="User Name"
-            value={formData.userName}
-            onChange={(text) => setFormData({ ...formData, userName: text })}
+          <Controller
+            control={control}
+            name="userName"
+            render={({ field }) => (
+              <InputField label="User Name" value={field.value} onChange={field.onChange} error={errors.userName?.message} />
+            )}
           />
 
-          <InputField
-            label="Email"
-            value={formData.email}
-            onChange={(text) => setFormData({ ...formData, email: text })}
-            type="email"
+          <Controller
+            control={control}
+            name="email"
+            render={({ field }) => (
+              <InputField label="Email" value={field.value} onChange={field.onChange} error={errors.email?.message} type="email" />
+            )}
           />
 
-          <InputField
-            label="City"
-            value={formData.address.city}
-            onChange={(text) =>
-              setFormData({ ...formData, address: { ...formData.address, city: text } })
-            }
+          <Controller
+            control={control}
+            name="address.city"
+            render={({ field }) => (
+              <InputField label="City" value={field.value} onChange={field.onChange} error={errors.address?.city?.message} />
+            )}
           />
 
-          <InputField
-            label="Street"
-            value={formData.address.street}
-            onChange={(text) =>
-              setFormData({ ...formData, address: { ...formData.address, street: text } })
-            }
+          <Controller
+            control={control}
+            name="address.street"
+            render={({ field }) => (
+              <InputField label="Street" value={field.value} onChange={field.onChange} error={errors.address?.street?.message} />
+            )}
           />
 
-          <InputField
-            label="Building"
-            value={formData.address.building.toString()}
-            onChange={(text) =>
-              setFormData({ ...formData, address: { ...formData.address, building: parseInt(text) || 0 } })
-            }
-            keyboardType="numeric"
+          <Controller
+            control={control}
+            name="address.building"
+            render={({ field }) => (
+              <InputField
+                label="Building"
+                value={field.value?.toString()}
+                onChange={(text) => field.onChange(text ? parseInt(text) : "")}
+                error={errors.address?.building?.message}
+                keyboardType="numeric"
+              />
+            )}
           />
 
-          <InputField
-            label="Password"
-            value={formData.password}
-            onChange={(text) => setFormData({ ...formData, password: text })}
-            type="password"
+          <Controller
+            control={control}
+            name="password"
+            render={({ field }) => (
+              <InputField label="Password" value={field.value} onChange={field.onChange} error={errors.password?.message} type="password" />
+            )}
           />
 
-          <InputField
-            label="Confirm Password"
-            value={formData.confirmPassword}
-            onChange={(text) => setFormData({ ...formData, confirmPassword: text })}
-            type="password"
+          <Controller
+            control={control}
+            name="confirmPassword"
+            render={({ field }) => (
+              <InputField
+                label="Confirm Password"
+                value={field.value}
+                onChange={field.onChange}
+                error={errors.confirmPassword?.message}
+                type="password"
+              />
+            )}
           />
         </View>
 
         <View style={styles.imagePickerContainer}>
           <TouchableOpacity style={styles.imagePickerButton} onPress={pickImage}>
-            <Text style={styles.imagePickerButtonText}>Pick Profile Image</Text>
+            <Text style={styles.imagePickerButton}>Pick Profile Image</Text>
           </TouchableOpacity>
-
-          {profileImage && (
-            <Image source={{ uri: profileImage.uri }} style={styles.profileImage} />
-          )}
+          {profileImage && <Image source={{ uri: profileImage.uri }} style={styles.profileImage} />}
         </View>
 
         <View style={styles.footerContainer}>
-          <TouchableOpacity style={styles.signUpButton} onPress={handleSignUp}>
+          <TouchableOpacity
+            style={[styles.signUpButton, !isValid && styles.disabledButton]}
+            onPress={handleSubmit(onSubmit)}
+            disabled={!isValid}
+          >
             <Text style={styles.signUpButtonText}>Sign up</Text>
           </TouchableOpacity>
         </View>
@@ -166,61 +166,18 @@ export const SignUp = () => {
 };
 
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: '#FFFFFF',
-  },
-  scrollView: {
-    flex: 1,
-  },
-  titleContainer: {
-    paddingHorizontal: 16,
-    paddingVertical: 24,
-  },
-  title: {
-    fontSize: 24,
-    fontWeight: 'bold',
-    color: '#000000',
-  },
-  formContainer: {
-    paddingHorizontal: 16,
-  },
-  imagePickerContainer: {
-    alignItems: 'center',
-    marginVertical: 20,
-  },
-  imagePickerButton: {
-    backgroundColor: '#EC888D',
-    padding: 10,
-    borderRadius: 8,
-  },
-  imagePickerButtonText: {
-    color: '#FFFFFF',
-    fontSize: 16,
-  },
-  profileImage: {
-    width: 100,
-    height: 100,
-    borderRadius: 50,
-    marginTop: 10,
-  },
-  footerContainer: {
-    paddingHorizontal: 16,
-    paddingVertical: 24,
-  },
-  signUpButton: {
-    backgroundColor: '#EC888D',
-    borderRadius: 8,
-    height: 48,
-    justifyContent: 'center',
-    alignItems: 'center',
-    marginTop: 24,
-  },
-  signUpButtonText: {
-    color: '#FFFFFF',
-    fontSize: 16,
-    fontWeight: '600',
-  },
+  container: { flex: 1, backgroundColor: "#FFFFFF" },
+  scrollView: { flex: 1 },
+  titleContainer: { paddingHorizontal: 16, paddingVertical: 24 },
+  title: { fontSize: 24, fontWeight: "bold", color: "#000000" },
+  formContainer: { paddingHorizontal: 16 },
+  imagePickerContainer: { alignItems: "center", marginVertical: 20 },
+  imagePickerButton: { backgroundColor: "#EC888D", padding: 10, borderRadius: 8 },
+  disabledButton: { backgroundColor: "#CCCCCC" },
+  profileImage: { width: 100, height: 100, borderRadius: 50, marginTop: 10 },
+  footerContainer: { paddingHorizontal: 16, paddingVertical: 24 },
+  signUpButton: { backgroundColor: "#EC888D", borderRadius: 8, height: 48, justifyContent: "center", alignItems: "center" },
+  signUpButtonText: { color: "#FFFFFF", fontSize: 16, fontWeight: "600" },
 });
 
 export default SignUp;
