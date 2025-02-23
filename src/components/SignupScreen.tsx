@@ -1,9 +1,8 @@
 import React, { useState } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, ScrollView, SafeAreaView, Platform, StatusBar, Linking } from 'react-native';
-import { useNavigation } from '@react-navigation/native';
+import { View, Text, StyleSheet, TouchableOpacity, ScrollView, SafeAreaView, Image, StatusBar, Alert } from 'react-native';
+import { launchImageLibrary } from 'react-native-image-picker';
 import { InputField } from './InputField';
 
-// הגדרת הממשק לכתובת
 interface IAddress {
   city: string;
   street: string;
@@ -11,7 +10,6 @@ interface IAddress {
 }
 
 export const SignUp = () => {
-  //const navigation = useNavigation();
   const [formData, setFormData] = useState({
     name: '',
     userName: '',
@@ -25,6 +23,21 @@ export const SignUp = () => {
     confirmPassword: '',
   });
 
+  const [profileImage, setProfileImage] = useState<any>(null);
+
+  const pickImage = () => {
+    launchImageLibrary({ mediaType: 'photo' }, (response) => {
+      if (response.didCancel) {
+        console.log('User cancelled image picker');
+      } else if (response.errorMessage) {
+        console.error('ImagePicker Error: ', response.errorMessage);
+      } else if (response.assets && response.assets.length > 0) {
+        const image = response.assets[0];
+        setProfileImage(image);
+      }
+    });
+  };
+
   const handleSignUp = async () => {
     try {
       const form = new FormData();
@@ -35,6 +48,14 @@ export const SignUp = () => {
       form.append("password", formData.password);
       form.append("confirmPassword", formData.confirmPassword);
       form.append("address", JSON.stringify(formData.address));
+
+      if (profileImage) {
+        form.append("profileImage", {
+          uri: profileImage.uri,
+          name: profileImage.fileName || "profile.jpg",
+          type: profileImage.type || "image/jpeg",
+        });
+      }
 
       const response = await fetch("http://10.0.2.2:3000/user/register", {
         method: "POST",
@@ -54,18 +75,6 @@ export const SignUp = () => {
     } catch (error) {
       console.error("Error during registration:", error);
     }
-  };
-
-  const handleTermsPress = () => {
-    //Linking.openURL('https://yourapp.com/terms');
-  };
-
-  const handlePrivacyPress = () => {
-    //Linking.openURL('https://yourapp.com/privacy');
-  };
-
-  const handleLoginPress = () => {
-    //navigation.navigate('Login');
   };
 
   return (
@@ -96,39 +105,28 @@ export const SignUp = () => {
             type="email"
           />
 
-
-
           <InputField
             label="City"
             value={formData.address.city}
             onChange={(text) =>
-              setFormData({
-                ...formData,
-                address: { ...formData.address, city: text }
-              })
+              setFormData({ ...formData, address: { ...formData.address, city: text } })
             }
-            type="text"
-            keyboardType="default"
           />
 
           <InputField
             label="Street"
             value={formData.address.street}
             onChange={(text) =>
-              setFormData({
-                ...formData,
-                address: { ...formData.address, street: text }
-              })
+              setFormData({ ...formData, address: { ...formData.address, street: text } })
             }
-            type="text"
-            keyboardType="default"
           />
 
           <InputField
             label="Building"
             value={formData.address.building.toString()}
-            onChange={(text) => setFormData({ ...formData, address: { ...formData.address, building: parseInt(text) || 0 } })}
-            type="number"
+            onChange={(text) =>
+              setFormData({ ...formData, address: { ...formData.address, building: parseInt(text) || 0 } })
+            }
             keyboardType="numeric"
           />
 
@@ -137,7 +135,6 @@ export const SignUp = () => {
             value={formData.password}
             onChange={(text) => setFormData({ ...formData, password: text })}
             type="password"
-            icon="https://cdn.builder.io/api/v1/image/assets/f3ec27c98b354cc2a57aa125506b44a1/a7f010f1d11c588e2b2a6e60c03e8f48cf0d74c750e117fdfe71b60e4bf999cc"
           />
 
           <InputField
@@ -145,34 +142,23 @@ export const SignUp = () => {
             value={formData.confirmPassword}
             onChange={(text) => setFormData({ ...formData, confirmPassword: text })}
             type="password"
-            icon="https://cdn.builder.io/api/v1/image/assets/f3ec27c98b354cc2a57aa125506b44a1/a7f010f1d11c588e2b2a6e60c03e8f48cf0d74c750e117fdfe71b60e4bf999cc"
           />
         </View>
 
-        <View style={styles.footerContainer}>
-          <Text style={styles.termsText}>
-            By continuing, you agree to{' '}
-            <Text style={styles.termsLink} onPress={handleTermsPress}>
-              Terms of Use
-            </Text>
-            {' '}and{' '}
-            <Text style={styles.termsLink} onPress={handlePrivacyPress}>
-              Privacy Policy
-            </Text>
-          </Text>
+        <View style={styles.imagePickerContainer}>
+          <TouchableOpacity style={styles.imagePickerButton} onPress={pickImage}>
+            <Text style={styles.imagePickerButtonText}>Pick Profile Image</Text>
+          </TouchableOpacity>
 
+          {profileImage && (
+            <Image source={{ uri: profileImage.uri }} style={styles.profileImage} />
+          )}
+        </View>
+
+        <View style={styles.footerContainer}>
           <TouchableOpacity style={styles.signUpButton} onPress={handleSignUp}>
             <Text style={styles.signUpButtonText}>Sign up</Text>
           </TouchableOpacity>
-
-          <View style={styles.loginContainer}>
-            <Text style={styles.loginText}>
-              Already have an account?{' '}
-              <Text style={styles.loginLink} onPress={handleLoginPress}>
-                Log In
-              </Text>
-            </Text>
-          </View>
         </View>
       </ScrollView>
     </SafeAreaView>
@@ -199,19 +185,28 @@ const styles = StyleSheet.create({
   formContainer: {
     paddingHorizontal: 16,
   },
+  imagePickerContainer: {
+    alignItems: 'center',
+    marginVertical: 20,
+  },
+  imagePickerButton: {
+    backgroundColor: '#EC888D',
+    padding: 10,
+    borderRadius: 8,
+  },
+  imagePickerButtonText: {
+    color: '#FFFFFF',
+    fontSize: 16,
+  },
+  profileImage: {
+    width: 100,
+    height: 100,
+    borderRadius: 50,
+    marginTop: 10,
+  },
   footerContainer: {
     paddingHorizontal: 16,
     paddingVertical: 24,
-  },
-  termsText: {
-    textAlign: 'center',
-    color: '#666666',
-    fontSize: 14,
-    lineHeight: 20,
-  },
-  termsLink: {
-    color: '#32201C',
-    fontWeight: '600',
   },
   signUpButton: {
     backgroundColor: '#EC888D',
@@ -224,18 +219,6 @@ const styles = StyleSheet.create({
   signUpButtonText: {
     color: '#FFFFFF',
     fontSize: 16,
-    fontWeight: '600',
-  },
-  loginContainer: {
-    marginTop: 16,
-    alignItems: 'center',
-  },
-  loginText: {
-    fontSize: 14,
-    color: '#666666',
-  },
-  loginLink: {
-    color: '#EC888D',
     fontWeight: '600',
   },
 });
