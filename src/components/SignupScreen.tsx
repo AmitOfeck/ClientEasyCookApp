@@ -27,17 +27,25 @@ export const SignUp = () => {
 
   const handleSignUp = async () => {
     try {
-      console.log(formData)
+      const form = new FormData();
+
+      form.append("name", formData.name);
+      form.append("userName", formData.userName);
+      form.append("email", formData.email);
+      form.append("password", formData.password);
+      form.append("confirmPassword", formData.confirmPassword);
+      form.append("address", JSON.stringify(formData.address));
+
       const response = await fetch("http://10.0.2.2:3000/user/register", {
         method: "POST",
         headers: {
-          "Content-Type": "application/json",
+          "Content-Type": "multipart/form-data",
         },
-        body: JSON.stringify(formData),
+        body: form,
       });
-  
+
       const data = await response.json();
-  
+
       if (response.ok) {
         console.log("Registration successful:", data);
       } else {
