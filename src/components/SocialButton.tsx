@@ -25,6 +25,7 @@ const styles = StyleSheet.create({
   image: {
     resizeMode: 'contain',
     width: 26,
+    height: 26,
     aspectRatio: 0.96,
     marginVertical: 'auto',
   },

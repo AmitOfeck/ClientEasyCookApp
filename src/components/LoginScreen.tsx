@@ -1,8 +1,9 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { View, Text, ScrollView, StyleSheet } from 'react-native';
 import { InputField } from './InputField';
 import { ActionButton } from './ActionButton';
 import { SocialButton } from './SocialButton';
+import { GoogleSignin, statusCodes } from '@react-native-google-signin/google-signin';
 
 export const LoginScreen: React.FC = () => {
   const [email, setEmail] = useState('');
@@ -31,6 +32,39 @@ export const LoginScreen: React.FC = () => {
     }
   };
 
+  useEffect(() => {
+    GoogleSignin.configure({
+      webClientId: "34674964625-8e9fganpq1d6o2jh9952mrf7mn0hi48e.apps.googleusercontent.com",
+      offlineAccess: true, 
+      forceCodeForRefreshToken: true,
+    });
+  }, []);  
+
+  const signInWithGoogle = async () => {
+    try {
+      console.log("Signing in with Google1111");
+      await GoogleSignin.hasPlayServices();
+      console.log("Google Play Services are available");
+      const idToken = (await GoogleSignin.signIn()).data?.idToken;
+      console.log("Google ID Token:", idToken);
+      // שליחת ה-token לשרת שלך
+      const response = await fetch("http://10.0.2.2:3000/auth/google/login", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ token: idToken }),
+      });
+
+      const data = await response.json();
+      console.log("Server Response:", data);
+      
+    } catch (error: any) {
+      if (error.code === statusCodes.SIGN_IN_CANCELLED) {
+        console.log("User cancelled the login");
+      } else {
+        console.error("Google Sign-In Error:", error);
+      }
+    }
+  };
 
   return (
     <ScrollView contentContainerStyle={styles.scrollView}>
@@ -69,8 +103,12 @@ export const LoginScreen: React.FC = () => {
 
           <View style={styles.socialSignUpContainer}>
             <Text style={styles.socialSignUpText}>or sign up with</Text>
-
-
+            <View style={styles.socialButtonsContainer}>
+              <SocialButton
+                imageUrl="https://upload.wikimedia.org/wikipedia/commons/thumb/c/c1/Google_%22G%22_logo.svg/1200px-Google_%22G%22_logo.svg.png"
+                onPress={signInWithGoogle}
+              />
+            </View>
             <Text style={styles.signUpText}>
               Don't have an account? Sign Up
             </Text>
