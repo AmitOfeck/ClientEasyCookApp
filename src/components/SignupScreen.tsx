@@ -56,7 +56,6 @@ export const SignUp = () => {
       console.error("Error during registration:", error);
     }
   };
-
   return (
     <SafeAreaView style={styles.container}>
       <StatusBar barStyle="dark-content" />
@@ -94,7 +93,7 @@ export const SignUp = () => {
             control={control}
             name="address.city"
             render={({ field }) => (
-              <InputField label="City" value={field.value} onChange={field.onChange} error={errors.address?.city?.message} />
+              <InputField label="City" value={field.value || ""} onChange={field.onChange} error={errors.address?.city?.message} />
             )}
           />
 
@@ -102,7 +101,7 @@ export const SignUp = () => {
             control={control}
             name="address.street"
             render={({ field }) => (
-              <InputField label="Street" value={field.value} onChange={field.onChange} error={errors.address?.street?.message} />
+              <InputField label="Street" value={field.value || ""} onChange={field.onChange} error={errors.address?.street?.message} />
             )}
           />
 
@@ -112,7 +111,7 @@ export const SignUp = () => {
             render={({ field }) => (
               <InputField
                 label="Building"
-                value={field.value?.toString()}
+                value={field.value?.toString() || ""}
                 onChange={(text) => field.onChange(text ? parseInt(text) : "")}
                 error={errors.address?.building?.message}
                 keyboardType="numeric"
