@@ -4,31 +4,20 @@ import { InputField } from './InputField';
 import { ActionButton } from './ActionButton';
 import { SocialButton } from './SocialButton';
 import { GoogleSignin, statusCodes } from '@react-native-google-signin/google-signin';
+import { googleSignIn, login, saveTokens } from '../services/auth_service';
 
 export const LoginScreen: React.FC = () => {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
 
   const handleLogin = async () => {
-
     try {
-      const response = await fetch("http://10.0.2.2:3000/auth/login", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({email: email, password: password}),
-      });
-  
-      const data = await response.json();
-  
-      if (response.ok) {
-        console.log("Registration successful:", data);
-      } else {
-        console.error("Registration failed:", data);
-      }
+      const response = await login({ email, password }).request;
+      saveTokens(response.data);
+      console.log("LogIn successful:", response.data);
+      // todo: navigate to home screen
     } catch (error) {
-      console.error("Error during registration:", error);
+      console.error("Error during LogIn:", error);
     }
   };
 
@@ -42,21 +31,18 @@ export const LoginScreen: React.FC = () => {
 
   const signInWithGoogle = async () => {
     try {
-      console.log("Signing in with Google1111");
       await GoogleSignin.hasPlayServices();
-      console.log("Google Play Services are available");
       const idToken = (await GoogleSignin.signIn()).data?.idToken;
-      console.log("Google ID Token:", idToken);
-      // שליחת ה-token לשרת שלך
-      const response = await fetch("http://10.0.2.2:3000/auth/google/login", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ token: idToken }),
-      });
 
-      const data = await response.json();
-      console.log("Server Response:", data);
-      
+      if (!idToken) {
+        console.error("Google Sign-In Error");
+        console.log("Google Sign-In Error - No idToken");
+        return;
+      }
+      const response = await googleSignIn(idToken).request;
+      saveTokens(response.data);
+      // todo: navigate to home screen
+      console.log("Google Sign-In successful:", response.data);      
     } catch (error: any) {
       if (error.code === statusCodes.SIGN_IN_CANCELLED) {
         console.log("User cancelled the login");

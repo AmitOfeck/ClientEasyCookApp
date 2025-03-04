@@ -5,6 +5,7 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { launchImageLibrary } from "react-native-image-picker";
 import { InputField } from "./InputField";
 import { signUpSchema } from "../utils/validations";
+import { login, register, saveTokens } from "../services/auth_service";
 
 export const SignUp = () => {
   const {
@@ -45,14 +46,12 @@ export const SignUp = () => {
         });
       }
 
-      const response = await fetch("http://10.0.2.2:3000/user/register", {
-        method: "POST",
-        headers: { "Content-Type": "multipart/form-data" },
-        body: form,
-      });
-
-      const data = await response.json();
-      console.log(response.ok ? "Registration successful:" : "Registration failed:", data);
+      const response = await register(form).request;
+      console.log("Registration successful", response.data);
+      const loginResponse = await login({ email: formData.email, password: formData.password }).request;
+      saveTokens(loginResponse.data);
+      console.log("LogIn successful", loginResponse.data);
+      // todo: navigate to home screen
     } catch (error) {
       console.error("Error during registration:", error);
     }
