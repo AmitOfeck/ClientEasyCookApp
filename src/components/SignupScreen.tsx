@@ -6,8 +6,9 @@ import { launchImageLibrary } from "react-native-image-picker";
 import { InputField } from "./InputField";
 import { signUpSchema } from "../utils/validations";
 import { login, register, saveTokens } from "../services/auth_service";
+import { NavigationProp } from '@react-navigation/native';
 
-export const SignUp = () => {
+export const SignUp = ({ navigation }: { navigation: NavigationProp<any> }) => {
   const {
     control,
     handleSubmit,
@@ -51,7 +52,7 @@ export const SignUp = () => {
       const loginResponse = await login({ email: formData.email, password: formData.password }).request;
       saveTokens(loginResponse.data);
       console.log("LogIn successful", loginResponse.data);
-      // todo: navigate to home screen
+      navigation.navigate("Home");
     } catch (error) {
       console.error("Error during registration:", error);
     }

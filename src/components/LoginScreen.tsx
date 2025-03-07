@@ -5,8 +5,9 @@ import { ActionButton } from './ActionButton';
 import { SocialButton } from './SocialButton';
 import { GoogleSignin, statusCodes } from '@react-native-google-signin/google-signin';
 import { googleSignIn, login, saveTokens } from '../services/auth_service';
+import { NavigationProp } from '@react-navigation/native';
 
-export const LoginScreen: React.FC = () => {
+export const LoginScreen = ({ navigation }: { navigation: NavigationProp<any> }) => {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
 
@@ -15,7 +16,7 @@ export const LoginScreen: React.FC = () => {
       const response = await login({ email, password }).request;
       saveTokens(response.data);
       console.log("LogIn successful:", response.data);
-      // todo: navigate to home screen
+      navigation.navigate("Home");
     } catch (error) {
       console.error("Error during LogIn:", error);
     }
@@ -41,7 +42,7 @@ export const LoginScreen: React.FC = () => {
       }
       const response = await googleSignIn(idToken).request;
       saveTokens(response.data);
-      // todo: navigate to home screen
+      navigation.navigate("Home");
       console.log("Google Sign-In successful:", response.data);      
     } catch (error: any) {
       if (error.code === statusCodes.SIGN_IN_CANCELLED) {
@@ -81,12 +82,10 @@ export const LoginScreen: React.FC = () => {
 
         <View style={styles.buttonsContainer}>
           <ActionButton label="Log In" onPress={handleLogin} />
-          <ActionButton label="Sign up" onPress={() => {}} />
+          <ActionButton label="Sign up" onPress={() => {navigation.navigate("SignUp");}} />
         </View>
 
         <View style={styles.forgotPasswordContainer}>
-          <Text style={styles.forgotPasswordText}>Forgot Password?</Text>
-
           <View style={styles.socialSignUpContainer}>
             <Text style={styles.socialSignUpText}>or sign up with</Text>
             <View style={styles.socialButtonsContainer}>
@@ -95,9 +94,6 @@ export const LoginScreen: React.FC = () => {
                 onPress={signInWithGoogle}
               />
             </View>
-            <Text style={styles.signUpText}>
-              Don't have an account? Sign Up
-            </Text>
           </View>
         </View>
       </View>

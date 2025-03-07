@@ -1,10 +1,26 @@
 import { StyleSheet, Platform } from 'react-native';
 import { SignUp } from './components/SignupScreen';
 import { LoginScreen } from './components/LoginScreen';
+import HomeScreen from './components/HomeScreen';
+import { NavigationContainer } from '@react-navigation/native';
+import { createStackNavigator } from '@react-navigation/stack';
+import { enableScreens } from 'react-native-screens';
 
-export default function HomeScreen() {
+console.log('createStackNavigator', createStackNavigator);
+
+enableScreens();
+
+const Stack = createStackNavigator();
+
+export default function App() {
   return (
-    <SignUp/>
+    <NavigationContainer>
+      <Stack.Navigator>
+      <Stack.Screen name="Login" component={LoginScreen} />
+      <Stack.Screen name="SignUp" component={SignUp} />
+        <Stack.Screen name="Home" component={HomeScreen} />
+      </Stack.Navigator>
+    </NavigationContainer>
   );
 }
 
