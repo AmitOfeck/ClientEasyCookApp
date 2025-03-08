@@ -13,7 +13,7 @@ export const signUpSchema = z.object({
     street: z.string()
       .regex(/^[A-Za-z\u0590-\u05FF\s]*$/, "Only letters allowed") // Allow empty string
       .optional(),
-    building: z.preprocess((val) => val === "" ? undefined : Number(val), 
+    building: z.preprocess((val) => val === "" || val === undefined ? undefined : Number(val), 
       z.number().min(1, "Building must be a number greater than 0").optional()
     ),
   }).superRefine((data, ctx) => {
