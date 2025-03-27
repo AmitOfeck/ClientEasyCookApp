@@ -18,6 +18,7 @@ export const LoginScreen = ({ navigation }: { navigation: NavigationProp<any> })
       console.log("LogIn successful:", response.data);
       navigation.navigate("Home");
     } catch (error) {
+      
       console.error("Error during LogIn:", error);
     }
   };
