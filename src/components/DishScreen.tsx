@@ -76,6 +76,16 @@ const DishScreen: React.FC<{ navigation: any }> = ({ navigation }) => {
         }
     };
 
+    const handleAddToShoppingList = async (dishId: string) => {
+        try {
+          console.log("Adding dish to shopping list:", dishId);
+          Alert.alert("Added", "Dish added to your shopping list!");
+        } catch (error) {
+          console.error("Failed to add to shopping list:", error);
+          Alert.alert("Error", "Could not add the dish to your shopping list.");
+        }
+      };
+
     return (
         <View style={styles.container}>
             <ScrollView contentContainerStyle={[styles.scrollViewContent, { paddingBottom: 80 }]}>
@@ -268,6 +278,10 @@ const DishScreen: React.FC<{ navigation: any }> = ({ navigation }) => {
                                 onPress={() => handleDeleteDish(dish._id)}
                             >
                                 <Icon name="delete" size={24} color="red" style={styles.icon} />
+                            </TouchableOpacity>
+
+                            <TouchableOpacity onPress={() => handleAddToShoppingList(dish._id)}>
+                                <Icon name="clipboard-list" size={24} color="#1E3A8A" style={styles.icon} />
                             </TouchableOpacity>
                         </View>
                                                 </View>
