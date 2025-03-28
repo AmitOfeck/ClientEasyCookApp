@@ -16,6 +16,9 @@ import Icon from 'react-native-vector-icons/MaterialCommunityIcons';
 import { deleteDish, getDishes } from "../services/dish_service";
 import { IDish } from "../services/intefaces/dish";
 import dishImage from '../assets/dish.png';
+import AsyncStorage from '@react-native-async-storage/async-storage';
+import { addDishesToShoppingList } from '../services/shopping_list_service';
+
 
 const cuisines = ["Italian", "Asian", "French", "Indian", "Arabic", "Spanish"];
 const limitations = ["Kosher", "Gluten Free", "Vegetarian", "Vegan"];
@@ -78,11 +81,22 @@ const DishScreen: React.FC<{ navigation: any }> = ({ navigation }) => {
 
     const handleAddToShoppingList = async (dishId: string) => {
         try {
-          console.log("Adding dish to shopping list:", dishId);
-          Alert.alert("Added", "Dish added to your shopping list!");
+          const accessToken = await AsyncStorage.getItem('accessToken');
+      
+          if (!accessToken) {
+            Alert.alert("Error", "Authentication token missing.");
+            return;
+          }
+      
+          const { request } = addDishesToShoppingList([dishId], accessToken);
+          const response = await request;
+      
+          console.log("Added dish to shopping list:", response.data);
+          Alert.alert("Success", "Dish added to your shopping list!");
+      
         } catch (error) {
           console.error("Failed to add to shopping list:", error);
-          Alert.alert("Error", "Could not add the dish to your shopping list.");
+          Alert.alert("Error", "Could not add dish to shopping list.");
         }
       };
 
