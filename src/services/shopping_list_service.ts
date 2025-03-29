@@ -1,6 +1,22 @@
 import apiClient from './api-client';
 import axios from 'axios';
 
+const addShoppingItem = (name: string, unit: string, quantity: number) => {
+    return apiClient.post('/shopping-list/add', { name, unit, quantity });
+  };
+  
+  const updateItemQuantity = (itemName: string, unit: string, delta: number) => {
+    return apiClient.put('/shopping-list/update-quantity', { itemName, unit, delta });
+  };
+  
+  const removeShoppingItem = (itemName: string) => {
+    return apiClient.put('/shopping-list/remove', { itemName });
+  };
+  
+  const clearShoppingList = () => {
+    return apiClient.put('/shopping-list/clear');
+  };
+  
 
 const addDishesToShoppingList = (dishIds: string[], accessToken: string) => {
     const abortController = new AbortController();
@@ -41,4 +57,4 @@ const addDishesToShoppingList = (dishIds: string[], accessToken: string) => {
 //   };
   
 
-export { addDishesToShoppingList };
+export { addDishesToShoppingList, addShoppingItem, updateItemQuantity, removeShoppingItem, clearShoppingList};

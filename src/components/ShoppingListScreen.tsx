@@ -7,10 +7,16 @@ import {
   TouchableOpacity,
   ActivityIndicator,
   RefreshControl,
+  Alert,
 } from 'react-native';
 import Icon from 'react-native-vector-icons/MaterialCommunityIcons';
 import { useFocusEffect } from '@react-navigation/native';
 import apiClient from '../services/api-client';
+import {
+  updateItemQuantity,
+  removeShoppingItem,
+  clearShoppingList,
+} from '../services/shopping_list_service';
 
 type ShoppingItem = {
   name: string;
@@ -42,20 +48,57 @@ const ShoppingListScreen: React.FC = () => {
     }, [])
   );
 
-  const handleIncrement = (index: number) => {
-    const updated = [...items];
-    updated[index].quantity += 1;
-    setItems(updated);
-    // TODO: add real update to server
+  const handleIncrement = async (index: number) => {
+    const item = items[index];
+    try {
+      await updateItemQuantity(item.name, item.unit, 1);
+      fetchShoppingList();
+    } catch (error) {
+      console.error('Failed to increment quantity:', error);
+    }
   };
 
-  const handleDecrement = (index: number) => {
-    const updated = [...items];
-    if (updated[index].quantity > 1) {
-      updated[index].quantity -= 1;
-      setItems(updated);
-      // TODO: add real update to server
+  const handleDecrement = async (index: number) => {
+    const item = items[index];
+    if (item.quantity <= 1) return;
+    try {
+      await updateItemQuantity(item.name, item.unit, -1);
+      fetchShoppingList();
+    } catch (error) {
+      console.error('Failed to decrement quantity:', error);
     }
+  };
+
+  const handleRemove = async (index: number) => {
+    const item = items[index];
+    try {
+      await removeShoppingItem(item.name);
+      fetchShoppingList();
+    } catch (error) {
+      console.error('Failed to remove item:', error);
+    }
+  };
+
+  const handleClearList = () => {
+    Alert.alert(
+      'Are you sure?',
+      'This will remove all items from your shopping list.',
+      [
+        { text: 'Cancel', style: 'cancel' },
+        {
+          text: 'Yes, clear it',
+          style: 'destructive',
+          onPress: async () => {
+            try {
+              await clearShoppingList();
+              fetchShoppingList();
+            } catch (error) {
+              console.error('Failed to clear list:', error);
+            }
+          },
+        },
+      ]
+    );
   };
 
   const onRefresh = () => {
@@ -78,6 +121,10 @@ const ShoppingListScreen: React.FC = () => {
         <TouchableOpacity onPress={() => handleIncrement(index)} style={styles.circleButton}>
           <Icon name="plus" size={18} color="#1E3A8A" />
         </TouchableOpacity>
+
+        <TouchableOpacity onPress={() => handleRemove(index)} style={styles.removeButton}>
+          <Icon name="trash-can-outline" size={20} color="red" />
+        </TouchableOpacity>
       </View>
     </View>
   );
@@ -95,12 +142,19 @@ const ShoppingListScreen: React.FC = () => {
           renderItem={renderItem}
           contentContainerStyle={styles.list}
           refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} />}
+          ListFooterComponent={
+            <View style={styles.buttonContainer}>
+              <TouchableOpacity style={styles.clearButton} onPress={handleClearList}>
+                <Text style={styles.clearButtonText}>Clear List</Text>
+              </TouchableOpacity>
+
+              <TouchableOpacity style={styles.cartButton}>
+                <Text style={styles.cartButtonText}>GO TO CART</Text>
+              </TouchableOpacity>
+            </View>
+          }
         />
       )}
-
-      <TouchableOpacity style={styles.button}>
-        <Text style={styles.buttonText}>GO TO CART</Text>
-      </TouchableOpacity>
     </View>
   );
 };
@@ -122,7 +176,7 @@ const styles = StyleSheet.create({
     marginBottom: 20,
   },
   list: {
-    paddingBottom: 120,
+    paddingBottom: 100,
   },
   itemCard: {
     backgroundColor: '#FAFAFA',
@@ -145,7 +199,7 @@ const styles = StyleSheet.create({
   controls: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 12,
+    gap: 10,
   },
   quantityText: {
     fontSize: 15,
@@ -162,17 +216,37 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
   },
-  button: {
+  removeButton: {
+    marginLeft: 8,
+  },
+  buttonContainer: {
+    marginTop: 20,
+    paddingBottom: 100,
+    alignItems: 'center',
+    gap: 12,
+  },
+  clearButton: {
+    backgroundColor: '#FFE4E1',
+    paddingVertical: 12,
+    paddingHorizontal: 30,
+    borderRadius: 25,
+    alignItems: 'center',
+    width: '60%',
+  },
+  clearButtonText: {
+    color: '#D32F2F',
+    fontWeight: 'bold',
+    fontSize: 15,
+  },
+  cartButton: {
     backgroundColor: '#1E3A8A',
     paddingVertical: 14,
+    paddingHorizontal: 40,
     borderRadius: 30,
     alignItems: 'center',
-    alignSelf: 'center',
-    width: '70%',
-    position: 'absolute',
-    bottom: 30,
+    minWidth: '60%',
   },
-  buttonText: {
+  cartButtonText: {
     color: '#fff',
     fontWeight: 'bold',
     fontSize: 16,
