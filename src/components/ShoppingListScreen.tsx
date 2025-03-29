@@ -1,24 +1,9 @@
 import React, { useState, useCallback } from 'react';
-import {
-  View,
-  Text,
-  StyleSheet,
-  FlatList,
-  TouchableOpacity,
-  ActivityIndicator,
-  RefreshControl,
-  TextInput,
-  Alert,
-} from 'react-native';
+import { View, Text, StyleSheet, FlatList, TouchableOpacity, ActivityIndicator, RefreshControl, TextInput, Alert,} from 'react-native';
 import Icon from 'react-native-vector-icons/MaterialCommunityIcons';
 import { useFocusEffect } from '@react-navigation/native';
 import apiClient from '../services/api-client';
-import {
-  updateItemQuantity,
-  removeShoppingItem,
-  clearShoppingList,
-  replaceShoppingItem,
-} from '../services/shopping_list_service';
+import { updateItemQuantity, removeShoppingItem, clearShoppingList, replaceShoppingItem, } from '../services/shopping_list_service';
 
 type ShoppingItem = {
   name: string;
@@ -42,7 +27,7 @@ const ShoppingListScreen: React.FC = () => {
       const response = await apiClient.get('/shopping-list');
       setItems(response.data.items);
     } catch (error) {
-      console.error('❌ Failed to fetch shopping list:', error);
+      console.error('Failed to fetch shopping list:', error);
     } finally {
       setLoading(false);
       setRefreshing(false);
@@ -222,7 +207,7 @@ const ShoppingListScreen: React.FC = () => {
                   }
 
                   try {
-                    await replaceShoppingItem(item.name, selectedUnit, newQuantity); // ✅ שימוש חדש
+                    await replaceShoppingItem(item.name, selectedUnit, newQuantity); 
                     setEditItemIndex(null);
                     fetchShoppingList();
                   } catch (error) {
@@ -242,7 +227,6 @@ const ShoppingListScreen: React.FC = () => {
 
 export default ShoppingListScreen;
 
-// styles - כמו קודם (לא שונה)
 const styles = StyleSheet.create({
   container: {
     flex: 1,
