@@ -10,7 +10,7 @@ apiClient.interceptors.request.use(
   async (config) => {
     const token = await AsyncStorage.getItem('accessToken');
     if (token) {
-      config.headers.Authorization = `Bearer ${token}`;
+      config.headers.Authorization = `${token}`; //amit removed the bearer
     }
     return config;
   },
@@ -33,7 +33,7 @@ apiClient.interceptors.response.use(
         const { data } = await refresh(refreshToken).request;
         await AsyncStorage.setItem('accessToken', data.accessToken);
         await AsyncStorage.setItem('refreshToken', data.refreshToken);
-        error.config.headers.Authorization = `Bearer ${data.accessToken}`;
+        error.config.headers.Authorization = `${data.accessToken}`; //amit removed the bearer
         return axios(error.config); 
       } catch (refreshError) {
         await AsyncStorage.removeItem('accessToken');

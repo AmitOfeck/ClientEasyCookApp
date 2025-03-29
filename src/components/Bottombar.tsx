@@ -4,6 +4,7 @@ import { View, StyleSheet, Platform } from "react-native";
 import Icon from "react-native-vector-icons/MaterialCommunityIcons";
 import HomeScreen from "./HomeScreen";
 import DishScreen from "./DishScreen";
+import ShoppingListScreen from "./ShoppingListScreen";
 
 type TabBarIconProps = {
   color: string;
@@ -23,8 +24,8 @@ const BottomBar: React.FC = () => {
             case "Home":
               iconName = "home-outline";
               break;
-            case "Chat":
-              iconName = "chat-outline";
+            case "Cart":
+              iconName = "cart-outline";
               break;
             case "Search":
               iconName = "magnify";
@@ -54,10 +55,10 @@ const BottomBar: React.FC = () => {
       })}
     >
       <Tab.Screen name="Home" component={HomeScreen} options={{ tabBarLabel: "Home" }} />
-      <Tab.Screen name="Chat" component={HomeScreen} options={{ tabBarLabel: "Chat" }} />
       <Tab.Screen name="Search" component={HomeScreen} options={{ tabBarLabel: "Search" }} />
       <Tab.Screen name="Dish" component={DishScreen} options={{ tabBarLabel: "Dish" }} />
       <Tab.Screen name="Location" component={HomeScreen} options={{ tabBarLabel: "Location" }} />
+      <Tab.Screen name="Cart" component={ShoppingListScreen} options={{ tabBarLabel: "Cart" }} />
     </Tab.Navigator>
   );
 };
