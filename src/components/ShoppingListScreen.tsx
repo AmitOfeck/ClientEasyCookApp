@@ -7,6 +7,7 @@ import {
   TouchableOpacity,
   ActivityIndicator,
   RefreshControl,
+  TextInput,
   Alert,
 } from 'react-native';
 import Icon from 'react-native-vector-icons/MaterialCommunityIcons';
@@ -16,6 +17,7 @@ import {
   updateItemQuantity,
   removeShoppingItem,
   clearShoppingList,
+  replaceShoppingItem,
 } from '../services/shopping_list_service';
 
 type ShoppingItem = {
@@ -28,6 +30,11 @@ const ShoppingListScreen: React.FC = () => {
   const [items, setItems] = useState<ShoppingItem[]>([]);
   const [loading, setLoading] = useState(false);
   const [refreshing, setRefreshing] = useState(false);
+
+  const [editItemIndex, setEditItemIndex] = useState<number | null>(null);
+  const [editedQuantity, setEditedQuantity] = useState<string>('0');
+  const [selectedUnit, setSelectedUnit] = useState<string>('gram');
+  const allowedUnits = ['gram', 'kg', 'ml', 'liter'];
 
   const fetchShoppingList = async () => {
     try {
@@ -106,6 +113,13 @@ const ShoppingListScreen: React.FC = () => {
     fetchShoppingList();
   };
 
+  const openEditModal = (index: number) => {
+    const item = items[index];
+    setEditedQuantity(item.quantity.toString());
+    setSelectedUnit(item.unit);
+    setEditItemIndex(index);
+  };
+
   const renderItem = ({ item, index }: { item: ShoppingItem; index: number }) => (
     <View style={styles.itemCard}>
       <Text style={styles.itemName}>{item.name}</Text>
@@ -114,9 +128,11 @@ const ShoppingListScreen: React.FC = () => {
           <Icon name="minus" size={18} color="#1E3A8A" />
         </TouchableOpacity>
 
-        <Text style={styles.quantityText}>
-          {item.quantity} {item.unit}
-        </Text>
+        <TouchableOpacity onPress={() => openEditModal(index)}>
+          <Text style={styles.quantityText}>
+            {item.quantity} {item.unit}
+          </Text>
+        </TouchableOpacity>
 
         <TouchableOpacity onPress={() => handleIncrement(index)} style={styles.circleButton}>
           <Icon name="plus" size={18} color="#1E3A8A" />
@@ -155,12 +171,78 @@ const ShoppingListScreen: React.FC = () => {
           }
         />
       )}
+
+      {editItemIndex !== null && (
+        <View style={styles.modalOverlay}>
+          <View style={styles.modalContent}>
+            <Text style={styles.modalTitle}>Edit Quantity</Text>
+
+            <TextInput
+              style={styles.modalInput}
+              keyboardType="numeric"
+              value={editedQuantity}
+              onChangeText={setEditedQuantity}
+            />
+
+            <View style={styles.unitSelector}>
+              {allowedUnits.map((unit) => (
+                <TouchableOpacity
+                  key={unit}
+                  style={[
+                    styles.unitButton,
+                    selectedUnit === unit && styles.unitButtonSelected,
+                  ]}
+                  onPress={() => setSelectedUnit(unit)}
+                >
+                  <Text
+                    style={[
+                      styles.unitButtonText,
+                      selectedUnit === unit && styles.unitButtonTextSelected,
+                    ]}
+                  >
+                    {unit}
+                  </Text>
+                </TouchableOpacity>
+              ))}
+            </View>
+
+            <View style={styles.modalActions}>
+              <TouchableOpacity onPress={() => setEditItemIndex(null)}>
+                <Text style={styles.cancelText}>Cancel</Text>
+              </TouchableOpacity>
+
+              <TouchableOpacity
+                onPress={async () => {
+                  const item = items[editItemIndex];
+                  const newQuantity = parseFloat(editedQuantity);
+
+                  if (isNaN(newQuantity) || newQuantity === item.quantity) {
+                    setEditItemIndex(null);
+                    return;
+                  }
+
+                  try {
+                    await replaceShoppingItem(item.name, selectedUnit, newQuantity); // ✅ שימוש חדש
+                    setEditItemIndex(null);
+                    fetchShoppingList();
+                  } catch (error) {
+                    console.error('Error replacing item:', error);
+                  }
+                }}
+              >
+                <Text style={styles.saveText}>Save</Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+        </View>
+      )}
     </View>
   );
 };
 
 export default ShoppingListScreen;
 
+// styles - כמו קודם (לא שונה)
 const styles = StyleSheet.create({
   container: {
     flex: 1,
@@ -250,5 +332,71 @@ const styles = StyleSheet.create({
     color: '#fff',
     fontWeight: 'bold',
     fontSize: 16,
+  },
+  modalOverlay: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+    backgroundColor: 'rgba(0,0,0,0.4)',
+    justifyContent: 'center',
+    alignItems: 'center',
+    zIndex: 999,
+  },
+  modalContent: {
+    backgroundColor: '#fff',
+    padding: 20,
+    borderRadius: 10,
+    width: '80%',
+  },
+  modalTitle: {
+    fontSize: 18,
+    fontWeight: 'bold',
+    marginBottom: 10,
+  },
+  modalInput: {
+    borderWidth: 1,
+    borderColor: '#ccc',
+    borderRadius: 8,
+    padding: 10,
+    marginBottom: 10,
+    textAlign: 'center',
+  },
+  unitSelector: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    justifyContent: 'center',
+    marginBottom: 10,
+  },
+  unitButton: {
+    borderWidth: 1,
+    borderColor: '#1E3A8A',
+    borderRadius: 20,
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    margin: 4,
+  },
+  unitButtonSelected: {
+    backgroundColor: '#1E3A8A',
+  },
+  unitButtonText: {
+    color: '#1E3A8A',
+  },
+  unitButtonTextSelected: {
+    color: '#fff',
+  },
+  modalActions: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    marginTop: 10,
+  },
+  cancelText: {
+    color: '#777',
+    fontWeight: 'bold',
+  },
+  saveText: {
+    color: '#1E3A8A',
+    fontWeight: 'bold',
   },
 });

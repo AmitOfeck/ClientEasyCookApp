@@ -16,6 +16,10 @@ const addShoppingItem = (name: string, unit: string, quantity: number) => {
   const clearShoppingList = () => {
     return apiClient.put('/shopping-list/clear');
   };
+
+  const replaceShoppingItem = (name: string, unit: string, quantity: number) => {
+    return apiClient.put('/shopping-list/replace', { name, unit, quantity });
+  };
   
 
 const addDishesToShoppingList = (dishIds: string[], accessToken: string) => {
@@ -57,4 +61,4 @@ const addDishesToShoppingList = (dishIds: string[], accessToken: string) => {
 //   };
   
 
-export { addDishesToShoppingList, addShoppingItem, updateItemQuantity, removeShoppingItem, clearShoppingList};
+export { addDishesToShoppingList, addShoppingItem, updateItemQuantity, removeShoppingItem, clearShoppingList , replaceShoppingItem};
