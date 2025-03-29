@@ -4,6 +4,7 @@ import { View, StyleSheet, Platform } from "react-native";
 import Icon from "react-native-vector-icons/MaterialCommunityIcons";
 import HomeScreen from "./HomeScreen";
 import DishScreen from "./DishScreen";
+import ShoppingListScreen from "./ShoppingListScreen";
 
 type TabBarIconProps = {
   color: string;
@@ -57,7 +58,7 @@ const BottomBar: React.FC = () => {
       <Tab.Screen name="Search" component={HomeScreen} options={{ tabBarLabel: "Search" }} />
       <Tab.Screen name="Dish" component={DishScreen} options={{ tabBarLabel: "Dish" }} />
       <Tab.Screen name="Location" component={HomeScreen} options={{ tabBarLabel: "Location" }} />
-      <Tab.Screen name="Cart" component={HomeScreen} options={{ tabBarLabel: "Cart" }} />
+      <Tab.Screen name="Cart" component={ShoppingListScreen} options={{ tabBarLabel: "Cart" }} />
     </Tab.Navigator>
   );
 };
