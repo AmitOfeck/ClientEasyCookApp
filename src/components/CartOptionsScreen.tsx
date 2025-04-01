@@ -1,24 +1,42 @@
-import React from 'react';
+import React, { useEffect, useState } from 'react';
 import { View, Text, StyleSheet, FlatList, TouchableOpacity } from 'react-native';
-
-const mockCarts = [
-  {
-    shoppingListId: '67e99907a238f5b5f1df858d',
-    superId: 'super-yuda-yehuda-hamacabi',
-    totalCost: 90.87,
-  },
-  {
-    shoppingListId: '1234567890',
-    superId: 'shufersal-ramat-hasharon',
-    totalCost: 85.4,
-  },
-];
+import { fetchBestCart } from '../services/cart_service';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 
 const CartOptionsScreen: React.FC<{ navigation: any }> = ({ navigation }) => {
+  const [supermarkets, setSupermarkets] = useState<
+    { superId: string; totalCost: number; products: any[] }[]
+  >([]);
+
+  useEffect(() => {
+    const getBestCart = async () => {
+      try {
+        const userId = await AsyncStorage.getItem('userId');
+        if (!userId) return;
+
+        const response = await fetchBestCart(userId);
+        const cart = response.data;
+        console.log('Cart from server:', cart);
+
+        setSupermarkets([
+          {
+            superId: cart.superId,
+            totalCost: cart.totalCost,
+            products: cart.products,
+          },
+        ]);
+      } catch (error) {
+        console.error('Failed to fetch cart:', error);
+      }
+    };
+
+    getBestCart();
+  }, []);
+
   const renderItem = ({ item }: any) => (
     <TouchableOpacity style={styles.card} onPress={() => {
-      // נעבור בהמשך למסך CartDetailScreen
       console.log("Selected super:", item.superId);
+      // בהמשך תוכל להוסיף ניווט למסך פירוט עגלה
     }}>
       <Text style={styles.superText}>{item.superId.replace(/-/g, ' ')}</Text>
       <Text style={styles.priceText}>Total: ₪{item.totalCost.toFixed(2)}</Text>
@@ -29,7 +47,7 @@ const CartOptionsScreen: React.FC<{ navigation: any }> = ({ navigation }) => {
     <View style={styles.container}>
       <Text style={styles.title}>🛒 Nearby Supermarkets</Text>
       <FlatList
-        data={mockCarts}
+        data={supermarkets}
         keyExtractor={(item) => item.superId}
         renderItem={renderItem}
         contentContainerStyle={{ paddingVertical: 16 }}
