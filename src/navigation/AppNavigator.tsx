@@ -7,8 +7,9 @@ import DishScreen from '../components/DishScreen';
 import DishCreateScreen from '../components/DishCreateScreen';
 import DishUpdateScreen from '../components/DishUpdateScreen';
 import DishDetailScreen from '../components/DishDetailScreen';
-import ShoppingListScreen from '../components/ShoppingListScreen'; 
+import SearchScreen from '../components/SearchScreen'; 
 
+// Define navigation type for TypeScript
 export type RootStackParamList = {
   Home: undefined;
   SignUp: undefined;
@@ -17,7 +18,7 @@ export type RootStackParamList = {
   DishCreate: undefined;
   DishUpdate: { dishId: string };
   DishDetail: { dishId: string };
-  ShoppingList?: undefined; 
+  Search: undefined;
 };
 
 const Stack = createStackNavigator<RootStackParamList>();
@@ -27,17 +28,17 @@ const AppNavigator: React.FC = () => {
     <Stack.Navigator
       initialRouteName="Login"
       screenOptions={{
-        headerShown: false,
+        headerShown: false, // Hide headers globally
       }}
     >
       <Stack.Screen name="Login" component={LoginScreen} />
       <Stack.Screen name="SignUp" component={SignUp} />
       <Stack.Screen name="Home" component={BottomBar} />
       <Stack.Screen name="Dish" component={DishScreen} />
-      <Stack.Screen name="DishCreate" component={DishCreateScreen} />
+      <Stack.Screen name="DishCreate" component={DishCreateScreen}  />
       <Stack.Screen name="DishUpdate" component={DishUpdateScreen} />
       <Stack.Screen name="DishDetail" component={DishDetailScreen} />
-      <Stack.Screen name="ShoppingList" component={ShoppingListScreen} />
+      <Stack.Screen name="Search" component={SearchScreen} />
     </Stack.Navigator>
   );
 };
