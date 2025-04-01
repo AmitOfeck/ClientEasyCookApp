@@ -7,7 +7,8 @@ import DishScreen from '../components/DishScreen';
 import DishCreateScreen from '../components/DishCreateScreen';
 import DishUpdateScreen from '../components/DishUpdateScreen';
 import DishDetailScreen from '../components/DishDetailScreen';
-import ShoppingListScreen from '../components/ShoppingListScreen'; 
+import ShoppingListScreen from '../components/ShoppingListScreen';
+import CartOptionsScreen from '../components/CartOptionsScreen';
 
 export type RootStackParamList = {
   Home: undefined;
@@ -17,10 +18,23 @@ export type RootStackParamList = {
   DishCreate: undefined;
   DishUpdate: { dishId: string };
   DishDetail: { dishId: string };
-  ShoppingList?: undefined; 
+  ShoppingList?: undefined;
+  CartOptions: undefined;
 };
 
 const Stack = createStackNavigator<RootStackParamList>();
+
+import { createStackNavigator as createNestedStackNavigator } from '@react-navigation/stack';
+
+const CartStack = createNestedStackNavigator();
+
+const CartStackScreen = () => (
+  <CartStack.Navigator screenOptions={{ headerShown: false }}>
+    <CartStack.Screen name="ShoppingList" component={ShoppingListScreen} />
+    <CartStack.Screen name="CartOptions" component={CartOptionsScreen} />
+  </CartStack.Navigator>
+);
+
 
 const AppNavigator: React.FC = () => {
   return (
@@ -37,9 +51,9 @@ const AppNavigator: React.FC = () => {
       <Stack.Screen name="DishCreate" component={DishCreateScreen} />
       <Stack.Screen name="DishUpdate" component={DishUpdateScreen} />
       <Stack.Screen name="DishDetail" component={DishDetailScreen} />
-      <Stack.Screen name="ShoppingList" component={ShoppingListScreen} />
     </Stack.Navigator>
   );
 };
 
+export { CartStackScreen }; 
 export default AppNavigator;
