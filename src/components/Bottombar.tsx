@@ -5,7 +5,7 @@ import Icon from "react-native-vector-icons/MaterialCommunityIcons";
 import HomeScreen from "./HomeScreen";
 import DishScreen from "./DishScreen";
 import ShoppingListScreen from "./ShoppingListScreen";
-import { CartStackScreen } from '../navigation/AppNavigator';
+import CartStackScreen from '../navigation/CartStackScreen'; 
 
 type TabBarIconProps = {
   color: string;

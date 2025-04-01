@@ -2,8 +2,16 @@ import React, { useEffect, useState } from 'react';
 import { View, Text, StyleSheet, FlatList, TouchableOpacity } from 'react-native';
 import { fetchBestCart } from '../services/cart_service';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import { StackNavigationProp } from '@react-navigation/stack';
+import { CartStackParamList } from '../navigation/CartStackScreen'; 
 
-const CartOptionsScreen: React.FC<{ navigation: any }> = ({ navigation }) => {
+type NavigationProp = StackNavigationProp<CartStackParamList, 'CartOptions'>;
+
+type Props = {
+  navigation: NavigationProp;
+};
+
+const CartOptionsScreen: React.FC<Props> = ({ navigation }) => {
   const [supermarkets, setSupermarkets] = useState<
     { superId: string; totalCost: number; products: any[] }[]
   >([]);
@@ -34,10 +42,17 @@ const CartOptionsScreen: React.FC<{ navigation: any }> = ({ navigation }) => {
   }, []);
 
   const renderItem = ({ item }: any) => (
-    <TouchableOpacity style={styles.card} onPress={() => {
-      console.log("Selected super:", item.superId);
-      // בהמשך תוכל להוסיף ניווט למסך פירוט עגלה
-    }}>
+    <TouchableOpacity
+      style={styles.card}
+      onPress={() => {
+        console.log("Selected super:", item.superId);
+        navigation.navigate('CartDetail', {
+          superId: item.superId,
+          totalCost: item.totalCost,
+          products: item.products,
+        });
+      }}
+    >
       <Text style={styles.superText}>{item.superId.replace(/-/g, ' ')}</Text>
       <Text style={styles.priceText}>Total: ₪{item.totalCost.toFixed(2)}</Text>
     </TouchableOpacity>
