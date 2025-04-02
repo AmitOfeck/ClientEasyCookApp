@@ -21,13 +21,12 @@ const BottomBar: React.FC = () => {
       screenOptions={({ route }) => ({
         tabBarIcon: ({ color, size }: TabBarIconProps) => {
           let iconName: string;
-          console.log(route.name, );
           switch (route.name) {
             case "Home":
               iconName = "home-outline";
               break;
-            case "Cart":
-              iconName = "cart-outline";
+            case "Chat":
+              iconName = "chat-outline";
               break;
             case "Search":
               iconName = "magnify";
