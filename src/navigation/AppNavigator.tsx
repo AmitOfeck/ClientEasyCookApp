@@ -16,6 +16,7 @@ export type RootStackParamList = {
   DishCreate: undefined;
   DishUpdate: { dishId: string };
   DishDetail: { dishId: string };
+  Search: undefined;
 };
 
 const Stack = createStackNavigator<RootStackParamList>();
