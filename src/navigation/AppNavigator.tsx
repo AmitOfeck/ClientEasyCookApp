@@ -27,7 +27,9 @@ const AppNavigator: React.FC = () => {
   return (
     <Stack.Navigator
       initialRouteName="Login"
-      screenOptions={{ headerShown: false }}
+      screenOptions={{
+        headerShown: false, // Hide headers globally
+      }}
     >
       <Stack.Screen name="Login" component={LoginScreen} />
       <Stack.Screen name="SignUp" component={SignUp} />
