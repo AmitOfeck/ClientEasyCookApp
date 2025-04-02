@@ -7,6 +7,7 @@ import DishScreen from '../components/DishScreen';
 import DishCreateScreen from '../components/DishCreateScreen';
 import DishUpdateScreen from '../components/DishUpdateScreen';
 import DishDetailScreen from '../components/DishDetailScreen';
+import SearchScreen from '../components/SearchScreen'; 
 
 export type RootStackParamList = {
   Home: undefined;
@@ -34,6 +35,7 @@ const AppNavigator: React.FC = () => {
       <Stack.Screen name="DishCreate" component={DishCreateScreen} />
       <Stack.Screen name="DishUpdate" component={DishUpdateScreen} />
       <Stack.Screen name="DishDetail" component={DishDetailScreen} />
+      <Stack.Screen name="Search" component={SearchScreen} />
     </Stack.Navigator>
   );
 };
