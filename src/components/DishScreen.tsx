@@ -18,11 +18,12 @@ import { IDish } from "../services/intefaces/dish";
 import dishImage from '../assets/dish.png';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { addDishesToShoppingList } from '../services/shopping_list_service';
+import { searchDish } from "../services/search_service";
 
 
-const cuisines = ["Italian", "Asian", "French", "Indian", "Arabic", "Spanish"];
-const limitations = ["Kosher", "Gluten Free", "Vegetarian", "Vegan"];
-const difficultyLevels = ["Easy", "Medium", "Expert", "Chef"];
+const cuisines = ["ITALIAN", "CHINESE", "INDIAN", "MEXICAN"];
+const limitations = ["VEGETARIAN", "VEGAN", "GLUTEN_FREE"];
+const difficultyLevels = ["EASY", "MEDIUM", "HARD"];
 
 const DishScreen: React.FC<{ navigation: any }> = ({ navigation }) => {
     const [showFilters, setShowFilters] = useState(false);
@@ -99,6 +100,31 @@ const DishScreen: React.FC<{ navigation: any }> = ({ navigation }) => {
           Alert.alert("Error", "Could not add dish to shopping list.");
         }
       };
+
+      const handleSearch = async () => {
+        setLoading(true);
+        try {
+            const { request } = searchDish({
+                cuisine: selectedCuisine,
+                limitation: selectedLimitation,
+                level: selectedDifficulty,
+                priceMin: parseFloat(priceMin),
+                priceMax: parseFloat(priceMax),
+            });
+    
+            const response = await request;
+            console.log(response, "response for search")
+            setDishes(response.data);
+            
+
+        } catch (error) {
+            console.error("Search failed:", error);
+            Alert.alert("Error", "Failed to fetch search results.");
+        } finally {
+            setShowFilters(false);
+            setLoading(false);
+        }
+    };
 
     return (
         <View style={styles.container}>
@@ -209,7 +235,7 @@ const DishScreen: React.FC<{ navigation: any }> = ({ navigation }) => {
 
                         {/* SEARCH BUTTON */}
                         <TouchableOpacity style={styles.searchButton}>
-                            <Text style={styles.searchButtonText}>Search</Text>
+                            <Text style={styles.searchButtonText} onPress={handleSearch}>Search</Text>
                         </TouchableOpacity>
                     </View>
                 )}
