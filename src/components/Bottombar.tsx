@@ -25,8 +25,8 @@ const BottomBar: React.FC = () => {
             case "Home":
               iconName = "home-outline";
               break;
-            case "Chat":
-              iconName = "chat-outline";
+            case "Cart":
+              iconName = "cart-outline";
               break;
             case "Search":
               iconName = "magnify";
