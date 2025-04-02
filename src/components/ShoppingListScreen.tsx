@@ -1,7 +1,7 @@
 import React, { useState, useCallback } from 'react';
 import { View, Text, StyleSheet, FlatList, TouchableOpacity, ActivityIndicator, RefreshControl, TextInput, Alert,} from 'react-native';
 import Icon from 'react-native-vector-icons/MaterialCommunityIcons';
-import { useFocusEffect } from '@react-navigation/native';
+import { useFocusEffect, useNavigation } from '@react-navigation/native';
 import apiClient from '../services/api-client';
 import { updateItemQuantity, removeShoppingItem, clearShoppingList, replaceShoppingItem, } from '../services/shopping_list_service';
 
@@ -11,7 +11,10 @@ type ShoppingItem = {
   quantity: number;
 };
 
+const allowedUnits = ['gram', 'kg', 'ml', 'liter'];
+
 const ShoppingListScreen: React.FC = () => {
+  const navigation = useNavigation();
   const [items, setItems] = useState<ShoppingItem[]>([]);
   const [loading, setLoading] = useState(false);
   const [refreshing, setRefreshing] = useState(false);
@@ -19,7 +22,6 @@ const ShoppingListScreen: React.FC = () => {
   const [editItemIndex, setEditItemIndex] = useState<number | null>(null);
   const [editedQuantity, setEditedQuantity] = useState<string>('0');
   const [selectedUnit, setSelectedUnit] = useState<string>('gram');
-  const allowedUnits = ['gram', 'kg', 'ml', 'liter'];
 
   const fetchShoppingList = async () => {
     try {
@@ -105,6 +107,10 @@ const ShoppingListScreen: React.FC = () => {
     setEditItemIndex(index);
   };
 
+  const handleGoToCart = () => {
+    navigation.navigate('CartOptions' as never);
+  };
+
   const renderItem = ({ item, index }: { item: ShoppingItem; index: number }) => (
     <View style={styles.itemCard}>
       <Text style={styles.itemName}>{item.name}</Text>
@@ -149,7 +155,7 @@ const ShoppingListScreen: React.FC = () => {
                 <Text style={styles.clearButtonText}>Clear List</Text>
               </TouchableOpacity>
 
-              <TouchableOpacity style={styles.cartButton}>
+              <TouchableOpacity style={styles.cartButton} onPress={handleGoToCart}>
                 <Text style={styles.cartButtonText}>GO TO CART</Text>
               </TouchableOpacity>
             </View>
@@ -200,14 +206,13 @@ const ShoppingListScreen: React.FC = () => {
                 onPress={async () => {
                   const item = items[editItemIndex];
                   const newQuantity = parseFloat(editedQuantity);
-
-                  if (isNaN(newQuantity) || newQuantity === item.quantity) {
-                    setEditItemIndex(null);
+                  if (isNaN(newQuantity) || newQuantity <= 0) {
+                    Alert.alert('Invalid quantity');
                     return;
                   }
 
                   try {
-                    await replaceShoppingItem(item.name, selectedUnit, newQuantity); 
+                    await replaceShoppingItem(item.name, selectedUnit, newQuantity);
                     setEditItemIndex(null);
                     fetchShoppingList();
                   } catch (error) {
@@ -319,10 +324,7 @@ const styles = StyleSheet.create({
   },
   modalOverlay: {
     position: 'absolute',
-    top: 0,
-    left: 0,
-    right: 0,
-    bottom: 0,
+    top: 0, left: 0, right: 0, bottom: 0,
     backgroundColor: 'rgba(0,0,0,0.4)',
     justifyContent: 'center',
     alignItems: 'center',
