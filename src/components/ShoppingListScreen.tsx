@@ -1,9 +1,9 @@
 import React, { useState, useCallback } from 'react';
-import { View, Text, StyleSheet, FlatList, TouchableOpacity, ActivityIndicator, RefreshControl, TextInput, Alert,} from 'react-native';
+import { View, Text, StyleSheet, FlatList, TouchableOpacity, ActivityIndicator, RefreshControl, TextInput, Alert } from 'react-native';
 import Icon from 'react-native-vector-icons/MaterialCommunityIcons';
 import { useFocusEffect, useNavigation } from '@react-navigation/native';
 import apiClient from '../services/api-client';
-import { updateItemQuantity, removeShoppingItem, clearShoppingList, replaceShoppingItem, } from '../services/shopping_list_service';
+import { updateItemQuantity, removeShoppingItem, clearShoppingList, replaceShoppingItem } from '../services/shopping_list_service';
 
 type ShoppingItem = {
   name: string;
@@ -11,11 +11,17 @@ type ShoppingItem = {
   quantity: number;
 };
 
+type PreparedDish = {
+  dishId: string;
+  count: number;
+};
+
 const allowedUnits = ['gram', 'kg', 'ml', 'liter'];
 
 const ShoppingListScreen: React.FC = () => {
   const navigation = useNavigation();
   const [items, setItems] = useState<ShoppingItem[]>([]);
+  const [preparedDishes, setPreparedDishes] = useState<PreparedDish[]>([]);
   const [loading, setLoading] = useState(false);
   const [refreshing, setRefreshing] = useState(false);
 
@@ -27,7 +33,18 @@ const ShoppingListScreen: React.FC = () => {
     try {
       setLoading(true);
       const response = await apiClient.get('/shopping-list');
-      setItems(response.data.items);
+      const { items, preparedDishes } = response.data;
+      setItems(items);
+
+      if (preparedDishes) {
+        const dishesArray = Object.entries(preparedDishes).map(([dishId, count]) => ({
+          dishId,
+          count: Number(count),
+        }));
+        setPreparedDishes(dishesArray);
+      } else {
+        setPreparedDishes([]);
+      }
     } catch (error) {
       console.error('Failed to fetch shopping list:', error);
     } finally {
@@ -42,7 +59,25 @@ const ShoppingListScreen: React.FC = () => {
     }, [])
   );
 
-  const handleIncrement = async (index: number) => {
+  const handleIncrementDish = async (dishId: string) => {
+    try {
+      await apiClient.post('/shopping-list/add-dishes', { dishIds: [dishId] });
+      fetchShoppingList();
+    } catch (error) {
+      console.error('Failed to increment dish count:', error);
+    }
+  };
+
+  const handleDecrementDish = async (dishId: string) => {
+    try {
+      await apiClient.put('/shopping-list/remove-dish', { dishId });
+      fetchShoppingList();
+    } catch (error) {
+      console.error('Failed to decrement dish count:', error);
+    }
+  };
+
+  const handleIncrementItem = async (index: number) => {
     const item = items[index];
     try {
       await updateItemQuantity(item.name, item.unit, 1);
@@ -52,7 +87,7 @@ const ShoppingListScreen: React.FC = () => {
     }
   };
 
-  const handleDecrement = async (index: number) => {
+  const handleDecrementItem = async (index: number) => {
     const item = items[index];
     if (item.quantity <= 1) return;
     try {
@@ -63,7 +98,7 @@ const ShoppingListScreen: React.FC = () => {
     }
   };
 
-  const handleRemove = async (index: number) => {
+  const handleRemoveItem = async (index: number) => {
     const item = items[index];
     try {
       await removeShoppingItem(item.name);
@@ -100,6 +135,10 @@ const ShoppingListScreen: React.FC = () => {
     fetchShoppingList();
   };
 
+  const handleGoToCart = () => {
+    navigation.navigate('CartOptions' as never);
+  };
+
   const openEditModal = (index: number) => {
     const item = items[index];
     setEditedQuantity(item.quantity.toString());
@@ -107,15 +146,28 @@ const ShoppingListScreen: React.FC = () => {
     setEditItemIndex(index);
   };
 
-  const handleGoToCart = () => {
-    navigation.navigate('CartOptions' as never);
-  };
+  const renderPreparedDish = ({ item }: { item: PreparedDish }) => (
+    <View style={styles.dishCard}>
+      <Text style={styles.itemName}>{item.dishId}</Text>
+      <View style={styles.controls}>
+        <TouchableOpacity onPress={() => handleDecrementDish(item.dishId)} style={styles.circleButton}>
+          <Icon name="minus" size={18} color="#1E3A8A" />
+        </TouchableOpacity>
+
+        <Text style={styles.quantityText}>{item.count}</Text>
+
+        <TouchableOpacity onPress={() => handleIncrementDish(item.dishId)} style={styles.circleButton}>
+          <Icon name="plus" size={18} color="#1E3A8A" />
+        </TouchableOpacity>
+      </View>
+    </View>
+  );
 
   const renderItem = ({ item, index }: { item: ShoppingItem; index: number }) => (
     <View style={styles.itemCard}>
       <Text style={styles.itemName}>{item.name}</Text>
       <View style={styles.controls}>
-        <TouchableOpacity onPress={() => handleDecrement(index)} style={styles.circleButton}>
+        <TouchableOpacity onPress={() => handleDecrementItem(index)} style={styles.circleButton}>
           <Icon name="minus" size={18} color="#1E3A8A" />
         </TouchableOpacity>
 
@@ -125,43 +177,58 @@ const ShoppingListScreen: React.FC = () => {
           </Text>
         </TouchableOpacity>
 
-        <TouchableOpacity onPress={() => handleIncrement(index)} style={styles.circleButton}>
+        <TouchableOpacity onPress={() => handleIncrementItem(index)} style={styles.circleButton}>
           <Icon name="plus" size={18} color="#1E3A8A" />
         </TouchableOpacity>
 
-        <TouchableOpacity onPress={() => handleRemove(index)} style={styles.removeButton}>
+        <TouchableOpacity onPress={() => handleRemoveItem(index)} style={styles.removeButton}>
           <Icon name="trash-can-outline" size={20} color="red" />
         </TouchableOpacity>
       </View>
     </View>
   );
 
+  if (loading) {
+    return (
+      <View style={styles.container}>
+        <ActivityIndicator size="large" color="#1E3A8A" style={{ marginTop: 30 }} />
+      </View>
+    );
+  }
+
   return (
     <View style={styles.container}>
-      <Text style={styles.header}>🧾 Shopping List</Text>
+      <Text style={styles.header}>🍽️ Prepared Dishes</Text>
 
-      {loading && !refreshing ? (
-        <ActivityIndicator size="large" color="#1E3A8A" style={{ marginTop: 30 }} />
-      ) : (
-        <FlatList
-          data={items}
-          keyExtractor={(item, index) => `${item.name}-${index}`}
-          renderItem={renderItem}
-          contentContainerStyle={styles.list}
-          refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} />}
-          ListFooterComponent={
-            <View style={styles.buttonContainer}>
-              <TouchableOpacity style={styles.clearButton} onPress={handleClearList}>
-                <Text style={styles.clearButtonText}>Clear List</Text>
-              </TouchableOpacity>
+      <FlatList
+        data={preparedDishes}
+        keyExtractor={(item) => item.dishId}
+        renderItem={renderPreparedDish}
+        contentContainerStyle={styles.list}
+        ListEmptyComponent={<Text style={styles.emptyText}>No dishes added yet.</Text>}
+      />
 
-              <TouchableOpacity style={styles.cartButton} onPress={handleGoToCart}>
-                <Text style={styles.cartButtonText}>GO TO CART</Text>
-              </TouchableOpacity>
-            </View>
-          }
-        />
-      )}
+      <Text style={[styles.header, { marginTop: 20 }]}>🧾 Shopping List</Text>
+
+      <FlatList
+        data={items}
+        keyExtractor={(item, index) => `${item.name}-${index}`}
+        renderItem={renderItem}
+        contentContainerStyle={styles.list}
+        refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} />}
+        ListEmptyComponent={<Text style={styles.emptyText}>Your shopping list is empty.</Text>}
+        ListFooterComponent={
+          <View style={styles.buttonContainer}>
+            <TouchableOpacity style={styles.clearButton} onPress={handleClearList}>
+              <Text style={styles.clearButtonText}>Clear List</Text>
+            </TouchableOpacity>
+
+            <TouchableOpacity style={styles.cartButton} onPress={handleGoToCart}>
+              <Text style={styles.cartButtonText}>GO TO CART</Text>
+            </TouchableOpacity>
+          </View>
+        }
+      />
 
       {editItemIndex !== null && (
         <View style={styles.modalOverlay}>
@@ -179,18 +246,10 @@ const ShoppingListScreen: React.FC = () => {
               {allowedUnits.map((unit) => (
                 <TouchableOpacity
                   key={unit}
-                  style={[
-                    styles.unitButton,
-                    selectedUnit === unit && styles.unitButtonSelected,
-                  ]}
+                  style={[styles.unitButton, selectedUnit === unit && styles.unitButtonSelected]}
                   onPress={() => setSelectedUnit(unit)}
                 >
-                  <Text
-                    style={[
-                      styles.unitButtonText,
-                      selectedUnit === unit && styles.unitButtonTextSelected,
-                    ]}
-                  >
+                  <Text style={[styles.unitButtonText, selectedUnit === unit && styles.unitButtonTextSelected]}>
                     {unit}
                   </Text>
                 </TouchableOpacity>
@@ -210,7 +269,6 @@ const ShoppingListScreen: React.FC = () => {
                     Alert.alert('Invalid quantity');
                     return;
                   }
-
                   try {
                     await replaceShoppingItem(item.name, selectedUnit, newQuantity);
                     setEditItemIndex(null);
@@ -244,7 +302,7 @@ const styles = StyleSheet.create({
     fontWeight: 'bold',
     alignSelf: 'center',
     color: '#1E3A8A',
-    marginBottom: 20,
+    marginBottom: 10,
   },
   list: {
     paddingBottom: 100,
@@ -257,6 +315,18 @@ const styles = StyleSheet.create({
     paddingVertical: 14,
     paddingHorizontal: 16,
     marginBottom: 12,
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+  },
+  dishCard: {
+    backgroundColor: '#E8F0FE',
+    borderRadius: 10,
+    borderWidth: 1,
+    borderColor: '#A0AEC0',
+    paddingVertical: 14,
+    paddingHorizontal: 16,
+    marginBottom: 10,
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
@@ -276,7 +346,7 @@ const styles = StyleSheet.create({
     fontSize: 15,
     fontWeight: '600',
     color: '#1E3A8A',
-    width: 80,
+    width: 50,
     textAlign: 'center',
   },
   circleButton: {
@@ -320,6 +390,12 @@ const styles = StyleSheet.create({
   cartButtonText: {
     color: '#fff',
     fontWeight: 'bold',
+    fontSize: 16,
+  },
+  emptyText: {
+    textAlign: 'center',
+    color: '#777',
+    marginTop: 20,
     fontSize: 16,
   },
   modalOverlay: {
