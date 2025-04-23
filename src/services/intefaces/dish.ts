@@ -41,6 +41,7 @@ export interface IDish {
     dishCalories: number;
     ingredientsCost: number;
     averageDishCost: number;
+    imageUrl: string;
     createdAt: string;
     updatedAt: string;
 }

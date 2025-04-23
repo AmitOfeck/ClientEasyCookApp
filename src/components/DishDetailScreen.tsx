@@ -59,7 +59,7 @@ const DishDetailScreen: React.FC<{ navigation: any, route: any }> = ({ navigatio
                 <Text style={styles.headerText}>{dish.name}</Text>
 
                 {/* Dish Image */}
-                <Image source={dishImage} style={styles.dishImage} />
+                <Image source={{ uri: dish.imageUrl }} style={styles.dishImage} />
 
                 <View style={styles.detailSection}>
                     <Text style={styles.label}>Cuisine:</Text>
