@@ -270,7 +270,7 @@ const DishScreen: React.FC<{ navigation: any }> = ({ navigation }) => {
                                     <View>
                                         {dishes.map((dish) => (
                                             <View key={dish._id} style={styles.trendingRecipe}>
-                                                <Image source={dishImage} style={styles.recipeImage} />
+                                                <Image source={{ uri: dish.imageUrl }} style={styles.recipeImage} />
                                                 <View style={styles.recipeInfo}>
                                                     {/* Dish Name */}
                                                     <Text style={styles.recipeTitle}>{dish.name}</Text>
@@ -279,7 +279,7 @@ const DishScreen: React.FC<{ navigation: any }> = ({ navigation }) => {
                                                     <Text style={styles.recipeDesc}>{dish.details || "No details available"}</Text>
 
                                                     <View style={styles.recipeDetails}>
-                                                        {/* Dish Level (difficulty) */}
+                                                        {/* Dish Levelr (difficulty) */}
                                                         <Text style={styles.recipeTime}>{dish.level}</Text>
 
                                                         {/* Calories */}
