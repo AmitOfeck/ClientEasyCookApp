@@ -84,8 +84,19 @@ const DishCreateScreen: React.FC<{ navigation: any }> = ({ navigation }) => {
     
             console.log("Dish created successfully:", response.data);
             Alert.alert("Success", "Dish created successfully!");
-            navigation.navigate("Dish");
-            // navigation.goBack();
+            navigation.reset({
+                index: 0,
+                routes: [
+                  {
+                    name: 'Home',
+                    state: {
+                      index: 0,
+                      routes: [{ name: 'Dish' }],   // ← bottom-tab route
+                    },
+                  },
+                ],
+              });
+            
         } catch (error) {
             console.error("Failed to create dish:", error);
             Alert.alert("Error", "Failed to create the dish. Please try again.");

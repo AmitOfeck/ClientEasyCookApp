@@ -247,12 +247,13 @@ const DishScreen: React.FC<{ navigation: any }> = ({ navigation }) => {
 
                 {!showFilters && (
                     <>
-                        <TouchableOpacity
+                        {/* <TouchableOpacity
                             style={styles.createDishButton}
                             onPress={() => navigation.navigate("DishCreate")}
                         >
                             <Text style={styles.createDishButtonText}>Create Dish</Text>
-                        </TouchableOpacity><View>
+                        </TouchableOpacity> */}
+                        <View>
                             {/* CATEGORY TABS */}
                             {/* <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.tabContainer}>
         {["Discover", "Recommended", "Easy", "Vegan"].map((tab, index) => (
