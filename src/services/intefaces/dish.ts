@@ -1,18 +1,14 @@
-// interfaces/dish.ts
-
 export enum Cuisine {
     ITALIAN = 'ITALIAN',
     CHINESE = 'CHINESE',
     INDIAN = 'INDIAN',
     MEXICAN = 'MEXICAN',
-    // Add more as needed
 }
 
 export enum Limitation {
     VEGETARIAN = 'VEGETARIAN',
     VEGAN = 'VEGAN',
     GLUTEN_FREE = 'GLUTEN_FREE',
-    // Add more as needed
 }
 
 export enum Level {
@@ -20,6 +16,8 @@ export enum Level {
     MEDIUM = 'MEDIUM',
     HARD = 'HARD',
 }
+
+export type VariantType = 'original' | 'healthy' | 'cheap';
 
 export interface IIngredient {
     name: string;
@@ -29,7 +27,7 @@ export interface IIngredient {
 }
 
 export interface IDish {
-    _id: string;  // MongoDB auto-generated ID field
+    _id: string;
     name: string;
     price: number;
     cuisine: Cuisine;
@@ -42,6 +40,7 @@ export interface IDish {
     ingredientsCost: number;
     averageDishCost: number;
     imageUrl: string;
+    variantType: VariantType;
     createdAt: string;
     updatedAt: string;
 }
