@@ -4,13 +4,16 @@ import { refresh } from './auth_service';
 
 const apiClient = axios.create({
   baseURL: 'http://10.0.2.2:3000',
+  headers: {
+    'Content-Type': 'application/json'
+  }
 });
 
 apiClient.interceptors.request.use(
   async (config) => {
     const token = await AsyncStorage.getItem('accessToken');
-    if (token) {
-      config.headers.Authorization = `${token}`;
+    if (token && config.headers) {
+      config.headers['Authorization'] = `Bearer ${token}`;
     }
     return config;
   },
@@ -28,13 +31,10 @@ apiClient.interceptors.response.use(
         await AsyncStorage.removeItem('userId');
         return Promise.reject(error);
       }
-
       try {
         const { data } = await refresh(refreshToken).request;
-        await AsyncStorage.setItem('accessToken', data.accessToken);
-        await AsyncStorage.setItem('refreshToken', data.refreshToken);
-        error.config.headers.Authorization = `Bearer ${data.accessToken}`;
-        return axios(error.config); 
+        error.config.headers['Authorization'] = `Bearer ${data.accessToken}`;
+        return apiClient(error.config);
       } catch (refreshError) {
         await AsyncStorage.removeItem('accessToken');
         await AsyncStorage.removeItem('refreshToken');
