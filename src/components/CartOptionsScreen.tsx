@@ -23,16 +23,10 @@ const CartOptionsScreen: React.FC<Props> = ({ navigation }) => {
         if (!userId) return;
 
         const response = await fetchBestCart(userId);
-        const cart = response.data;
-        console.log('Cart from server:', cart);
+        const carts = response.data;
+        console.log('Cart from server:', carts);
 
-        setSupermarkets([
-          {
-            superId: cart.superId,
-            totalCost: cart.totalCost,
-            products: cart.products,
-          },
-        ]);
+        setSupermarkets(carts);
       } catch (error) {
         console.error('Failed to fetch cart:', error);
       }
