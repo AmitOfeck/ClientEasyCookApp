@@ -1,5 +1,3 @@
-// navigation/CartStackScreen.tsx
-
 import React from 'react';
 import { createStackNavigator } from '@react-navigation/stack';
 import ShoppingListScreen from '../components/ShoppingListScreen';
@@ -8,12 +6,28 @@ import CartDetailScreen from '../components/CartDetailScreen';
 
 export type CartStackParamList = {
   ShoppingList: undefined;
-  CartOptions: undefined;
+  CartOptions: {
+    cartOptions: {
+      _id: string;
+      superId: string;
+      totalCost: number;
+      products: {
+        itemId: string;
+        name: string;
+        unit_info: string;
+        image_url: string;
+        price: number;
+        quantity: number;
+      }[];
+    }[];
+  };
   CartDetail: {
     products: {
       itemId: string;
       quantity: number;
       price: number;
+      name: string;
+      image_url: string;
     }[];
     superId: string;
     totalCost: number;

@@ -1,9 +1,22 @@
 import React, { useState, useCallback } from 'react';
-import { View, Text, StyleSheet, FlatList, TouchableOpacity, ActivityIndicator, RefreshControl, TextInput, Alert } from 'react-native';
+import { View, Text, StyleSheet, FlatList, TouchableOpacity,
+  ActivityIndicator,
+  RefreshControl,
+  TextInput,
+  Alert,
+} from 'react-native';
 import Icon from 'react-native-vector-icons/MaterialCommunityIcons';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useFocusEffect, useNavigation } from '@react-navigation/native';
 import apiClient from '../services/api-client';
-import { updateItemQuantity, removeShoppingItem, clearShoppingList, replaceShoppingItem } from '../services/shopping_list_service';
+import {
+  updateItemQuantity,
+  removeShoppingItem,
+  clearShoppingList,
+  replaceShoppingItem,
+} from '../services/shopping_list_service';
+import { StackNavigationProp } from '@react-navigation/stack';
+import { CartStackParamList } from '../navigation/CartStackScreen';
 
 type ShoppingItem = {
   name: string;
@@ -16,15 +29,16 @@ type PreparedDish = {
   count: number;
 };
 
+type Navigation = StackNavigationProp<CartStackParamList, 'ShoppingList'>;
+const navigation = useNavigation<Navigation>();
+
 const allowedUnits = ['gram', 'kg', 'ml', 'liter'];
 
 const ShoppingListScreen: React.FC = () => {
-  const navigation = useNavigation();
   const [items, setItems] = useState<ShoppingItem[]>([]);
   const [preparedDishes, setPreparedDishes] = useState<PreparedDish[]>([]);
   const [loading, setLoading] = useState(false);
   const [refreshing, setRefreshing] = useState(false);
-
   const [editItemIndex, setEditItemIndex] = useState<number | null>(null);
   const [editedQuantity, setEditedQuantity] = useState<string>('0');
   const [selectedUnit, setSelectedUnit] = useState<string>('gram');
@@ -58,6 +72,26 @@ const ShoppingListScreen: React.FC = () => {
       fetchShoppingList();
     }, [])
   );
+
+  const handleGoToCart = async () => {
+    try {
+      const userId = await AsyncStorage.getItem('userId');
+      if (!userId) throw new Error('User ID not found');
+
+      const response = await apiClient.get(`/cart/bestCart/${userId}`);
+      const cartOptions = response.data;
+
+      if (!Array.isArray(cartOptions) || cartOptions.length === 0) {
+        Alert.alert('No carts found', 'Could not find any cart options for your shopping list.');
+        return;
+      }
+
+      navigation.navigate('CartOptions', { cartOptions });
+    } catch (error) {
+      console.error('Failed to fetch cart options from Wolt:', error);
+      Alert.alert('Error', 'Failed to get cart options. Please try again.');
+    }
+  };
 
   const handleIncrementDish = async (dishId: string) => {
     try {
@@ -109,34 +143,21 @@ const ShoppingListScreen: React.FC = () => {
   };
 
   const handleClearList = () => {
-    Alert.alert(
-      'Are you sure?',
-      'This will remove all items from your shopping list.',
-      [
-        { text: 'Cancel', style: 'cancel' },
-        {
-          text: 'Yes, clear it',
-          style: 'destructive',
-          onPress: async () => {
-            try {
-              await clearShoppingList();
-              fetchShoppingList();
-            } catch (error) {
-              console.error('Failed to clear list:', error);
-            }
-          },
+    Alert.alert('Are you sure?', 'This will remove all items from your shopping list.', [
+      { text: 'Cancel', style: 'cancel' },
+      {
+        text: 'Yes, clear it',
+        style: 'destructive',
+        onPress: async () => {
+          try {
+            await clearShoppingList();
+            fetchShoppingList();
+          } catch (error) {
+            console.error('Failed to clear list:', error);
+          }
         },
-      ]
-    );
-  };
-
-  const onRefresh = () => {
-    setRefreshing(true);
-    fetchShoppingList();
-  };
-
-  const handleGoToCart = () => {
-    navigation.navigate('CartOptions' as never);
+      },
+    ]);
   };
 
   const openEditModal = (index: number) => {
@@ -153,9 +174,7 @@ const ShoppingListScreen: React.FC = () => {
         <TouchableOpacity onPress={() => handleDecrementDish(item.dishId)} style={styles.circleButton}>
           <Icon name="minus" size={18} color="#1E3A8A" />
         </TouchableOpacity>
-
         <Text style={styles.quantityText}>{item.count}</Text>
-
         <TouchableOpacity onPress={() => handleIncrementDish(item.dishId)} style={styles.circleButton}>
           <Icon name="plus" size={18} color="#1E3A8A" />
         </TouchableOpacity>
@@ -215,7 +234,7 @@ const ShoppingListScreen: React.FC = () => {
         keyExtractor={(item, index) => `${item.name}-${index}`}
         renderItem={renderItem}
         contentContainerStyle={styles.list}
-        refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} />}
+        refreshControl={<RefreshControl refreshing={refreshing} onRefresh={fetchShoppingList} />}
         ListEmptyComponent={<Text style={styles.emptyText}>Your shopping list is empty.</Text>}
         ListFooterComponent={
           <View style={styles.buttonContainer}>

@@ -1,5 +1,5 @@
 import React from 'react';
-import { View, Text, FlatList, StyleSheet } from 'react-native';
+import { View, Text, FlatList, StyleSheet, Image } from 'react-native';
 import { StackScreenProps } from '@react-navigation/stack';
 import { CartStackParamList } from '../navigation/CartStackScreen';
 
@@ -10,16 +10,19 @@ const CartDetailScreen: React.FC<Props> = ({ route }) => {
 
   const renderItem = ({ item }: { item: typeof products[0] }) => (
     <View style={styles.itemRow}>
-      <Text style={styles.itemText}>🧾 Product ID: {item.itemId}</Text>
-      <Text style={styles.itemText}>Quantity: {item.quantity}</Text>
-      <Text style={styles.itemText}>Price: ₪{item.price.toFixed(2)}</Text>
+      <Image source={{ uri: item.image_url }} style={styles.image} />
+      <View style={styles.itemInfo}>
+        <Text style={styles.itemName}>{item.name}</Text>
+        <Text style={styles.subText}>🧮 Quantity: {item.quantity}</Text>
+        <Text style={styles.subText}>💸 Price: ₪{item.price.toFixed(2)}</Text>
+      </View>
     </View>
   );
 
   return (
     <View style={styles.container}>
       <Text style={styles.header}>🛒 {superId.replace(/-/g, ' ')}</Text>
-      <Text style={styles.totalText}>Total: ₪{totalCost.toFixed(2)}</Text>
+      <Text style={styles.totalText}>Total Cost: ₪{totalCost.toFixed(2)}</Text>
       <FlatList
         data={products}
         keyExtractor={(item) => item.itemId}
@@ -35,35 +38,57 @@ export default CartDetailScreen;
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#F5F7FB',
+    backgroundColor: '#F0F4F8',
     paddingTop: 50,
     paddingHorizontal: 20,
   },
   header: {
-    fontSize: 22,
+    fontSize: 24,
     fontWeight: 'bold',
     color: '#1E3A8A',
-    marginBottom: 10,
+    marginBottom: 8,
     textAlign: 'center',
   },
   totalText: {
     fontSize: 16,
     fontWeight: '600',
-    color: '#444',
+    color: '#333',
     marginBottom: 20,
     textAlign: 'center',
   },
   itemRow: {
+    flexDirection: 'row',
+    backgroundColor: '#FFFFFF',
     padding: 14,
-    backgroundColor: '#fff',
-    marginBottom: 10,
-    borderRadius: 8,
+    marginBottom: 12,
+    borderRadius: 12,
     borderWidth: 1,
-    borderColor: '#ddd',
+    borderColor: '#E0E0E0',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.1,
+    shadowRadius: 2,
+    elevation: 2,
   },
-  itemText: {
-    fontSize: 14,
+  image: {
+    width: 60,
+    height: 60,
+    borderRadius: 8,
+    resizeMode: 'cover',
+  },
+  itemInfo: {
+    flex: 1,
+    marginLeft: 12,
+    justifyContent: 'center',
+  },
+  itemName: {
+    fontSize: 15,
+    fontWeight: '600',
+    color: '#1E3A8A',
     marginBottom: 4,
-    color: '#333',
+  },
+  subText: {
+    fontSize: 13,
+    color: '#555',
   },
 });
