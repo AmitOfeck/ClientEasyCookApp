@@ -30,11 +30,11 @@ type PreparedDish = {
 };
 
 type Navigation = StackNavigationProp<CartStackParamList, 'ShoppingList'>;
-const navigation = useNavigation<Navigation>();
 
 const allowedUnits = ['gram', 'kg', 'ml', 'liter'];
 
 const ShoppingListScreen: React.FC = () => {
+  const navigation = useNavigation<Navigation>();
   const [items, setItems] = useState<ShoppingItem[]>([]);
   const [preparedDishes, setPreparedDishes] = useState<PreparedDish[]>([]);
   const [loading, setLoading] = useState(false);
