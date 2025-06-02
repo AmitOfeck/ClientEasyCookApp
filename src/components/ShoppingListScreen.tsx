@@ -1,20 +1,10 @@
-import React, { useState, useCallback } from 'react';
-import { View, Text, StyleSheet, FlatList, TouchableOpacity,
-  ActivityIndicator,
-  RefreshControl,
-  TextInput,
-  Alert,
-} from 'react-native';
+import React, { useState, useCallback, useEffect } from 'react';
+import { View, Text, StyleSheet, FlatList, TouchableOpacity, ActivityIndicator, RefreshControl, TextInput, Alert, Image } from 'react-native';
 import Icon from 'react-native-vector-icons/MaterialCommunityIcons';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useFocusEffect, useNavigation } from '@react-navigation/native';
 import apiClient from '../services/api-client';
-import {
-  updateItemQuantity,
-  removeShoppingItem,
-  clearShoppingList,
-  replaceShoppingItem,
-} from '../services/shopping_list_service';
+import { updateItemQuantity, removeShoppingItem, clearShoppingList, replaceShoppingItem } from '../services/shopping_list_service';
 import { StackNavigationProp } from '@react-navigation/stack';
 import { CartStackParamList } from '../navigation/CartStackScreen';
 
@@ -29,6 +19,13 @@ type PreparedDish = {
   count: number;
 };
 
+type DishDetails = {
+  _id: string;
+  name: string;
+  image: string;
+};
+
+
 type Navigation = StackNavigationProp<CartStackParamList, 'ShoppingList'>;
 
 const allowedUnits = ['gram', 'kg', 'ml', 'liter'];
@@ -37,11 +34,28 @@ const ShoppingListScreen: React.FC = () => {
   const navigation = useNavigation<Navigation>();
   const [items, setItems] = useState<ShoppingItem[]>([]);
   const [preparedDishes, setPreparedDishes] = useState<PreparedDish[]>([]);
+  const [dishDetails, setDishDetails] = useState<Record<string, DishDetails>>({});
   const [loading, setLoading] = useState(false);
   const [refreshing, setRefreshing] = useState(false);
   const [editItemIndex, setEditItemIndex] = useState<number | null>(null);
   const [editedQuantity, setEditedQuantity] = useState<string>('0');
   const [selectedUnit, setSelectedUnit] = useState<string>('gram');
+
+  const fetchDishDetails = async (dishes: PreparedDish[]) => {
+    try {
+      const responses = await Promise.all(
+        dishes.map((dish) => apiClient.get(`/dish/${dish.dishId}`))
+      );
+      const details: Record<string, DishDetails> = {};
+      responses.forEach((res) => {
+        const dish = res.data;
+        details[dish._id] = dish;
+      });
+      setDishDetails(details);
+    } catch (error) {
+      console.error('Failed to fetch dish details:', error);
+    }
+  };
 
   const fetchShoppingList = async () => {
     try {
@@ -50,15 +64,12 @@ const ShoppingListScreen: React.FC = () => {
       const { items, preparedDishes } = response.data;
       setItems(items);
 
-      if (preparedDishes) {
-        const dishesArray = Object.entries(preparedDishes).map(([dishId, count]) => ({
-          dishId,
-          count: Number(count),
-        }));
-        setPreparedDishes(dishesArray);
-      } else {
-        setPreparedDishes([]);
-      }
+      const dishesArray = preparedDishes
+        ? Object.entries(preparedDishes).map(([dishId, count]) => ({ dishId, count: Number(count) }))
+        : [];
+
+      setPreparedDishes(dishesArray);
+      await fetchDishDetails(dishesArray);
     } catch (error) {
       console.error('Failed to fetch shopping list:', error);
     } finally {
@@ -73,11 +84,11 @@ const ShoppingListScreen: React.FC = () => {
     }, [])
   );
 
+
   const handleGoToCart = async () => {
     try {
       const userId = await AsyncStorage.getItem('userId');
       if (!userId) throw new Error('User ID not found');
-
       const response = await apiClient.get(`/cart/bestCart/${userId}`);
       const cartOptions = response.data;
 
@@ -167,20 +178,33 @@ const ShoppingListScreen: React.FC = () => {
     setEditItemIndex(index);
   };
 
-  const renderPreparedDish = ({ item }: { item: PreparedDish }) => (
-    <View style={styles.dishCard}>
-      <Text style={styles.itemName}>{item.dishId}</Text>
-      <View style={styles.controls}>
-        <TouchableOpacity onPress={() => handleDecrementDish(item.dishId)} style={styles.circleButton}>
-          <Icon name="minus" size={18} color="#1E3A8A" />
-        </TouchableOpacity>
-        <Text style={styles.quantityText}>{item.count}</Text>
-        <TouchableOpacity onPress={() => handleIncrementDish(item.dishId)} style={styles.circleButton}>
-          <Icon name="plus" size={18} color="#1E3A8A" />
-        </TouchableOpacity>
+  const renderPreparedDish = ({ item }: { item: PreparedDish }) => {
+    const dish = dishDetails[item.dishId]; 
+    return (
+      <View style={styles.dishCard}>
+        {dish?.image ? (
+          <Image source={{ uri: dish.image }} style={styles.dishImage} />
+        ) : (
+          <View style={[styles.dishImage, styles.placeholder]}>
+            <Icon name="food" size={24} color="#888" />
+          </View>
+        )}
+  
+        <View style={styles.dishInfo}>
+          <Text style={styles.itemName}>{dish?.name || item.dishId}</Text>
+          <View style={styles.controls}>
+            <TouchableOpacity onPress={() => handleDecrementDish(item.dishId)} style={styles.circleButton}>
+              <Icon name="minus" size={18} color="#1E3A8A" />
+            </TouchableOpacity>
+            <Text style={styles.quantityText}>{item.count}</Text>
+            <TouchableOpacity onPress={() => handleIncrementDish(item.dishId)} style={styles.circleButton}>
+              <Icon name="plus" size={18} color="#1E3A8A" />
+            </TouchableOpacity>
+          </View>
+        </View>
       </View>
-    </View>
-  );
+    );
+  };
 
   const renderItem = ({ item, index }: { item: ShoppingItem; index: number }) => (
     <View style={styles.itemCard}>
@@ -338,44 +362,6 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     alignItems: 'center',
   },
-  dishCard: {
-    backgroundColor: '#E8F0FE',
-    borderRadius: 10,
-    borderWidth: 1,
-    borderColor: '#A0AEC0',
-    paddingVertical: 14,
-    paddingHorizontal: 16,
-    marginBottom: 10,
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-  },
-  itemName: {
-    fontSize: 16,
-    fontWeight: '500',
-    color: '#1F1F1F',
-    flex: 1,
-  },
-  controls: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 10,
-  },
-  quantityText: {
-    fontSize: 15,
-    fontWeight: '600',
-    color: '#1E3A8A',
-    width: 50,
-    textAlign: 'center',
-  },
-  circleButton: {
-    width: 30,
-    height: 30,
-    borderRadius: 15,
-    backgroundColor: '#E6EDF8',
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
   removeButton: {
     marginLeft: 8,
   },
@@ -480,4 +466,62 @@ const styles = StyleSheet.create({
     color: '#1E3A8A',
     fontWeight: 'bold',
   },
+  dishCard: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#E8F0FE',
+    borderRadius: 10,
+    borderWidth: 1,
+    borderColor: '#A0AEC0',
+    padding: 10,
+    marginBottom: 10,
+  },
+  dishImage: {
+    width: 60,
+    height: 60,
+    borderRadius: 8,
+    resizeMode: 'cover',
+  },
+  placeholder: {
+    backgroundColor: '#E5E7EB',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  dishInfo: {
+    flex: 1,
+    marginLeft: 16,
+    justifyContent: 'center',
+  },
+
+itemName: {
+  fontSize: 16,
+  fontWeight: '600',
+  color: '#1F1F1F',
+  marginBottom: 6,
+},
+
+controls: {
+  flexDirection: 'row',
+  alignItems: 'center',
+  justifyContent: 'flex-start',
+  gap: 10,
+},
+
+circleButton: {
+  width: 30,
+  height: 30,
+  borderRadius: 15,
+  backgroundColor: '#E6EDF8',
+  justifyContent: 'center',
+  alignItems: 'center',
+},
+
+quantityText: {
+  fontSize: 15,
+  fontWeight: '600',
+  color: '#1E3A8A',
+  width: 50,
+  textAlign: 'center',
+},
+  
 });
