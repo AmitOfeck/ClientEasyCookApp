@@ -19,6 +19,7 @@ type CartOption = {
     price: number;
     quantity: number;
   }[];
+  missingProducts?: string[]; // ← שדה אופציונלי
 };
 
 type Props = {
@@ -55,6 +56,7 @@ const CartOptionsScreen: React.FC<Props> = ({ navigation }) => {
             products: item.products,
             superId: item.superId,
             totalCost: item.totalCost,
+            missingProducts: item.missingProducts || [], // ← נשלח גם אם לא קיים (ברירת מחדל לריק)
           })
         }
       >

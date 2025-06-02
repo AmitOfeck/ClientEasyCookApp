@@ -1,12 +1,25 @@
 import React from 'react';
-import { View, Text, FlatList, StyleSheet, Image } from 'react-native';
+import {
+  View,
+  Text,
+  FlatList,
+  StyleSheet,
+  Image,
+} from 'react-native';
 import { StackScreenProps } from '@react-navigation/stack';
 import { CartStackParamList } from '../navigation/CartStackScreen';
 
 type Props = StackScreenProps<CartStackParamList, 'CartDetail'>;
 
 const CartDetailScreen: React.FC<Props> = ({ route }) => {
-  const { products, superId, totalCost } = route.params;
+  const {
+    products = [],
+    superId = 'Unknown Store',
+    totalCost = 0,
+    missingProducts = [],
+  } = route.params ?? {};
+
+  console.log(missingProducts)
 
   const renderItem = ({ item }: { item: typeof products[0] }) => (
     <View style={styles.itemRow}>
@@ -19,28 +32,47 @@ const CartDetailScreen: React.FC<Props> = ({ route }) => {
     </View>
   );
 
-  return (
-    <View style={styles.container}>
+  const ListHeader = () => (
+    <>
       <Text style={styles.header}>🛒 {superId.replace(/-/g, ' ')}</Text>
       <Text style={styles.totalText}>Total Cost: ₪{totalCost.toFixed(2)}</Text>
-      <FlatList
-        data={products}
-        keyExtractor={(item) => item.itemId}
-        renderItem={renderItem}
-        contentContainerStyle={{ paddingBottom: 20 }}
-      />
-    </View>
+      <Text style={styles.sectionTitle}>🧾 Products in Cart:</Text>
+    </>
+  );
+
+  const ListFooter = () =>
+    missingProducts.length > 0 ? (
+      <>
+        <Text style={styles.sectionTitle}>❗ Missing Products:</Text>
+        <View style={styles.missingContainer}>
+          {missingProducts.map((item, index) => (
+            <View key={index} style={styles.missingBadge}>
+              <Text style={styles.missingText}>{item}</Text>
+            </View>
+          ))}
+        </View>
+      </>
+    ) : null;
+
+  return (
+    <FlatList
+      data={products}
+      keyExtractor={(item) => item.itemId}
+      renderItem={renderItem}
+      ListHeaderComponent={ListHeader}
+      ListFooterComponent={ListFooter}
+      contentContainerStyle={styles.contentContainer}
+    />
   );
 };
 
 export default CartDetailScreen;
 
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: '#F0F4F8',
+  contentContainer: {
+    padding: 20,
     paddingTop: 50,
-    paddingHorizontal: 20,
+    backgroundColor: '#F0F4F8',
   },
   header: {
     fontSize: 24,
@@ -55,6 +87,13 @@ const styles = StyleSheet.create({
     color: '#333',
     marginBottom: 20,
     textAlign: 'center',
+  },
+  sectionTitle: {
+    fontSize: 18,
+    fontWeight: '600',
+    color: '#1E3A8A',
+    marginBottom: 10,
+    marginTop: 10,
   },
   itemRow: {
     flexDirection: 'row',
@@ -90,5 +129,23 @@ const styles = StyleSheet.create({
   subText: {
     fontSize: 13,
     color: '#555',
+  },
+  missingContainer: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    marginBottom: 30,
+  },
+  missingBadge: {
+    backgroundColor: '#FFE5E5',
+    paddingVertical: 6,
+    paddingHorizontal: 12,
+    borderRadius: 20,
+    marginRight: 8,
+    marginBottom: 8,
+  },
+  missingText: {
+    color: '#B91C1C',
+    fontWeight: '500',
+    fontSize: 13,
   },
 });

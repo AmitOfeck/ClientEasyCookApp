@@ -31,6 +31,7 @@ export type CartStackParamList = {
     }[];
     superId: string;
     totalCost: number;
+    missingProducts?: string[]; // ← הוספת פרופס
   };
 };
 
