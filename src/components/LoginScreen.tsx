@@ -11,48 +11,55 @@ export const LoginScreen = ({ navigation }: { navigation: NavigationProp<any> })
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
 
+  /* ---------- regular e-mail / password login ---------- */
   const handleLogin = async () => {
     try {
-      const response = await login({ email, password }).request;
-      saveTokens(response.data);
-      console.log("LogIn successful:", response.data);
-      navigation.navigate("Home");
-    } catch (error) {
-      
-      console.error("Error during LogIn:", error);
+      const res = await login({ email, password }).request; // token already saved
+      await new Promise(resolve => setTimeout(resolve, 50)); // 50 ms flush
+      navigation.navigate('Home');
+    } catch (err) {
+      console.error(err);
     }
   };
 
+  /* ---------- Google configuration (runs once) ---------- */
   useEffect(() => {
     GoogleSignin.configure({
-      webClientId: "34674964625-8e9fganpq1d6o2jh9952mrf7mn0hi48e.apps.googleusercontent.com",
-      offlineAccess: true, 
+      webClientId: '315425969009-va0ran4bg5km0fqnhvkianoms9d96f64.apps.googleusercontent.com',
+      offlineAccess: true,
       forceCodeForRefreshToken: true,
     });
-  }, []);  
+  }, []);
 
   const signInWithGoogle = async () => {
     try {
-      await GoogleSignin.hasPlayServices();
-      const idToken = (await GoogleSignin.signIn()).data?.idToken;
+      await GoogleSignin.hasPlayServices({ showPlayServicesUpdateDialog: true });
+
+      // 1️⃣  Interactive account picker
+      await GoogleSignin.signIn();            // chooser shows, user picks an account
+
+      // 2️⃣  Fetch fresh tokens for that account
+      const { idToken /*, accessToken */ } = await GoogleSignin.getTokens();
 
       if (!idToken) {
-        console.error("Google Sign-In Error");
-        console.log("Google Sign-In Error - No idToken");
+        console.error('Google Sign-In produced no idToken');
         return;
       }
+
+      // 3️⃣  Send idToken to your own back-end
       const response = await googleSignIn(idToken).request;
       saveTokens(response.data);
-      navigation.navigate("Home");
-      console.log("Google Sign-In successful:", response.data);      
-    } catch (error: any) {
-      if (error.code === statusCodes.SIGN_IN_CANCELLED) {
-        console.log("User cancelled the login");
+
+      navigation.navigate('Home');
+    } catch (err: any) {
+      if (err.code === statusCodes.SIGN_IN_CANCELLED) {
+        console.log('User cancelled Google Sign-In');
       } else {
-        console.error("Google Sign-In Error:", error);
+        console.error('Google Sign-In Error:', err);
       }
     }
   };
+
 
   return (
     <ScrollView contentContainerStyle={styles.scrollView}>
