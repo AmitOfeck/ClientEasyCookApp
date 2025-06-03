@@ -1,0 +1,39 @@
+{
+  "project_info": {
+    "project_number": "315425969009",
+    "project_id": "easycookbook",
+    "storage_bucket": "easycookbook.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:315425969009:android:1c3b12b22d01f2a234dcd0",
+        "android_client_info": {
+          "package_name": "com.easycookclientandroid"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "315425969009-va0ran4bg5km0fqnhvkianoms9d96f64.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": ""
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": [
+            {
+              "client_id": "315425969009-va0ran4bg5km0fqnhvkianoms9d96f64.apps.googleusercontent.com",
+              "client_type": 3
+            }
+          ]
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
