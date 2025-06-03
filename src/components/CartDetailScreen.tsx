@@ -1,69 +1,151 @@
 import React from 'react';
-import { View, Text, FlatList, StyleSheet } from 'react-native';
+import {
+  View,
+  Text,
+  FlatList,
+  StyleSheet,
+  Image,
+} from 'react-native';
 import { StackScreenProps } from '@react-navigation/stack';
 import { CartStackParamList } from '../navigation/CartStackScreen';
 
 type Props = StackScreenProps<CartStackParamList, 'CartDetail'>;
 
 const CartDetailScreen: React.FC<Props> = ({ route }) => {
-  const { products, superId, totalCost } = route.params;
+  const {
+    products = [],
+    superId = 'Unknown Store',
+    totalCost = 0,
+    missingProducts = [],
+  } = route.params ?? {};
+
+  console.log(missingProducts)
 
   const renderItem = ({ item }: { item: typeof products[0] }) => (
     <View style={styles.itemRow}>
-      <Text style={styles.itemText}>🧾 Product ID: {item.itemId}</Text>
-      <Text style={styles.itemText}>Quantity: {item.quantity}</Text>
-      <Text style={styles.itemText}>Price: ₪{item.price.toFixed(2)}</Text>
+      <Image source={{ uri: item.image_url }} style={styles.image} />
+      <View style={styles.itemInfo}>
+        <Text style={styles.itemName}>{item.name}</Text>
+        <Text style={styles.subText}>🧮 Quantity: {item.quantity}</Text>
+        <Text style={styles.subText}>💸 Price: ₪{item.price.toFixed(2)}</Text>
+      </View>
     </View>
   );
 
-  return (
-    <View style={styles.container}>
+  const ListHeader = () => (
+    <>
       <Text style={styles.header}>🛒 {superId.replace(/-/g, ' ')}</Text>
-      <Text style={styles.totalText}>Total: ₪{totalCost.toFixed(2)}</Text>
-      <FlatList
-        data={products}
-        keyExtractor={(item) => item.itemId}
-        renderItem={renderItem}
-        contentContainerStyle={{ paddingBottom: 20 }}
-      />
-    </View>
+      <Text style={styles.totalText}>Total Cost: ₪{totalCost.toFixed(2)}</Text>
+      <Text style={styles.sectionTitle}>🧾 Products in Cart:</Text>
+    </>
+  );
+
+  const ListFooter = () =>
+    missingProducts.length > 0 ? (
+      <>
+        <Text style={styles.sectionTitle}>❗ Missing Products:</Text>
+        <View style={styles.missingContainer}>
+          {missingProducts.map((item, index) => (
+            <View key={index} style={styles.missingBadge}>
+              <Text style={styles.missingText}>{item}</Text>
+            </View>
+          ))}
+        </View>
+      </>
+    ) : null;
+
+  return (
+    <FlatList
+      data={products}
+      keyExtractor={(item) => item.itemId}
+      renderItem={renderItem}
+      ListHeaderComponent={ListHeader}
+      ListFooterComponent={ListFooter}
+      contentContainerStyle={styles.contentContainer}
+    />
   );
 };
 
 export default CartDetailScreen;
 
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: '#F5F7FB',
+  contentContainer: {
+    padding: 20,
     paddingTop: 50,
-    paddingHorizontal: 20,
+    backgroundColor: '#F0F4F8',
   },
   header: {
-    fontSize: 22,
+    fontSize: 24,
     fontWeight: 'bold',
     color: '#1E3A8A',
-    marginBottom: 10,
+    marginBottom: 8,
     textAlign: 'center',
   },
   totalText: {
     fontSize: 16,
     fontWeight: '600',
-    color: '#444',
+    color: '#333',
     marginBottom: 20,
     textAlign: 'center',
   },
-  itemRow: {
-    padding: 14,
-    backgroundColor: '#fff',
+  sectionTitle: {
+    fontSize: 18,
+    fontWeight: '600',
+    color: '#1E3A8A',
     marginBottom: 10,
-    borderRadius: 8,
-    borderWidth: 1,
-    borderColor: '#ddd',
+    marginTop: 10,
   },
-  itemText: {
-    fontSize: 14,
+  itemRow: {
+    flexDirection: 'row',
+    backgroundColor: '#FFFFFF',
+    padding: 14,
+    marginBottom: 12,
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: '#E0E0E0',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.1,
+    shadowRadius: 2,
+    elevation: 2,
+  },
+  image: {
+    width: 60,
+    height: 60,
+    borderRadius: 8,
+    resizeMode: 'cover',
+  },
+  itemInfo: {
+    flex: 1,
+    marginLeft: 12,
+    justifyContent: 'center',
+  },
+  itemName: {
+    fontSize: 15,
+    fontWeight: '600',
+    color: '#1E3A8A',
     marginBottom: 4,
-    color: '#333',
+  },
+  subText: {
+    fontSize: 13,
+    color: '#555',
+  },
+  missingContainer: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    marginBottom: 30,
+  },
+  missingBadge: {
+    backgroundColor: '#FFE5E5',
+    paddingVertical: 6,
+    paddingHorizontal: 12,
+    borderRadius: 20,
+    marginRight: 8,
+    marginBottom: 8,
+  },
+  missingText: {
+    color: '#B91C1C',
+    fontWeight: '500',
+    fontSize: 13,
   },
 });
