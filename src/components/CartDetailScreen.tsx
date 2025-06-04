@@ -54,7 +54,7 @@ const CartDetailScreen: React.FC<Props> = ({ route }) => {
             style={[styles.woltButton, { backgroundColor: isAdded ? '#4CAF50' : '#2196F3' }]}
             disabled={isAdded}
           >
-            <Text style={styles.buttonText}>{isAdded ? 'נוסף' : 'הוסף לוולט'}</Text>
+            <Text style={styles.buttonText}>{isAdded ? 'added to cart' : 'add to wolt cart'}</Text>
           </TouchableOpacity>
         </View>
       </View>
