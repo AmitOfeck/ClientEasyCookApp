@@ -14,40 +14,51 @@ const saveTokens = async (authResponse: AuthData) => {
 };
 
 const register = (user: FormData) => {
-  const abortController = new AbortController()
-  const request = apiClient.post<AuthData>('/user/register',
-      user,
-      { signal: abortController.signal,
-        headers: {
-          'Content-Type': 'multipart/form-data',
-        },
-      })
-  return { request, abort: () => abortController.abort() }
-}
+  const abortController = new AbortController();
+  const request = apiClient.post<AuthData>(
+    '/user/register',
+    user,
+    {
+      signal: abortController.signal,
+      headers: { 'Content-Type': 'multipart/form-data' }
+    }
+  );
+  return { request, abort: () => abortController.abort() };
+};
 
 const login = (user: Partial<UserSignIn>) => {
-  const abortController = new AbortController()
-  const request = apiClient.post<AuthData>('/auth/login',
-      user,
-      { signal: abortController.signal })
-  return { request, abort: () => abortController.abort() }
-}
+  const abortController = new AbortController();
+  const request = apiClient
+    .post<AuthData>('/auth/login', user, { signal: abortController.signal })
+    .then(response => {
+      // as soon as login succeeds, persist tokens
+      saveTokens(response.data);
+      return response;
+    });
+  return { request, abort: () => abortController.abort() };
+};
 
 const refresh = (refreshToken: string) => {
-  const abortController = new AbortController()
-  const request = apiClient.post<AuthData>('/auth/refresh',
-      { refreshToken },
-      { signal: abortController.signal })
-  return { request, abort: () => abortController.abort() }
-}
+  const abortController = new AbortController();
+  const request = apiClient
+    .post<AuthData>('/auth/refresh', { refreshToken }, { signal: abortController.signal })
+    .then(response => {
+      // on refresh, overwrite stored tokens
+      saveTokens(response.data);
+      return response;
+    });
+  return { request, abort: () => abortController.abort() };
+};
 
 const googleSignIn = (credential: string) => {
-  const abortController = new AbortController()
-  const request = apiClient.post<AuthData>('/auth/google/login',
-      { credential },
-      { signal: abortController.signal })
-  return { request, abort: () => abortController.abort() }
-}
+  const abortController = new AbortController();
+  const request = apiClient
+    .post<AuthData>('/auth/google/login', { credential }, { signal: abortController.signal })
+    .then(response => {
+      saveTokens(response.data);
+      return response;
+    });
+  return { request, abort: () => abortController.abort() };
+};
 
 export { saveTokens, register, login, refresh, googleSignIn };
-

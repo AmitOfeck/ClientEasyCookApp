@@ -1,4 +1,4 @@
-import apiClient from './api-client'; // Ensure you have your apiClient set up for API calls
+import apiClient from './api-client';
 import { IDish } from './intefaces/dish';
 
 const getDishes = (filters: {
@@ -8,20 +8,17 @@ const getDishes = (filters: {
     priceMin: string;
     priceMax: string;
 }) => {
-    const { cuisine, limitation, difficulty, priceMin, priceMax } = filters;
     const abortController = new AbortController();
-
     const request = apiClient.get<IDish[]>('/dish', {
         signal: abortController.signal,
         params: {
-            cuisine,
-            limitation,
-            difficulty,
-            priceMin,
-            priceMax,
+            cuisine: filters.cuisine,
+            limitation: filters.limitation,
+            level: filters.difficulty,
+            priceMin: filters.priceMin,
+            priceMax: filters.priceMax,
         },
     });
-
     return { request, abort: () => abortController.abort() };
 };
 
@@ -30,24 +27,6 @@ const getDishById = (id: string) => {
     const request = apiClient.get<IDish>(`/dish/${id}`, {
         signal: abortController.signal,
     });
-    return { request, abort: () => abortController.abort() };
-};
-
-const getDishByKey = (key: string, value: string) => {
-    const abortController = new AbortController();
-    const request = apiClient.post<IDish>('/dish/find',
-        { key, value },
-        { signal: abortController.signal }
-    );
-    return { request, abort: () => abortController.abort() };
-};
-
-const getDishesByKeyValue = (key: string, value: string) => {
-    const abortController = new AbortController();
-    const request = apiClient.post<IDish[]>('/dish/findMany',
-        { key, value },
-        { signal: abortController.signal }
-    );
     return { request, abort: () => abortController.abort() };
 };
 
@@ -75,12 +54,28 @@ const deleteDish = (id: string) => {
     return { request, abort: () => abortController.abort() };
 };
 
+const healthifyDish = (id: string) => {
+    const abortController = new AbortController();
+    const request = apiClient.post<IDish>(`/dish/${id}/healthify`, {}, {
+        signal: abortController.signal,
+    });
+    return { request, abort: () => abortController.abort() };
+};
+
+const cheapifyDish = (id: string) => {
+    const abortController = new AbortController();
+    const request = apiClient.post<IDish>(`/dish/${id}/cheapify`, {}, {
+        signal: abortController.signal,
+    });
+    return { request, abort: () => abortController.abort() };
+};
+
 export {
     getDishes,
     getDishById,
-    getDishByKey,
-    getDishesByKeyValue,
     createDish,
     updateDish,
     deleteDish,
+    healthifyDish,
+    cheapifyDish,
 };

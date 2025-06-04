@@ -1,69 +1,84 @@
 import React, { useEffect, useState } from 'react';
-import { View, Text, StyleSheet, FlatList, TouchableOpacity } from 'react-native';
-import { fetchBestCart } from '../services/cart_service';
-import AsyncStorage from '@react-native-async-storage/async-storage';
+import { View, Text, StyleSheet, FlatList, TouchableOpacity, Image } from 'react-native';
 import { StackNavigationProp } from '@react-navigation/stack';
-import { CartStackParamList } from '../navigation/CartStackScreen'; 
+import { CartStackParamList } from '../navigation/CartStackScreen';
+import AsyncStorage from '@react-native-async-storage/async-storage';
+import { fetchBestCart } from '../services/cart_service';
 
 type NavigationProp = StackNavigationProp<CartStackParamList, 'CartOptions'>;
+
+type CartOption = {
+  _id: string;
+  superId: string;
+  totalCost: number;
+  products: {
+    itemId: string;
+    name: string;
+    unit_info: string;
+    image_url: string;
+    price: number;
+    quantity: number;
+  }[];
+  missingProducts?: string[]; // ← שדה אופציונלי
+};
 
 type Props = {
   navigation: NavigationProp;
 };
 
 const CartOptionsScreen: React.FC<Props> = ({ navigation }) => {
-  const [supermarkets, setSupermarkets] = useState<
-    { superId: string; totalCost: number; products: any[] }[]
-  >([]);
+  const [cartOptions, setCartOptions] = useState<CartOption[]>([]);
 
   useEffect(() => {
-    const getBestCart = async () => {
+    const getCartOptions = async () => {
       try {
         const userId = await AsyncStorage.getItem('userId');
         if (!userId) return;
 
         const response = await fetchBestCart(userId);
-        const cart = response.data;
-        console.log('Cart from server:', cart);
-
-        setSupermarkets([
-          {
-            superId: cart.superId,
-            totalCost: cart.totalCost,
-            products: cart.products,
-          },
-        ]);
+        setCartOptions(response.data);
       } catch (error) {
-        console.error('Failed to fetch cart:', error);
+        console.error('Error fetching cart options:', error);
       }
     };
 
-    getBestCart();
+    getCartOptions();
   }, []);
 
-  const renderItem = ({ item }: any) => (
-    <TouchableOpacity
-      style={styles.card}
-      onPress={() => {
-        console.log("Selected super:", item.superId);
-        navigation.navigate('CartDetail', {
-          superId: item.superId,
-          totalCost: item.totalCost,
-          products: item.products,
-        });
-      }}
-    >
-      <Text style={styles.superText}>{item.superId.replace(/-/g, ' ')}</Text>
-      <Text style={styles.priceText}>Total: ₪{item.totalCost.toFixed(2)}</Text>
-    </TouchableOpacity>
-  );
+  const renderItem = ({ item }: { item: CartOption }) => {
+    const product = item.products[0]; 
+
+    return (
+      <TouchableOpacity
+        style={styles.card}
+        onPress={() =>
+          navigation.navigate('CartDetail', {
+            products: item.products,
+            superId: item.superId,
+            totalCost: item.totalCost,
+            missingProducts: item.missingProducts || [], // ← נשלח גם אם לא קיים (ברירת מחדל לריק)
+          })
+        }
+      >
+        <View style={styles.row}>
+          {product?.image_url && (
+            <Image source={{ uri: product.image_url }} style={styles.image} />
+          )}
+          <View style={styles.details}>
+            <Text style={styles.superText}>{item.superId.replace(/-/g, ' ')}</Text>
+            <Text style={styles.priceText}>Total: ₪{item.totalCost.toFixed(2)}</Text>
+          </View>
+        </View>
+      </TouchableOpacity>
+    );
+  };
 
   return (
     <View style={styles.container}>
-      <Text style={styles.title}>🛒 Nearby Supermarkets</Text>
+      <Text style={styles.title}>🛒 Cart Options</Text>
       <FlatList
-        data={supermarkets}
-        keyExtractor={(item) => item.superId}
+        data={cartOptions}
+        keyExtractor={(item) => item._id}
         renderItem={renderItem}
         contentContainerStyle={{ paddingVertical: 16 }}
       />
@@ -94,6 +109,20 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: '#E0E0E0',
     marginBottom: 12,
+  },
+  row: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+  },
+  image: {
+    width: 64,
+    height: 64,
+    borderRadius: 8,
+    marginRight: 10,
+  },
+  details: {
+    flex: 1,
   },
   superText: {
     fontSize: 16,

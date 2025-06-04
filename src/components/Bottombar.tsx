@@ -7,6 +7,7 @@ import DishScreen from "./DishScreen";
 import ShoppingListScreen from "./ShoppingListScreen";
 import CartStackScreen from '../navigation/CartStackScreen'; 
 import SearchScreen from "./SearchScreen";
+import ProfileScreen from "./ProfileScreen";
 
 type TabBarIconProps = {
   color: string;
@@ -25,8 +26,8 @@ const BottomBar: React.FC = () => {
             case "Home":
               iconName = "home-outline";
               break;
-            case "Chat":
-              iconName = "chat-outline";
+            case "Cart":
+              iconName = "cart-outline";
               break;
             case "Search":
               iconName = "magnify";
@@ -34,8 +35,8 @@ const BottomBar: React.FC = () => {
             case "Dish":
               iconName = "silverware-fork-knife";
               break;
-            case "Location":
-              iconName = "map-marker-outline";
+            case "Profile":
+              iconName = "account-outline";
               break;
             default:
               iconName = "circle-outline";
@@ -58,7 +59,7 @@ const BottomBar: React.FC = () => {
       <Tab.Screen name="Home" component={HomeScreen} options={{ tabBarLabel: "Home" }} />
       <Tab.Screen name="Search" component={SearchScreen} options={{ tabBarLabel: "Search" }} />
       <Tab.Screen name="Dish" component={DishScreen} options={{ tabBarLabel: "Dish" }} />
-      <Tab.Screen name="Location" component={HomeScreen} options={{ tabBarLabel: "Location" }} />
+      <Tab.Screen name="Profile" component={ProfileScreen} options={{ tabBarLabel: "Profile" }} />
       {/* <Tab.Screen name="Cart" component={ShoppingListScreen} options={{ tabBarLabel: "Cart" }} /> */} 
       <Tab.Screen name="Cart" component={CartStackScreen} />
     </Tab.Navigator>
