@@ -104,30 +104,6 @@ const DishScreen: React.FC<{ navigation: any }> = ({ navigation }) => {
         }
     };
 
-      const handleSearch = async () => {
-        setLoading(true);
-        try {
-            const { request } = searchDish({
-                cuisine: selectedCuisine,
-                limitation: selectedLimitation,
-                level: selectedDifficulty,
-                priceMin: parseFloat(priceMin),
-                priceMax: parseFloat(priceMax),
-            });
-    
-            const response = await request;
-            console.log(response, "response for search")
-            setDishes(response.data);
-            
-
-        } catch (error) {
-            console.error("Search failed:", error);
-            Alert.alert("Error", "Failed to fetch search results.");
-        } finally {
-            setShowFilters(false);
-            setLoading(false);
-        }
-    };
 
     return (
         <View style={styles.container}>
