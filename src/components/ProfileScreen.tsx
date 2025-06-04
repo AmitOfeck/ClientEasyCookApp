@@ -9,7 +9,6 @@ import {
   Alert,
   ActivityIndicator,
 } from "react-native";
-import dishImage from "../assets/dish.png";
 import { getProfile, updateProfile, IProfile } from "../services/profile_service";
 import ProfileEditModal from "./ProfileEditModal";
 import { NavigationProp, useFocusEffect } from '@react-navigation/native';

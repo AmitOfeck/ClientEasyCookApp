@@ -1,13 +1,16 @@
-import React from 'react';
+import React, { useState, useCallback } from 'react';
 import {
   View,
   Text,
   FlatList,
-  StyleSheet,
   Image,
+  StyleSheet,
+  TouchableOpacity,
 } from 'react-native';
 import { StackScreenProps } from '@react-navigation/stack';
 import { CartStackParamList } from '../navigation/CartStackScreen';
+import { Linking } from 'react-native';
+import { useFocusEffect } from '@react-navigation/native';
 
 type Props = StackScreenProps<CartStackParamList, 'CartDetail'>;
 
@@ -18,19 +21,44 @@ const CartDetailScreen: React.FC<Props> = ({ route }) => {
     totalCost = 0,
     missingProducts = [],
   } = route.params ?? {};
+  const [addedItems, setAddedItems] = useState<{ [key: string]: boolean }>({});
+  const [pendingItemId, setPendingItemId] = useState<string | null>(null);
 
-  console.log(missingProducts)
-
-  const renderItem = ({ item }: { item: typeof products[0] }) => (
-    <View style={styles.itemRow}>
-      <Image source={{ uri: item.image_url }} style={styles.image} />
-      <View style={styles.itemInfo}>
-        <Text style={styles.itemName}>{item.name}</Text>
-        <Text style={styles.subText}>🧮 Quantity: {item.quantity}</Text>
-        <Text style={styles.subText}>💸 Price: ₪{item.price.toFixed(2)}</Text>
-      </View>
-    </View>
+  useFocusEffect(
+    useCallback(() => {
+      if (pendingItemId) {
+        setAddedItems((prev) => ({ ...prev, [pendingItemId]: true }));
+        setPendingItemId(null);
+      }
+    }, [pendingItemId])
   );
+
+  const openWoltLink = (productName: string, itemId: string) => {
+    console.log(`Opening Wolt link for item: ${productName}, ID: ${itemId}`);
+    const woltUrl = `https://wolt.com/he/isr/wolt/venue/${superId}/itemid-${itemId}`;
+    setPendingItemId(itemId);
+    Linking.openURL(woltUrl);
+  };
+
+  const renderItem = ({ item }: { item: typeof products[0] }) => {
+    const isAdded = addedItems[item.itemId];
+    return (
+      <View style={styles.itemRow}>
+        <Image source={{ uri: item.image_url }} style={styles.image} />
+        <View style={styles.itemInfo}>
+          <Text style={styles.itemName}>{item.name}</Text>
+          <Text style={styles.subText}>🧮 Quantity: {item.quantity}</Text>
+          <Text style={styles.subText}>💸 Price: ₪{item.price.toFixed(2)}</Text>
+          <TouchableOpacity
+            onPress={() => openWoltLink(item.itemId, item.itemId)}
+            style={[styles.woltButton, { backgroundColor: isAdded ? '#4CAF50' : '#2196F3' }]}
+            disabled={isAdded}
+          >
+            <Text style={styles.buttonText}>{isAdded ? 'added to cart' : 'add to wolt cart'}</Text>
+          </TouchableOpacity>
+        </View>
+      </View>
+  )};
 
   const ListHeader = () => (
     <>
@@ -147,5 +175,15 @@ const styles = StyleSheet.create({
     color: '#B91C1C',
     fontWeight: '500',
     fontSize: 13,
+  },
+  woltButton: {
+    marginTop: 10,
+    padding: 10,
+    borderRadius: 6,
+    alignItems: 'center',
+  },
+  buttonText: {
+    color: 'white',
+    fontWeight: '600',
   },
 });
