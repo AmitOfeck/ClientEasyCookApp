@@ -151,33 +151,30 @@ const ShoppingListScreen: React.FC = () => {
   const renderPreparedDish = ({ item }: { item: PreparedDish }) => {
     const dish = dishDetails[item.dishId];
     return (
-      <View style={styles.dishCard}>
-  {dish?.image ? (
-    <Image source={{ uri: dish.image }} style={styles.dishImage} />
-  ) : (
-    <View style={[styles.dishImage, styles.placeholder]}>
-      <Icon name="food" size={24} color="#888" />
-    </View>
-  )}
-
-  <View style={styles.dishInfo}>
-    <View style={styles.dishTitleRow}>
-      <Text style={styles.itemName}>{dish?.name || item.dishId}</Text>
-    </View>
-    <View style={styles.controls}>
-      <TouchableOpacity onPress={() => handleDecrementDish(item.dishId)} style={styles.circleButton}>
-        <Icon name="minus" size={18} color="#1E3A8A" />
-      </TouchableOpacity>
-      <Text style={styles.quantityText}>{item.count}</Text>
-      <TouchableOpacity onPress={() => handleIncrementDish(item.dishId)} style={styles.circleButton}>
-        <Icon name="plus" size={18} color="#1E3A8A" />
-      </TouchableOpacity>
-    </View>
-  </View>
-</View>
-
+      <View style={styles.dishCardRow}>
+        {dish?.image ? (
+          <Image source={{ uri: dish.image }} style={styles.dishImage} />
+        ) : (
+          <View style={[styles.dishImage, styles.placeholder]}>
+            <Icon name="food" size={24} color="#888" />
+          </View>
+        )}
+  
+        <Text style={styles.itemName}>{dish?.name || item.dishId}</Text>
+  
+        <View style={styles.controls}>
+          <TouchableOpacity onPress={() => handleDecrementDish(item.dishId)} style={styles.circleButton}>
+            <Icon name="minus" size={18} color="#1E3A8A" />
+          </TouchableOpacity>
+          <Text style={styles.quantityText}>{item.count}</Text>
+          <TouchableOpacity onPress={() => handleIncrementDish(item.dishId)} style={styles.circleButton}>
+            <Icon name="plus" size={18} color="#1E3A8A" />
+          </TouchableOpacity>
+        </View>
+      </View>
     );
   };
+  
 
   const renderItem = ({ item, index }: { item: ShoppingItem; index: number }) => (
     <View style={styles.itemCard}>
@@ -293,14 +290,26 @@ const styles = StyleSheet.create({
     marginBottom: 10,
   },
   dishImage: {
-    width: 50,
-    height: 50,
+    width: 45,
+    height: 45,
     borderRadius: 8,
-    backgroundColor: '#E5E7EB',
+    marginRight: 10,
+    resizeMode: 'cover',
   },
   placeholder: {
     justifyContent: 'center',
     alignItems: 'center',
+  },
+  dishCardRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#FFFFFF',
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: '#E0E0E0',
+    paddingVertical: 12,
+    paddingHorizontal: 16,
+    marginBottom: 10,
   },
   dishInfo: {
     flex: 1,
@@ -313,6 +322,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   itemName: {
+    flex: 1,
     fontSize: 15,
     fontWeight: '600',
     color: '#1E3A8A',
@@ -320,22 +330,21 @@ const styles = StyleSheet.create({
   controls: {
     flexDirection: 'row',
     alignItems: 'center',
-    marginTop: 6,
+    gap: 10,
   },
   circleButton: {
-    width: 28,
-    height: 28,
-    borderRadius: 14,
-    backgroundColor: '#E0E7FF',
+    width: 30,
+    height: 30,
+    borderRadius: 15,
+    backgroundColor: '#E6EDF8',
     justifyContent: 'center',
     alignItems: 'center',
-    marginHorizontal: 8,
   },
   quantityText: {
-    fontSize: 14,
+    fontSize: 15,
     fontWeight: '600',
     color: '#1E3A8A',
-    minWidth: 50,
+    width: 50,
     textAlign: 'center',
   },
   itemCard: {
