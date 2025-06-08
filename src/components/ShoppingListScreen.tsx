@@ -203,14 +203,14 @@ const ShoppingListScreen: React.FC = () => {
   return (
     <ScrollView style={styles.container} contentContainerStyle={{ paddingBottom: 140 }}>
       <TouchableOpacity onPress={() => { LayoutAnimation.configureNext(LayoutAnimation.Presets.easeInEaseOut); setShowDishes(!showDishes); }}>
-        <Text style={styles.header}>🍽️ Prepared Dishes {showDishes ? '▲' : '▼'}</Text>
+        <Text style={styles.header}>🍽️ Prepared Dishes {showDishes ? '▼' : '▲'}</Text>
       </TouchableOpacity>
       {showDishes && (
         <FlatList data={preparedDishes} keyExtractor={(item) => item.dishId} renderItem={renderPreparedDish} scrollEnabled={false} />
       )}
 
       <TouchableOpacity onPress={() => { LayoutAnimation.configureNext(LayoutAnimation.Presets.easeInEaseOut); setShowItems(!showItems); }}>
-        <Text style={[styles.header, { marginTop: 20 }]}>🧾 Shopping List {showItems ? '▲' : '▼'}</Text>
+        <Text style={[styles.header, { marginTop: 20 }]}>🧾 Shopping List {showItems ? '▼' : '▲'}</Text>
       </TouchableOpacity>
       {showItems && (
         <FlatList
