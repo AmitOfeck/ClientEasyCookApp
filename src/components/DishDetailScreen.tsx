@@ -38,15 +38,15 @@ const DishDetailScreen: React.FC<{ navigation: any, route: any }> = ({ navigatio
         setProcessing(true);
         try {
             const { request } = healthifyDish(dish._id);
-                       const response = await request;
-                      console.log('Healthify response:', response.status, response.data);
-                       setDish(response.data);
+            const response = await request;
+            console.log('Healthify response:', response.status, response.data);
+            setDish(response.data);
         } catch (error: any) {
-            console.error('Healthify error:', 
-                             error.response?.status, 
-                             error.response?.data ?? error.message
-                           );
-                           Alert.alert("Error", `Failed to make dish healthier (${error.response?.status})`);
+            console.error('Healthify error:',
+                error.response?.status,
+                error.response?.data ?? error.message
+            );
+            Alert.alert("Error", `Failed to make dish healthier (${error.response?.status})`);
         } finally {
             setProcessing(false);
         }
@@ -67,18 +67,10 @@ const DishDetailScreen: React.FC<{ navigation: any, route: any }> = ({ navigatio
     };
 
     if (loading) {
-        return (
-            <View style={styles.centered}>
-                <Text>Loading...</Text>
-            </View>
-        );
+        return <View style={styles.centered}><Text>Loading...</Text></View>;
     }
     if (!dish) {
-        return (
-            <View style={styles.centered}>
-                <Text>Dish not found</Text>
-            </View>
-        );
+        return <View style={styles.centered}><Text>Dish not found</Text></View>;
     }
 
     const isOriginal = dish.variantType === 'original';
@@ -141,6 +133,13 @@ const DishDetailScreen: React.FC<{ navigation: any, route: any }> = ({ navigatio
                         </Text>
                     </TouchableOpacity>
                 </View>
+
+                {!isOriginal && (
+                    <Text style={styles.disabledMessageText}>
+This recipe has already been modified and cannot be changed again.
+
+</Text>
+                )}
             </ScrollView>
         </View>
     );
@@ -181,6 +180,12 @@ const styles = StyleSheet.create({
     },
     disabledButton: { backgroundColor: "#ccc" },
     buttonText: { color: "#fff", fontSize: 16, fontWeight: "bold" },
+    disabledMessageText: {
+        marginTop: 10,
+        fontSize: 12,
+        color: '#666',
+        textAlign: 'center',
+    },
 });
 
 export default DishDetailScreen;
