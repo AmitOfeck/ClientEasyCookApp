@@ -89,7 +89,10 @@ const CartDetailScreen: React.FC<Props> = ({ route }) => {
       renderItem={renderItem}
       ListHeaderComponent={ListHeader}
       ListFooterComponent={ListFooter}
-      contentContainerStyle={styles.contentContainer}
+      contentContainerStyle={[
+        styles.contentContainer,
+        { paddingBottom: 100 }, 
+      ]}
     />
   );
 };
