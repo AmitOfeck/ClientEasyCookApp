@@ -1,4 +1,6 @@
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useState, useCallback } from "react";
+// --- NEW: We import useFocusEffect to refetch data every time the screen is visited ---
+import { useFocusEffect } from "@react-navigation/native";
 import {
     ScrollView,
     StyleSheet,
@@ -34,23 +36,37 @@ const DishScreen: React.FC<{ navigation: any }> = ({ navigation }) => {
     const [originalDishes, setOriginalDishes] = useState<IDish[]>([]);
     const [filteredDishes, setFilteredDishes] = useState<IDish[]>([]);
 
-    useEffect(() => {
-        const fetchAllDishes = async () => {
-            setLoading(true);
-            const { request } = getDishes({}); 
-            try {
-                const response = await request;
-                setOriginalDishes(response.data);
-                setFilteredDishes(response.data);
-            } catch (error) {
-                console.error("Error fetching dishes:", error);
-                Alert.alert("Error", "Could not fetch dishes from the server.");
-            } finally {
-                setLoading(false);
-            }
-        };
-        fetchAllDishes();
-    }, []);
+    // --- MODIFIED: Replaced useEffect with useFocusEffect ---
+    // This hook runs every time the user navigates to this screen, ensuring the data is always fresh.
+    useFocusEffect(
+        useCallback(() => {
+            const fetchAllDishes = async () => {
+                setLoading(true);
+                // The filter state is reset here to ensure the fresh list is not immediately filtered by old selections.
+                handleClearFilters(false); // We pass `false` to avoid hiding the filter view if it's open.
+                
+                const { request } = getDishes({}); 
+                try {
+                    const response = await request;
+
+                    // The sorting logic remains the same.
+                    const sortedDishes = response.data.sort((a, b) => 
+                        new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
+                    );
+
+                    setOriginalDishes(sortedDishes);
+                    setFilteredDishes(sortedDishes);
+                } catch (error) {
+                    console.error("Error fetching dishes:", error);
+                    Alert.alert("Error", "Could not fetch dishes from the server.");
+                } finally {
+                    setLoading(false);
+                }
+            };
+
+            fetchAllDishes();
+        }, []) // The empty dependency array for useCallback is correct and intended.
+    );
 
     const handleAddToShoppingList = async (dishId: string) => {
         try {
@@ -93,14 +109,17 @@ const DishScreen: React.FC<{ navigation: any }> = ({ navigation }) => {
         setShowFilters(false); 
     };
 
-    const handleClearFilters = () => {
+    // --- MODIFIED: Added an optional parameter to control closing the filter view ---
+    const handleClearFilters = (closeFilterView = true) => {
         setSelectedCuisine("");
         setSelectedLimitation("");
         setSelectedDifficulty("");
         setPriceMin("");
         setPriceMax("");
         setFilteredDishes(originalDishes);
-        setShowFilters(false);
+        if (closeFilterView) {
+            setShowFilters(false);
+        }
     };
 
     return (
@@ -174,7 +193,7 @@ const DishScreen: React.FC<{ navigation: any }> = ({ navigation }) => {
                         </View>
                         
                         <View style={styles.filterActionsContainer}>
-                            <TouchableOpacity style={[styles.actionButton, styles.clearButton]} onPress={handleClearFilters}>
+                            <TouchableOpacity style={[styles.actionButton, styles.clearButton]} onPress={() => handleClearFilters(true)}>
                                 <Text style={styles.actionButtonText}>Clear</Text>
                             </TouchableOpacity>
                             <TouchableOpacity style={styles.actionButton} onPress={handleSearch}>
@@ -197,8 +216,6 @@ const DishScreen: React.FC<{ navigation: any }> = ({ navigation }) => {
                                         {filteredDishes.map((dish) => (
                                             <View key={dish._id} style={styles.trendingRecipe}>
                                                 <Image source={{ uri: dish.imageUrl }} style={styles.recipeImage} />
-                                                {/* --- RESTORED SECTION START --- */}
-                                                {/* This is the full, detailed view of the dish, restored from your original code. */}
                                                 <View style={styles.recipeInfo}>
                                                     <Text style={styles.recipeTitle}>{dish.name}</Text>
                                                     <Text style={styles.recipeDesc} numberOfLines={2}>{dish.details || "No details available"}</Text>
@@ -230,7 +247,6 @@ const DishScreen: React.FC<{ navigation: any }> = ({ navigation }) => {
                                                         </TouchableOpacity>
                                                     </View>
                                                 </View>
-                                                 {/* --- RESTORED SECTION END --- */}
                                             </View>
                                         ))}
                                     </View>
@@ -248,7 +264,6 @@ const DishScreen: React.FC<{ navigation: any }> = ({ navigation }) => {
     );
 };
 
-// Styles (I've merged my previous additions with your original styles)
 const styles = StyleSheet.create({
     container: {
         flex: 1,
@@ -383,7 +398,7 @@ const styles = StyleSheet.create({
     recipeInfo: {
         flex: 1,
         padding: 15,
-        justifyContent: 'center', // Changed to center for better alignment
+        justifyContent: 'center',
     },
     recipeTitle: {
         fontSize: 18,
@@ -397,7 +412,7 @@ const styles = StyleSheet.create({
     recipeDetails: {
         flexDirection: "row",
         justifyContent: "space-between",
-        marginTop: 3, // Added some spacing
+        marginTop: 3,
     },
     recipeTime: {
         fontSize: 12,
