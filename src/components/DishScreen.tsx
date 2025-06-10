@@ -285,21 +285,9 @@ const DishScreen: React.FC<{ navigation: any }> = ({ navigation }) => {
 
                                                     <View style={styles.iconContainer}>
                             <TouchableOpacity
-                                onPress={() => navigation.navigate("DishUpdate", { dishId: dish._id })}
-                            >
-                                <Icon name="pencil" size={24} color="#1E3A8A" style={styles.icon} />
-                            </TouchableOpacity>
-
-                            <TouchableOpacity
                                 onPress={() => navigation.navigate("DishDetail", { dishId: dish._id })}
                             >
                                 <Icon name="information" size={24} color="#1E3A8A" style={styles.icon} />
-                            </TouchableOpacity>
-
-                            <TouchableOpacity
-                                onPress={() => handleDeleteDish(dish._id)}
-                            >
-                                <Icon name="delete" size={24} color="red" style={styles.icon} />
                             </TouchableOpacity>
 
                             <TouchableOpacity onPress={() => handleAddToShoppingList(dish._id)}>
