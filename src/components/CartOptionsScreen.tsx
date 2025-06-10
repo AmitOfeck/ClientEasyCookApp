@@ -67,6 +67,11 @@ const CartOptionsScreen: React.FC<Props> = ({ navigation }) => {
           <View style={styles.details}>
             <Text style={styles.superText}>{item.superId.replace(/-/g, ' ')}</Text>
             <Text style={styles.priceText}>Total: ₪{item.totalCost.toFixed(2)}</Text>
+            {item.missingProducts && item.missingProducts.length > 0 && (
+           <Text style={styles.missingSoftNote}>
+           {item.missingProducts.length} missing item{item.missingProducts.length > 1 ? 's' : ''}
+           </Text>
+          )}
           </View>
         </View>
       </TouchableOpacity>
@@ -133,5 +138,11 @@ const styles = StyleSheet.create({
     fontSize: 14,
     color: '#444',
     marginTop: 6,
+  },
+  missingSoftNote: {
+    marginTop: 6,
+    fontSize: 12,
+    color: '#6B7280', 
+    fontStyle: 'italic',
   },
 });
