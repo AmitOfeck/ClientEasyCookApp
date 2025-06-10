@@ -10,7 +10,9 @@ type NavigationProp = StackNavigationProp<CartStackParamList, 'CartOptions'>;
 type CartOption = {
   _id: string;
   superId: string;
+  superImage: string;
   totalCost: number;
+  deliveryPrice: number;
   products: {
     itemId: string;
     name: string;
@@ -46,8 +48,6 @@ const CartOptionsScreen: React.FC<Props> = ({ navigation }) => {
   }, []);
 
   const renderItem = ({ item }: { item: CartOption }) => {
-    const product = item.products[0]; 
-
     return (
       <TouchableOpacity
         style={styles.card}
@@ -61,12 +61,13 @@ const CartOptionsScreen: React.FC<Props> = ({ navigation }) => {
         }
       >
         <View style={styles.row}>
-          {product?.image_url && (
-            <Image source={{ uri: product.image_url }} style={styles.image} />
+          {item?.superImage && (
+            <Image source={{ uri: item.superImage }} style={styles.image} />
           )}
           <View style={styles.details}>
             <Text style={styles.superText}>{item.superId.replace(/-/g, ' ')}</Text>
             <Text style={styles.priceText}>Total: ₪{item.totalCost.toFixed(2)}</Text>
+            <Text style={styles.deliveryText}>delivery fee:{item?.deliveryPrice}</Text>
             {item.missingProducts && item.missingProducts.length > 0 && (
            <Text style={styles.missingSoftNote}>
            {item.missingProducts.length} missing item{item.missingProducts.length > 1 ? 's' : ''}
@@ -138,6 +139,12 @@ const styles = StyleSheet.create({
     fontSize: 14,
     color: '#444',
     marginTop: 6,
+  },
+  deliveryText: {
+    marginTop: 6,
+    fontSize: 12,
+    color: '#444',
+    fontStyle: 'italic' 
   },
   missingSoftNote: {
     marginTop: 6,
