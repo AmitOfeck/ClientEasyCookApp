@@ -1,6 +1,4 @@
 import React, { useEffect, useState } from "react";
-import { useFocusEffect } from "@react-navigation/native";
-import { useCallback } from "react";
 import {
     ScrollView,
     StyleSheet,
@@ -13,12 +11,10 @@ import {
     Alert
 } from "react-native";
 import Icon from 'react-native-vector-icons/MaterialCommunityIcons';
-import { deleteDish, getDishes } from "../services/dish_service";
+import { getDishes } from "../services/dish_service";
 import { IDish } from "../services/intefaces/dish";
-import dishImage from '../assets/dish.png';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { addDishesToShoppingList } from '../services/shopping_list_service';
-import { searchDish } from "../services/search_service";
 
 const cuisines = ["ITALIAN", "CHINESE", "INDIAN", "MEXICAN"];
 const limitations = ["VEGETARIAN", "VEGAN", "GLUTEN_FREE"];
@@ -26,103 +22,99 @@ const difficultyLevels = ["EASY", "MEDIUM", "HARD"];
 
 const DishScreen: React.FC<{ navigation: any }> = ({ navigation }) => {
     const [showFilters, setShowFilters] = useState(false);
+    
     const [selectedCuisine, setSelectedCuisine] = useState("");
     const [selectedLimitation, setSelectedLimitation] = useState("");
     const [selectedDifficulty, setSelectedDifficulty] = useState("");
-    const [priceMin, setPriceMin] = useState("5");
-    const [priceMax, setPriceMax] = useState("20");
-    const [loading, setLoading] = useState(false);
-    const [dishes, setDishes] = useState<IDish[]>([]);
+    const [priceMin, setPriceMin] = useState("");
+    const [priceMax, setPriceMax] = useState("");
+    
+    const [loading, setLoading] = useState(true);
 
-    useFocusEffect(
-        useCallback(() => {
-            const fetchDishes = async () => {
-                setLoading(true);
-                const { request, abort } = getDishes({
-                    cuisine: selectedCuisine,
-                    limitation: selectedLimitation,
-                    difficulty: selectedDifficulty,
-                    priceMin,
-                    priceMax,
-                });
+    const [originalDishes, setOriginalDishes] = useState<IDish[]>([]);
+    const [filteredDishes, setFilteredDishes] = useState<IDish[]>([]);
 
-                try {
-                    const response = await request;
-                    console.log(response.data, "-get-all")
-                    setDishes(response.data);
-                } catch (error) {
-                    console.error("Error fetching dishes:", error);
-                } finally {
-                    setLoading(false);
-                }
-            };
-
-            fetchDishes();
-
-            return () => {
-                // Cleanup function if needed
-            };
-        }, [selectedCuisine, selectedLimitation, selectedDifficulty, priceMin, priceMax])
-    );
-
-    const handleDeleteDish = async (dishId: string) => {
-        try {
-            const { request, abort } = deleteDish(dishId);
-            const response = await request;
-            
-            console.log("Dish deleted successfully:", response.data);
-            // Reload dishes or update state
-            Alert.alert("Success", "Dish deleted successfully!");
-            setDishes(prevDishes => prevDishes.filter(dish => dish._id !== dishId));
-        } catch (error) {
-            console.error("Failed to delete dish:", error);
-            Alert.alert("Error", "Failed to delete the dish. Please try again.");
-        }
-    };
-
-
+    useEffect(() => {
+        const fetchAllDishes = async () => {
+            setLoading(true);
+            const { request } = getDishes({}); 
+            try {
+                const response = await request;
+                setOriginalDishes(response.data);
+                setFilteredDishes(response.data);
+            } catch (error) {
+                console.error("Error fetching dishes:", error);
+                Alert.alert("Error", "Could not fetch dishes from the server.");
+            } finally {
+                setLoading(false);
+            }
+        };
+        fetchAllDishes();
+    }, []);
 
     const handleAddToShoppingList = async (dishId: string) => {
-
         try {
           const accessToken = await AsyncStorage.getItem('accessToken');
-      
           if (!accessToken) {
             Alert.alert("Error", "Authentication token missing.");
             return;
           }
-      
           const { request } = addDishesToShoppingList([dishId], accessToken);
-          const response = await request;
-      
-          console.log("Added dish to shopping list:", response.data);
+          await request;
           Alert.alert("Success", "Dish added to your shopping list!");
-      
         } catch (error) {
           console.error("Failed to add to shopping list:", error);
           Alert.alert("Error", "Could not add dish to shopping list.");
-
-
-
         }
-      };
+    };
+
+    const handleSearch = () => {
+        let results = [...originalDishes];
+
+        if (selectedCuisine) {
+            results = results.filter(dish => dish.cuisine === selectedCuisine);
+        }
+        if (selectedLimitation) {
+            results = results.filter(dish => dish.limitation === selectedLimitation);
+        }
+        if (selectedDifficulty) {
+            results = results.filter(dish => dish.level === selectedDifficulty);
+        }
+        const min = parseFloat(priceMin);
+        if (!isNaN(min)) {
+            results = results.filter(dish => dish.price >= min);
+        }
+        const max = parseFloat(priceMax);
+        if (!isNaN(max)) {
+            results = results.filter(dish => dish.price <= max);
+        }
+
+        setFilteredDishes(results);
+        setShowFilters(false); 
+    };
+
+    const handleClearFilters = () => {
+        setSelectedCuisine("");
+        setSelectedLimitation("");
+        setSelectedDifficulty("");
+        setPriceMin("");
+        setPriceMax("");
+        setFilteredDishes(originalDishes);
+        setShowFilters(false);
+    };
 
     return (
         <View style={styles.container}>
-            <ScrollView contentContainerStyle={[styles.scrollViewContent, { paddingBottom: 80 }]}>
-                {/* HEADER */}
+            <ScrollView contentContainerStyle={styles.scrollViewContent}>
                 <Text style={styles.headerText}>Hi! Dianne</Text>
                 <Text style={styles.subHeaderText}>What are you cooking today</Text>
 
-                {/* FILTER BUTTON */}
                 <TouchableOpacity style={styles.filterButton} onPress={() => setShowFilters(!showFilters)}>
                     <Icon name="filter" size={20} color="white" />
                 </TouchableOpacity>
 
-                {/* FILTER SECTION */}
                 {showFilters && (
                     <View style={styles.filterSection}>
-                        {/* PRICE RANGE */}
                         <Text style={styles.filterLabel}>Price Range:</Text>
                         <View style={styles.priceInputContainer}>
                             <TextInput
@@ -141,173 +133,122 @@ const DishScreen: React.FC<{ navigation: any }> = ({ navigation }) => {
                                 placeholder="Max"
                             />
                         </View>
-
-                        {/* CUISINE SELECTION */}
+                        
                         <Text style={styles.filterLabel}>Cuisine:</Text>
                         <View style={styles.selectionContainer}>
                             {cuisines.map((cuisine) => (
                                 <TouchableOpacity
                                     key={cuisine}
-                                    style={[
-                                        styles.optionButton,
-                                        selectedCuisine === cuisine && styles.optionButtonSelected,
-                                    ]}
-                                    onPress={() => setSelectedCuisine(cuisine)}
+                                    style={[styles.optionButton, selectedCuisine === cuisine && styles.optionButtonSelected]}
+                                    onPress={() => setSelectedCuisine(cuisine === selectedCuisine ? "" : cuisine)}
                                 >
-                                    <Text
-                                        style={[
-                                            styles.optionText,
-                                            selectedCuisine === cuisine && styles.optionTextSelected,
-                                        ]}
-                                    >
-                                        {cuisine}
-                                    </Text>
+                                    <Text style={[styles.optionText, selectedCuisine === cuisine && styles.optionTextSelected]}>{cuisine}</Text>
                                 </TouchableOpacity>
                             ))}
                         </View>
 
-                        {/* LIMITATION SELECTION */}
                         <Text style={styles.filterLabel}>Dietary Limitations:</Text>
                         <View style={styles.selectionContainer}>
                             {limitations.map((limit) => (
                                 <TouchableOpacity
                                     key={limit}
-                                    style={[
-                                        styles.optionButton,
-                                        selectedLimitation === limit && styles.optionButtonSelected,
-                                    ]}
-                                    onPress={() => setSelectedLimitation(limit)}
+                                    style={[styles.optionButton, selectedLimitation === limit && styles.optionButtonSelected]}
+                                    onPress={() => setSelectedLimitation(limit === selectedLimitation ? "" : limit)}
                                 >
-                                    <Text
-                                        style={[
-                                            styles.optionText,
-                                            selectedLimitation === limit && styles.optionTextSelected,
-                                        ]}
-                                    >
-                                        {limit}
-                                    </Text>
+                                    <Text style={[styles.optionText, selectedLimitation === limit && styles.optionTextSelected]}>{limit}</Text>
                                 </TouchableOpacity>
                             ))}
                         </View>
 
-                        {/* DIFFICULTY LEVEL */}
                         <Text style={styles.filterLabel}>Difficulty Level:</Text>
                         <View style={styles.selectionContainer}>
                             {difficultyLevels.map((level) => (
                                 <TouchableOpacity
                                     key={level}
-                                    style={[
-                                        styles.optionButton,
-                                        selectedDifficulty === level && styles.optionButtonSelected,
-                                    ]}
-                                    onPress={() => setSelectedDifficulty(level)}
+                                    style={[styles.optionButton, selectedDifficulty === level && styles.optionButtonSelected]}
+                                    onPress={() => setSelectedDifficulty(level === selectedDifficulty ? "" : level)}
                                 >
-                                    <Text
-                                        style={[
-                                            styles.optionText,
-                                            selectedDifficulty === level && styles.optionTextSelected,
-                                        ]}
-                                    >
-                                        {level}
-                                    </Text>
+                                    <Text style={[styles.optionText, selectedDifficulty === level && styles.optionTextSelected]}>{level}</Text>
                                 </TouchableOpacity>
                             ))}
                         </View>
-
-                        {/* SEARCH BUTTON */}
-                        <TouchableOpacity style={styles.searchButton}>
-                            <Text style={styles.searchButtonText} onPress={handleSearch}>Search</Text>
-                        </TouchableOpacity>
+                        
+                        <View style={styles.filterActionsContainer}>
+                            <TouchableOpacity style={[styles.actionButton, styles.clearButton]} onPress={handleClearFilters}>
+                                <Text style={styles.actionButtonText}>Clear</Text>
+                            </TouchableOpacity>
+                            <TouchableOpacity style={styles.actionButton} onPress={handleSearch}>
+                                <Text style={styles.actionButtonText}>Search</Text>
+                            </TouchableOpacity>
+                        </View>
                     </View>
                 )}
 
                 {!showFilters && (
-                    <>
-                        {/* <TouchableOpacity
-                            style={styles.createDishButton}
-                            onPress={() => navigation.navigate("DishCreate")}
-                        >
-                            <Text style={styles.createDishButtonText}>Create Dish</Text>
-                        </TouchableOpacity> */}
-                        <View>
-                            {/* CATEGORY TABS */}
-                            {/* <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.tabContainer}>
-        {["Discover", "Recommended", "Easy", "Vegan"].map((tab, index) => (
-            <TouchableOpacity key={index} style={styles.tab}>
-                <Text style={styles.tabText}>{tab}</Text>
-            </TouchableOpacity>
-        ))}
-    </ScrollView> */}
-
-                            {loading ? (
-                                <ActivityIndicator size="large" color="#1E3A8A" style={styles.loadingIndicator} />
-                            ) : (
-                                <View>
-                                    <Text style={styles.sectionTitle}>Dishes</Text>
+                    <View>
+                        {loading ? (
+                            <ActivityIndicator size="large" color="#1E3A8A" style={styles.loadingIndicator} />
+                        ) : (
+                            <View>
+                                <Text style={styles.sectionTitle}>Dishes</Text>
+                                
+                                {filteredDishes.length > 0 ? (
                                     <View>
-                                        {dishes.map((dish) => (
+                                        {filteredDishes.map((dish) => (
                                             <View key={dish._id} style={styles.trendingRecipe}>
                                                 <Image source={{ uri: dish.imageUrl }} style={styles.recipeImage} />
+                                                {/* --- RESTORED SECTION START --- */}
+                                                {/* This is the full, detailed view of the dish, restored from your original code. */}
                                                 <View style={styles.recipeInfo}>
-                                                    {/* Dish Name */}
                                                     <Text style={styles.recipeTitle}>{dish.name}</Text>
-
-                                                    {/* Dish Details */}
-                                                    <Text style={styles.recipeDesc}>{dish.details || "No details available"}</Text>
-
+                                                    <Text style={styles.recipeDesc} numberOfLines={2}>{dish.details || "No details available"}</Text>
                                                     <View style={styles.recipeDetails}>
-                                                        {/* Dish Levelr (difficulty) */}
                                                         <Text style={styles.recipeTime}>{dish.level}</Text>
-
-                                                        {/* Calories */}
                                                         <Text style={styles.recipeRating}>Calories: {dish.dishCalories}</Text>
                                                     </View>
-
                                                     <View style={styles.recipeDetails}>
                                                         <Text style={styles.recipeCuisine}>Cuisine: {dish.cuisine}</Text>
-
                                                     </View>
                                                     <View style={styles.recipeDetails}>
                                                         <Text style={styles.recipeLimitation}>Limitation: {dish.limitation}</Text>
                                                     </View>
-
                                                     <View style={styles.recipeDetails}>
-                                                        {/* Ingredients Cost */}
                                                         <Text style={styles.recipeCost}>Ingredients Cost: ${dish.ingredientsCost}</Text>
                                                     </View>
                                                     <View style={styles.recipeDetails}>
-
                                                         <Text style={styles.recipeCost}>Average Cost: ${dish.averageDishCost}</Text>
                                                     </View>
                                                     <View style={styles.recipeDetails}>
                                                         <Text style={styles.recipePrice}>Price: ${dish.price}</Text>
                                                     </View>
-
                                                     <View style={styles.iconContainer}>
-                            <TouchableOpacity
-                                onPress={() => navigation.navigate("DishDetail", { dishId: dish._id })}
-                            >
-                                <Icon name="information" size={24} color="#1E3A8A" style={styles.icon} />
-                            </TouchableOpacity>
-
-                            <TouchableOpacity onPress={() => handleAddToShoppingList(dish._id)}>
-                                <Icon name="clipboard-list" size={24} color="#1E3A8A" style={styles.icon} />
-                            </TouchableOpacity>
-                        </View>
+                                                        <TouchableOpacity onPress={() => navigation.navigate("DishDetail", { dishId: dish._id })}>
+                                                            <Icon name="information" size={24} color="#1E3A8A" style={styles.icon} />
+                                                        </TouchableOpacity>
+                                                        <TouchableOpacity onPress={() => handleAddToShoppingList(dish._id)}>
+                                                            <Icon name="clipboard-list" size={24} color="#1E3A8A" style={styles.icon} />
+                                                        </TouchableOpacity>
+                                                    </View>
                                                 </View>
+                                                 {/* --- RESTORED SECTION END --- */}
                                             </View>
-
                                         ))}
                                     </View>
-                                </View>
-                            )}
-                        </View></>
+                                ) : (
+                                    <Text style={styles.noResultsText}>
+                                        No dishes match your criteria. Try clearing the filters.
+                                    </Text>
+                                )}
+                            </View>
+                        )}
+                    </View>
                 )}
             </ScrollView>
         </View>
     );
 };
 
+// Styles (I've merged my previous additions with your original styles)
 const styles = StyleSheet.create({
     container: {
         flex: 1,
@@ -315,6 +256,7 @@ const styles = StyleSheet.create({
     },
     scrollViewContent: {
         padding: 20,
+        paddingBottom: 80,
     },
     headerText: {
         fontSize: 24,
@@ -335,23 +277,23 @@ const styles = StyleSheet.create({
         width: 40,
         height: 40,
         position: "absolute",
-        right: 10,
-        top: 10,
-    },
-    filterButtonText: {
-        color: "white",
-        fontWeight: "bold",
+        right: 20,
+        top: 20,
+        zIndex: 10,
     },
     filterSection: {
         backgroundColor: "#F8F9FB",
         padding: 15,
         borderRadius: 10,
         marginBottom: 20,
+        borderColor: '#E0E0E0',
+        borderWidth: 1,
     },
     filterLabel: {
         fontSize: 16,
         fontWeight: "bold",
         marginTop: 10,
+        marginBottom: 5,
     },
     priceInputContainer: {
         flexDirection: "row",
@@ -360,68 +302,64 @@ const styles = StyleSheet.create({
     },
     priceInput: {
         backgroundColor: "white",
-        borderColor: "#1E3A8A",
+        borderColor: "#B0B0B0",
         borderWidth: 1,
-        padding: 8,
-        borderRadius: 5,
-        width: "40%",
+        padding: 10,
+        borderRadius: 8,
+        flex: 1,
         textAlign: "center",
     },
     toText: {
         marginHorizontal: 10,
         fontSize: 16,
+        color: '#555',
     },
     selectionContainer: {
         flexDirection: "row",
         flexWrap: "wrap",
-        marginVertical: 10,
+        marginVertical: 5,
     },
     optionButton: {
-        backgroundColor: "#F0F0F0",
-        paddingVertical: 5,
+        backgroundColor: "#E9E9E9",
+        paddingVertical: 8,
         paddingHorizontal: 15,
         borderRadius: 20,
-        margin: 5,
+        margin: 4,
     },
     optionButtonSelected: {
         backgroundColor: "#1E3A8A",
     },
     optionText: {
-        color: "#1E3A8A",
+        color: "#333",
     },
     optionTextSelected: {
         color: "#FFFFFF",
     },
-    searchButton: {
-        backgroundColor: "#1E3A8A",
-        padding: 12,
+    filterActionsContainer: {
+        flexDirection: 'row',
+        justifyContent: 'space-between',
+        marginTop: 20,
+    },
+    actionButton: {
+        flex: 1,
+        paddingVertical: 12,
         borderRadius: 25,
         alignItems: "center",
-        marginTop: 15,
+        marginHorizontal: 5,
+        backgroundColor: "#1E3A8A",
     },
-    searchButtonText: {
+    clearButton: {
+        backgroundColor: '#6c757d',
+    },
+    actionButtonText: {
         color: "#FFFFFF",
         fontWeight: "bold",
-    },
-    tabContainer: {
-        flexDirection: "row",
-        marginBottom: 20,
-    },
-    tab: {
-        backgroundColor: "#1E3A8A",
-        paddingVertical: 8,
-        paddingHorizontal: 15,
-        borderRadius: 20,
-        marginRight: 10,
-    },
-    tabText: {
-        color: "white",
-        fontWeight: "bold",
+        fontSize: 16,
     },
     sectionTitle: {
-        fontSize: 18,
+        fontSize: 20,
         fontWeight: "bold",
-        marginBottom: 10,
+        marginBottom: 15,
         color: "#1F1F1F",
     },
     trendingRecipe: {
@@ -431,31 +369,35 @@ const styles = StyleSheet.create({
         borderRadius: 10,
         overflow: 'hidden',
         shadowColor: '#000',
-        shadowOpacity: 0.1,
+        shadowOpacity: 0.08,
         shadowRadius: 10,
+        shadowOffset: { width: 0, height: 4 },
         elevation: 5,
+        borderWidth: 1,
+        borderColor: '#f0f0f0',
     },
     recipeImage: {
         width: 120,
-        height: 120,
-        borderRadius: 15,
+        height: '100%',
     },
     recipeInfo: {
         flex: 1,
-        padding: 10,
+        padding: 15,
+        justifyContent: 'center', // Changed to center for better alignment
     },
     recipeTitle: {
-        fontSize: 16,
+        fontSize: 18,
         fontWeight: "bold",
     },
     recipeDesc: {
-        fontSize: 12,
+        fontSize: 14,
         color: "#777",
         marginVertical: 5,
     },
     recipeDetails: {
         flexDirection: "row",
         justifyContent: "space-between",
+        marginTop: 3, // Added some spacing
     },
     recipeTime: {
         fontSize: 12,
@@ -463,87 +405,43 @@ const styles = StyleSheet.create({
     },
     recipeRating: {
         fontSize: 12,
-        color: "#F39C12",
-    },
-    recipeGrid: {
-        flexDirection: "row",
-        justifyContent: "space-between",
-    },
-    recipeCard: {
-        backgroundColor: "#F8F9FB",
-        borderRadius: 15,
-        width: "48%",
-        paddingBottom: 10,
-        alignItems: "center",
-    },
-    recipeCardImage: {
-        width: "100%",
-        height: 120,
-        borderTopLeftRadius: 15,
-        borderTopRightRadius: 15,
-    },
-    recipeCardTitle: {
-        fontSize: 14,
-        fontWeight: "bold",
-        marginTop: 5,
-    },
-    recipeCardTime: {
-        fontSize: 12,
-        color: "#777",
-    },
-    loadingIndicator: {
-        marginTop: 20,
-        alignItems: 'center',
-        justifyContent: 'center',
-    },
-    recipeCardDetails: {
-        fontSize: 12,
-        color: "#555", // A softer color for the text
-        marginTop: 5,
-        fontStyle: "italic", // Optional, gives it a bit of emphasis
-    },
-    recipeCardCalories: {
-        fontSize: 12,
-        color: "#777", // Lighter color for a less dominant detail
-        fontWeight: "bold", // Make it stand out a bit
-        marginTop: 5, // Space between the other text elements
-    },
-    createDishButton: {
-        backgroundColor: "#1E3A8A",
-        paddingVertical: 10,
-        borderRadius: 25,
-        alignItems: "center",
-        marginTop: 15,
-        marginBottom: 20,
-    },
-    createDishButtonText: {
-        color: "white",
-        fontWeight: "bold",
-        fontSize: 16,
+        color: "#555",
     },
     recipeCuisine: {
-        fontSize: 11,
+        fontSize: 12,
         color: '#555',
     },
     recipeLimitation: {
-        fontSize: 11,
+        fontSize: 12,
         color: '#555',
     },
     recipeCost: {
-        fontSize: 11,
+        fontSize: 12,
         color: '#555',
     },
     recipePrice: {
-        fontSize: 11,
+        fontSize: 13,
         fontWeight: 'bold',
-        color: '#2E8B57', // Price highlighted in green
+        color: '#2E8B57',
+    },
+    loadingIndicator: {
+        flex: 1,
+        justifyContent: 'center',
+        alignItems: 'center',
+        marginTop: 50,
     },
     iconContainer: {
         flexDirection: "row",
-        marginTop: 10,
+        marginTop: 15,
     },
     icon: {
-        marginRight: 15,
+        marginRight: 20,
+    },
+    noResultsText: {
+        textAlign: 'center',
+        marginTop: 50,
+        fontSize: 16,
+        color: '#6c757d',
     },
 });
 
