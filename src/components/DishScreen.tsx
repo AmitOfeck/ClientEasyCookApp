@@ -1,5 +1,4 @@
 import React, { useEffect, useState, useCallback } from "react";
-// --- NEW: We import useFocusEffect to refetch data every time the screen is visited ---
 import { useFocusEffect } from "@react-navigation/native";
 import {
     ScrollView,
@@ -36,14 +35,12 @@ const DishScreen: React.FC<{ navigation: any }> = ({ navigation }) => {
     const [originalDishes, setOriginalDishes] = useState<IDish[]>([]);
     const [filteredDishes, setFilteredDishes] = useState<IDish[]>([]);
 
-    // --- MODIFIED: Replaced useEffect with useFocusEffect ---
-    // This hook runs every time the user navigates to this screen, ensuring the data is always fresh.
+ 
     useFocusEffect(
         useCallback(() => {
             const fetchAllDishes = async () => {
                 setLoading(true);
-                // The filter state is reset here to ensure the fresh list is not immediately filtered by old selections.
-                handleClearFilters(false); // We pass `false` to avoid hiding the filter view if it's open.
+                handleClearFilters(false); 
                 
                 const { request } = getDishes({}); 
                 try {
@@ -109,7 +106,6 @@ const DishScreen: React.FC<{ navigation: any }> = ({ navigation }) => {
         setShowFilters(false); 
     };
 
-    // --- MODIFIED: Added an optional parameter to control closing the filter view ---
     const handleClearFilters = (closeFilterView = true) => {
         setSelectedCuisine("");
         setSelectedLimitation("");
