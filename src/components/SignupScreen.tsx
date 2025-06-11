@@ -1,14 +1,24 @@
 import React, { useState } from "react";
-import { View, Text, StyleSheet, TouchableOpacity, ScrollView, SafeAreaView, Image, StatusBar, Dimensions } from "react-native";
+import {
+  View,
+  Text,
+  StyleSheet,
+  TouchableOpacity,
+  ScrollView,
+  SafeAreaView,
+  Image,
+  StatusBar,
+  Dimensions,
+} from "react-native";
 import { useForm, Controller } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { launchImageLibrary } from "react-native-image-picker";
 import { InputField } from "./InputField";
 import { signUpSchema } from "../utils/validations";
 import { login, register, saveTokens } from "../services/auth_service";
-import { NavigationProp } from '@react-navigation/native';
+import { NavigationProp } from "@react-navigation/native";
 
-const { width } = Dimensions.get("window");
+const { width, height } = Dimensions.get("window");
 
 export const SignUp = ({ navigation }: { navigation: NavigationProp<any> }) => {
   const {
@@ -21,8 +31,6 @@ export const SignUp = ({ navigation }: { navigation: NavigationProp<any> }) => {
   });
 
   const [profileImage, setProfileImage] = useState<any>(null);
-
-  // Collapsible states
   const [openSection, setOpenSection] = useState<string | null>("personal");
 
   const pickImage = () => {
@@ -53,7 +61,10 @@ export const SignUp = ({ navigation }: { navigation: NavigationProp<any> }) => {
       }
 
       const response = await register(form).request;
-      const loginResponse = await login({ email: formData.email, password: formData.password }).request;
+      const loginResponse = await login({
+        email: formData.email,
+        password: formData.password,
+      }).request;
       saveTokens(loginResponse.data);
       navigation.navigate("Home");
     } catch (error) {
@@ -65,20 +76,34 @@ export const SignUp = ({ navigation }: { navigation: NavigationProp<any> }) => {
     <SafeAreaView style={styles.container}>
       <StatusBar barStyle="dark-content" />
       <ScrollView contentContainerStyle={styles.scrollView}>
-        {/* HEADER כמו ב־Login */}
+
+        {/* ----- HEADER עיצוב זהה ל־Login ----- */}
+        <Image
+          source={require("../assets/basket.png")}
+          style={styles.basket}
+          resizeMode="contain"
+        />
         <View style={styles.header}>
-          <View style={styles.headerLogoRow}>
-            <Image source={require("../assets/easycook-logo.png")} style={styles.logoImg} resizeMode="contain" />
-            <Image source={require("../assets/basket.png")} style={styles.basketImg} resizeMode="contain" />
-          </View>
-          <Text style={styles.slogan}>Create your free account</Text>
+          <Image
+            source={require("../assets/easycook-logo.png")}
+            style={styles.titleImage}
+            resizeMode="contain"
+          />
+          <Text style={styles.signupFree}>Create your free account</Text>
         </View>
         <View style={styles.illustrationContainer}>
-          <Image source={require("../assets/rider.png")} style={styles.illustration} resizeMode="contain" />
+          <Image
+            source={require("../assets/rider.png")}
+            style={styles.illustration}
+            resizeMode="contain"
+          />
         </View>
+        {/* ----- END HEADER ----- */}
+
+        {/* Card Form */}
         <View style={styles.card}>
           <Text style={styles.formTitle}>Sign Up</Text>
-          {/* Profile Image - ריבוע, בלי טקסט, אייקון בלבד */}
+          {/* Profile Image Picker */}
           <TouchableOpacity onPress={pickImage} style={styles.imageBox}>
             {profileImage ? (
               <Image source={{ uri: profileImage.uri }} style={styles.profileImage} />
@@ -88,8 +113,7 @@ export const SignUp = ({ navigation }: { navigation: NavigationProp<any> }) => {
           </TouchableOpacity>
           <Text style={styles.avatarHint}>Choose a profile image</Text>
 
-          {/* --- Collapsible Sections --- */}
-          {/* Personal */}
+          {/* Collapsible Sections */}
           <CollapsibleSection
             title="Personal Details"
             open={openSection === "personal"}
@@ -117,7 +141,6 @@ export const SignUp = ({ navigation }: { navigation: NavigationProp<any> }) => {
               )}
             />
           </CollapsibleSection>
-          {/* Address */}
           <CollapsibleSection
             title="Address"
             open={openSection === "address"}
@@ -151,7 +174,6 @@ export const SignUp = ({ navigation }: { navigation: NavigationProp<any> }) => {
               )}
             />
           </CollapsibleSection>
-          {/* Password */}
           <CollapsibleSection
             title="Password"
             open={openSection === "password"}
@@ -178,7 +200,6 @@ export const SignUp = ({ navigation }: { navigation: NavigationProp<any> }) => {
               )}
             />
           </CollapsibleSection>
-          {/* --- Button --- */}
           <TouchableOpacity
             style={[styles.signUpButton, !isValid && styles.disabledButton]}
             onPress={handleSubmit(onSubmit)}
@@ -223,38 +244,56 @@ const CollapsibleSection: React.FC<CollapsibleSectionProps> = ({
 
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: "#e4f0fd" },
-  scrollView: { flexGrow: 1, alignItems: "center", paddingBottom: 32 },
-  header: {
-    alignItems: "center",
-    marginTop: 18,
-    marginBottom: 6,
-    width: "100%",
-    justifyContent: "center",
-    position: "relative",
-  },  headerLogoRow: {
-    width: '100%',
-    flexDirection: 'row',
+  scrollView: {
+    flexGrow: 1,
+    backgroundColor: "#e4f0fd",
     alignItems: 'center',
-    justifyContent: 'space-between',
-    paddingHorizontal: 24,
-    marginBottom: 2,
+    paddingVertical: 32,
+    minHeight: height,
+    overflow: 'visible',
   },
-  logoImg: {
-    width: 168,
-    height: 49,
+  basket: {
+    position: 'absolute',
+    top: 0,
+    right: -width * 0.10,
+    width: width * 0.36,
+    height: width * 0.28,
+    zIndex: 10,
+    opacity: 0.95,
   },
-  basketImg: {
-    width: 54,
-    height: 54,
-    shadowColor: '#2563eb66',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.15,
-    shadowRadius: 8,
-    elevation: 8,
+  header: {
+    alignItems: 'center',
+    marginTop: 38,
+    marginBottom: 4,
   },
-  slogan: { fontSize: 17, color: "#2563eb", fontWeight: '500', marginBottom: 9, opacity: 0.8, textAlign: 'center' },
-  illustrationContainer: { width: width * 0.38, height: width * 0.31, alignItems: 'center', justifyContent: 'center', marginBottom: -23, marginTop: -10 },
-  illustration: { width: '97%', height: '100%' },
+  titleImage: {
+    width: 300,
+    height: 65,
+    marginBottom: 8,
+    alignSelf: 'center',
+  },
+  signupFree: {
+    fontSize: 18,
+    fontWeight: '600',
+    color: '#2563eb',
+    marginBottom: 4,
+    marginTop: -4,
+    textAlign: 'center',
+    opacity: 0.88,
+    letterSpacing: 0.04,
+  },
+  illustrationContainer: {
+    width: width * 0.38,
+    height: width * 0.31,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginBottom: -24,
+    marginTop: -8,
+  },
+  illustration: {
+    width: '98%',
+    height: '100%',
+  },
   card: {
     width: "93%",
     maxWidth: 440,
