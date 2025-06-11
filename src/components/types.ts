@@ -1,3 +1,5 @@
+import { ViewStyle, TextStyle } from 'react-native';
+
 export interface InputFieldProps {
   label: string;
   value: string;
@@ -16,4 +18,6 @@ export interface InputFieldProps {
   export interface ActionButtonProps {
     label: string;
     onPress: () => void;
+    style?: ViewStyle | ViewStyle[];
+    textStyle?: TextStyle | TextStyle[];
   }
