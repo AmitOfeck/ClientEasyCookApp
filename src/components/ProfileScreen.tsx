@@ -184,7 +184,7 @@ export const ProfileScreen = ({ navigation }: { navigation: NavigationProp<any> 
           userName: profile.userName,
           email: profile?.email,
           address: profile.addresses?.[0],
-          profileImage: profile.profileImage,
+          profileImage: profile.profileImage? { uri: `http://10.0.2.2:3000${profile.profileImage}`} : undefined,
         }}
       />
 
