@@ -1,7 +1,6 @@
 import React from 'react';
-import { TouchableOpacity, Text, StyleSheet, ViewStyle, TextStyle } from 'react-native';
+import { TouchableOpacity, Text, StyleSheet } from 'react-native';
 import { ActionButtonProps } from './types';
-
 
 export const ActionButton: React.FC<ActionButtonProps> = ({
   label,
@@ -13,6 +12,7 @@ export const ActionButton: React.FC<ActionButtonProps> = ({
     <TouchableOpacity
       onPress={onPress}
       style={[styles.button, style]}
+      activeOpacity={0.85}
       accessibilityRole="button"
     >
       <Text style={[styles.text, textStyle]}>
@@ -24,27 +24,26 @@ export const ActionButton: React.FC<ActionButtonProps> = ({
 
 const styles = StyleSheet.create({
   button: {
-    overflow: 'hidden',
-    paddingHorizontal: 32,
-    paddingVertical: 12,
-    width: 207,
-    backgroundColor: '#e4f0fd',
-    borderRadius: 16,
+    width: '100%',
+    paddingVertical: 15,
+    borderRadius: 20,
     alignItems: 'center',
-    justifyContent: 'center',
-    marginVertical: 6,
-    elevation: 2,
-    shadowColor: '#2563eb',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.08,
-    shadowRadius: 8,
+    marginVertical: 8,
+    backgroundColor: '#e8f2ff',      // תכלת בהיר (כמו הדוגמה)
+    borderWidth: 2,
+    borderColor: '#2186eb',          // כחול דק מסביב
+    shadowColor: '#2563eb33',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.04,
+    shadowRadius: 6,
+    elevation: 1,
   },
   text: {
-    fontSize: 20,
-    fontWeight: '700',
+    fontSize: 18,
+    fontWeight: '600',
+    color: '#2186eb',                // טקסט כחול
     textAlign: 'center',
-    color: '#2563eb',
-    textTransform: 'capitalize',
-    letterSpacing: 0.2,
+    textTransform: 'none',
+    letterSpacing: 0.1,
   },
 });

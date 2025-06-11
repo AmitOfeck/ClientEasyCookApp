@@ -20,4 +20,5 @@ export interface InputFieldProps {
     onPress: () => void;
     style?: ViewStyle | ViewStyle[];
     textStyle?: TextStyle | TextStyle[];
+    variant?: 'primary' | 'outline'; // אופציונלי
   }

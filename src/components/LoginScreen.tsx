@@ -99,11 +99,7 @@ export const LoginScreen = ({ navigation }: { navigation: NavigationProp<any> })
           />
         </View>
         <ActionButton label="Log In" onPress={handleLogin} />
-        <ActionButton
-          label="Sign up"
-          onPress={() => navigation.navigate('SignUp')}
-          style={styles.signUpButton}
-        />
+        <ActionButton label="Sign Up" onPress={() => navigation.navigate('SignUp')} />
         <Text style={styles.socialText}>Or sign in with</Text>
         <View style={styles.socialButtonsContainer}>
           <SocialButton
