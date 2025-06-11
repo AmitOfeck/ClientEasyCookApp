@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { View, Text, TextInput, Image, StyleSheet } from 'react-native';
 import { InputFieldProps } from './types';
 
@@ -8,26 +8,36 @@ export const InputField: React.FC<InputFieldProps> = ({
   onChange,
   type = 'text',
   icon,
-  error, // תמיכה בהצגת שגיאות
+  error,
 }) => {
+  const [isFocused, setIsFocused] = useState(false);
+
   return (
     <View style={styles.container}>
       <Text style={styles.label}>{label}</Text>
-      <View style={[styles.inputContainer, error ? styles.inputError : null]}>
-        <TextInput
-          value={value}
-          onChangeText={onChange}
-          secureTextEntry={type === 'password'}
-          keyboardType={type === 'email' ? 'email-address' : 'default'}
-          style={styles.input}
-          accessibilityLabel={label}
-        />
+      <View style={[
+        styles.inputWrapper,
+        isFocused && styles.inputWrapperFocused,
+        error && styles.inputWrapperError
+      ]}>
         {icon && (
           <Image
             source={{ uri: icon }}
             style={styles.icon}
           />
         )}
+        <TextInput
+          value={value}
+          onChangeText={onChange}
+          secureTextEntry={type === 'password'}
+          keyboardType={type === 'email' ? 'email-address' : 'default'}
+          style={styles.input}
+          placeholder={label}
+          placeholderTextColor="#b1c9e9"
+          accessibilityLabel={label}
+          onFocus={() => setIsFocused(true)}
+          onBlur={() => setIsFocused(false)}
+        />
       </View>
       {error && <Text style={styles.errorText}>{error}</Text>}
     </View>
@@ -36,44 +46,64 @@ export const InputField: React.FC<InputFieldProps> = ({
 
 const styles = StyleSheet.create({
   container: {
-    marginBottom: 16,
+    marginBottom: 18,
+    width: '100%',
   },
   label: {
-    fontSize: 16,
-    fontWeight: '500',
-    color: '#4B5563', 
+    fontSize: 15.5,
+    fontWeight: '600',
+    color: '#2563eb',
+    marginBottom: 5,
+    marginLeft: 6,
   },
-  inputContainer: {
+  inputWrapper: {
     flexDirection: 'row',
     alignItems: 'center',
-    paddingHorizontal: 24,
-    marginTop: 10,
-    width: '100%',
-    backgroundColor: '#BFDBFE', 
-    borderRadius: 24,
-    minHeight: 41,
-    overflow: 'hidden',
+    backgroundColor: '#f1f6fd',
+    borderRadius: 18,
+    borderWidth: 1.4,
+    borderColor: '#bcd7f8',
+    paddingHorizontal: 16,
+    paddingVertical: 7,
+    minHeight: 46,
+    shadowColor: '#2563eb80',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.06,
+    shadowRadius: 10,
+    elevation: 2,
+    marginBottom: 0,
+  },
+  inputWrapperFocused: {
+    borderColor: '#2563eb',
+    backgroundColor: '#e9f2fe',
+    shadowOpacity: 0.18,
+  },
+  inputWrapperError: {
+    borderColor: '#f87171',
+    backgroundColor: '#fdf2f8',
   },
   input: {
     flex: 1,
-    fontSize: 16,
-    textAlign: 'center',
-    color: '#1F2937', 
-  },
-  inputError: {
-    borderColor: 'red',
-    borderWidth: 2,
+    fontSize: 17,
+    color: '#1e293b',
+    fontWeight: '500',
+    paddingVertical: 2,
+    paddingHorizontal: 8,
+    textAlign: 'left',  // סטנדרט לאינפוט לוגין
   },
   icon: {
-    width: 24,
-    height: 24,
+    width: 22,
+    height: 22,
     resizeMode: 'contain',
-    marginLeft: 8,
+    marginRight: 10,
+    opacity: 0.82,
   },
   errorText: {
-    color: 'red',
-    fontSize: 14,
-    marginTop: 4,
-    textAlign: 'center',
+    color: '#f87171',
+    fontSize: 13.5,
+    marginTop: 3,
+    marginLeft: 8,
+    fontWeight: '600',
+    textAlign: 'left',
   },
 });
