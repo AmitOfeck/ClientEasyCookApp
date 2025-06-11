@@ -184,12 +184,13 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   loginTitle: {
-    fontSize: 23,
-    fontWeight: '800',
-    color: '#1e293b',
-    marginBottom: 22,
-    letterSpacing: 0.32,
+    fontSize: 17,
+    fontWeight: '500',
+    color: '#4b5d78',      
+    marginBottom: 15,
+    letterSpacing: 0.15,
     textAlign: 'center',
+    opacity: 0.82,    
   },
   inputContainer: {
     width: '100%',
