@@ -1,9 +1,8 @@
 import React, { useState, useEffect } from 'react';
-import { View, Text, StyleSheet, ScrollView, Image, Dimensions } from 'react-native';
+import { View, Text, StyleSheet, ScrollView, Image, Dimensions, Platform } from 'react-native';
 import { InputField } from './InputField';
 import { ActionButton } from './ActionButton';
 import { SocialButton } from './SocialButton';
-// import { LinearGradient } from 'expo-linear-gradient';
 import { GoogleSignin, statusCodes } from '@react-native-google-signin/google-signin';
 import { googleSignIn, login, saveTokens } from '../services/auth_service';
 import { NavigationProp } from '@react-navigation/native';
@@ -55,21 +54,23 @@ export const LoginScreen = ({ navigation }: { navigation: NavigationProp<any> })
 
   return (
     <ScrollView contentContainerStyle={styles.scrollView}>
-      {/* סל קניות מציץ מהפינה הימנית העליונה */}
-      <Image
-        source={require('../assets/basket.png')}
-        style={styles.basket}
-        resizeMode="contain"
-      />
+      {/* סל קניות  */}
+      <View style={styles.basketWrapper}>
+        <Image
+          source={require('../assets/basket.png')}
+          style={styles.basket}
+          resizeMode="contain"
+        />
+      </View>
       
-      {/* כותרת ראשית מרשימה */}
+      {/* כותרת ראשית ולוגו */}
       <View style={styles.header}>
-      <Image
-        source={require('../assets/easycook-logo.png')}
-        style={styles.titleImage}
-        resizeMode="contain"
-      />
-      <Text style={styles.slogan}>Shop Smarter, Eat Better</Text>
+        <Image
+          source={require('../assets/easycook-logo.png')}
+          style={styles.titleImage}
+          resizeMode="contain"
+        />
+        <Text style={styles.slogan}>Shop Smarter, Eat Better</Text>
       </View>
       
       {/* שליח */}
@@ -117,36 +118,38 @@ const styles = StyleSheet.create({
     flexGrow: 1,
     backgroundColor: "#e4f0fd",
     alignItems: 'center',
-    paddingVertical: 32,
+    paddingVertical: Platform.OS === 'ios' ? 40 : 32,
     minHeight: height,
-    overflow: 'visible',
+  },
+  basketWrapper: {
+    position: 'absolute',
+    top: Platform.OS === 'ios' ? 0 : 0,
+    right: 0,
+    width: width,
+    alignItems: 'flex-end',
+    zIndex: 10,
+    pointerEvents: 'none', 
   },
   basket: {
-    position: 'absolute',
-    top: 0,
-    right: -width * 0.10,  
-    width: width * 0.36,
-    height: width * 0.28,
-    zIndex: 10,
-    opacity: 0.95,
+    width: width * 0.35,
+    height: width * 0.26,
+    marginRight: -width * 0.09,
+    marginTop: 0,
+    opacity: 0.97,
   },
   header: {
     alignItems: 'center',
-    marginTop: 38,
+    marginTop: 48,
     marginBottom: 4,
   },
-  appTitle: {
-    fontSize: 38,
-    fontWeight: '900',
-    color: '#2563eb',
-    textShadowColor: '#fff',
-    textShadowOffset: { width: 1, height: 2 },
-    textShadowRadius: 4,
-    letterSpacing: 1.2,
-    marginBottom: 4,
+  titleImage: {
+    width: width * 0.72,
+    height: width * 0.16,
+    marginBottom: 8,
+    alignSelf: 'center',
   },
   slogan: {
-    fontSize: 19,
+    fontSize: width < 370 ? 15 : 19,
     fontWeight: '600',
     color: '#3b82f6',
     marginBottom: 12,
@@ -156,7 +159,7 @@ const styles = StyleSheet.create({
     textShadowRadius: 2,
   },
   illustrationContainer: {
-    width: width * 0.38,
+    width: width * 0.39,
     height: width * 0.31,
     alignItems: 'center',
     justifyContent: 'center',
@@ -168,7 +171,7 @@ const styles = StyleSheet.create({
     height: '100%',
   },
   card: {
-    width: '90%',
+    width: width * 0.92,
     maxWidth: 410,
     alignSelf: 'center',
     backgroundColor: '#fff',
@@ -197,13 +200,6 @@ const styles = StyleSheet.create({
     gap: 16,
     marginBottom: 18,
   },
-  signUpButton: {
-    backgroundColor: '#e4f0fd',
-    color: '#2563eb',
-    borderWidth: 1.5,
-    borderColor: '#3b82f6',
-    marginTop: 9,
-  },
   socialText: {
     marginTop: 18,
     fontSize: 15,
@@ -217,11 +213,6 @@ const styles = StyleSheet.create({
     marginTop: 8,
     gap: 18,
   },
-  titleImage: {
-    width: 300,
-    height: 65,
-    marginBottom: 8,
-    alignSelf: 'center',
-  },
 });
 
+export default LoginScreen;
