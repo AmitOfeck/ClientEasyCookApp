@@ -9,6 +9,7 @@ import {
   Image,
   StatusBar,
   Dimensions,
+  Platform,
 } from "react-native";
 import { useForm, Controller } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -76,13 +77,15 @@ export const SignUp = ({ navigation }: { navigation: NavigationProp<any> }) => {
     <SafeAreaView style={styles.container}>
       <StatusBar barStyle="dark-content" />
       <ScrollView contentContainerStyle={styles.scrollView}>
-
-        {/* ----- HEADER עיצוב זהה ל־Login ----- */}
-        <Image
-          source={require("../assets/basket.png")}
-          style={styles.basket}
-          resizeMode="contain"
-        />
+        {/* סל קניות – תמיד באותו מקום כמו ב־Login */}
+        <View style={styles.basketWrapper}>
+          <Image
+            source={require("../assets/basket.png")}
+            style={styles.basket}
+            resizeMode="contain"
+          />
+        </View>
+        {/* כותרת, לוגו, וסלוגן */}
         <View style={styles.header}>
           <Image
             source={require("../assets/easycook-logo.png")}
@@ -91,6 +94,7 @@ export const SignUp = ({ navigation }: { navigation: NavigationProp<any> }) => {
           />
           <Text style={styles.signupFree}>Create your free account</Text>
         </View>
+        {/* שליח */}
         <View style={styles.illustrationContainer}>
           <Image
             source={require("../assets/rider.png")}
@@ -98,8 +102,6 @@ export const SignUp = ({ navigation }: { navigation: NavigationProp<any> }) => {
             resizeMode="contain"
           />
         </View>
-        {/* ----- END HEADER ----- */}
-
         {/* Card Form */}
         <View style={styles.card}>
           <Text style={styles.formTitle}>Sign Up</Text>
@@ -112,7 +114,6 @@ export const SignUp = ({ navigation }: { navigation: NavigationProp<any> }) => {
             )}
           </TouchableOpacity>
           <Text style={styles.avatarHint}>Choose a profile image</Text>
-
           {/* Collapsible Sections */}
           <CollapsibleSection
             title="Personal Details"
@@ -248,42 +249,49 @@ const styles = StyleSheet.create({
     flexGrow: 1,
     backgroundColor: "#e4f0fd",
     alignItems: 'center',
-    paddingVertical: 32,
+    paddingVertical: Platform.OS === 'ios' ? 40 : 32,
     minHeight: height,
     overflow: 'visible',
   },
-  basket: {
+  basketWrapper: {
     position: 'absolute',
-    top: 0,
-    right: -width * 0.10,
-    width: width * 0.36,
-    height: width * 0.28,
+    top: Platform.OS === 'ios' ? 0 : 0,
+    right: 0,
+    width: width,
+    alignItems: 'flex-end',
     zIndex: 10,
-    opacity: 0.95,
+    pointerEvents: 'none',
+  },
+  basket: {
+    width: width * 0.35,
+    height: width * 0.26,
+    marginRight: -width * 0.09,
+    marginTop: 0,
+    opacity: 0.97,
   },
   header: {
     alignItems: 'center',
-    marginTop: 38,
+    marginTop: 48,
     marginBottom: 4,
   },
   titleImage: {
-    width: 300,
-    height: 65,
+    width: width * 0.72,
+    height: width * 0.16,
     marginBottom: 8,
     alignSelf: 'center',
   },
   signupFree: {
-    fontSize: 18,
+    fontSize: width < 370 ? 15 : 19,
     fontWeight: '600',
     color: '#2563eb',
-    marginBottom: 4,
+    marginBottom: 12,
     marginTop: -4,
     textAlign: 'center',
     opacity: 0.88,
     letterSpacing: 0.04,
   },
   illustrationContainer: {
-    width: width * 0.38,
+    width: width * 0.39,
     height: width * 0.31,
     alignItems: 'center',
     justifyContent: 'center',
@@ -295,19 +303,20 @@ const styles = StyleSheet.create({
     height: '100%',
   },
   card: {
-    width: "93%",
-    maxWidth: 440,
-    alignSelf: "center",
-    backgroundColor: "#fff",
+    width: width * 0.92,
+    maxWidth: 410,
+    alignSelf: 'center',
+    backgroundColor: '#fff',
     borderRadius: 36,
-    padding: 26,
-    marginVertical: 15,
-    shadowColor: "#2563eb",
-    shadowOffset: { width: 0, height: 15 },
-    shadowOpacity: 0.13,
-    shadowRadius: 36,
-    elevation: 13,
-    alignItems: "center",
+    padding: 30,
+    paddingTop: 40,
+    marginVertical: 12,
+    shadowColor: '#2563eb',
+    shadowOffset: { width: 0, height: 14 },
+    shadowOpacity: 0.14,
+    shadowRadius: 34,
+    elevation: 10,
+    alignItems: 'center',
   },
   formTitle: {
     fontSize: 17,
