@@ -21,7 +21,6 @@ import AsyncStorage from "@react-native-async-storage/async-storage";
 
 const { width } = Dimensions.get('window');
 
-// כל אחד מכיל גם label למשתמש, וגם value ל־enum
 const CUISINES = [
   { label: "Italian", value: "ITALIAN", emoji: "🍝" },
   { label: "Chinese", value: "CHINESE", emoji: "🥡" },
@@ -86,7 +85,12 @@ const SearchScreen: React.FC<{ navigation: any }> = ({ navigation }) => {
   };
 
   return (
-    <ScrollView contentContainerStyle={styles.scrollView}>
+    <ScrollView
+  contentContainerStyle={[
+    styles.scrollView,
+    { paddingBottom: 90 } 
+  ]}
+>
       {/* --- Header --- */}
       <View style={styles.searchHeader}>
         <View style={styles.headerIconBox}>
@@ -263,9 +267,9 @@ const styles = StyleSheet.create({
     flexGrow: 1,
     backgroundColor: "#e4f0fd",
     alignItems: "center",
-    paddingBottom: 24,
-    minHeight: 700,
     paddingTop: Platform.OS === "ios" ? 24 : 10,
+    // paddingBottom: 24, // 
+    minHeight: 700,
   },
   searchHeader: {
     flexDirection: "row",
