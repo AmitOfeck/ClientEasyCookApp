@@ -2,35 +2,53 @@ import React, { useState } from "react";
 import {
   View,
   Text,
-  TextInput,
   TouchableOpacity,
   StyleSheet,
   ScrollView,
   ActivityIndicator,
   Alert,
   Image,
+  Dimensions,
+  Platform,
 } from "react-native";
+import MultiSlider from "@ptomasroos/react-native-multi-slider";
 import Icon from "react-native-vector-icons/MaterialCommunityIcons";
 import { searchDish } from "../services/search_service";
-import dishPlaceholder from "../assets/dish.png";      // fallback image
+import dishPlaceholder from "../assets/dish.png";
 import { IDish } from "../services/intefaces/dish";
 import { addDishesToShoppingList } from "../services/shopping_list_service";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 
-const CUISINES = ["ITALIAN", "CHINESE", "INDIAN", "MEXICAN"];
-const LIMITATIONS = ["VEGETARIAN", "VEGAN", "GLUTEN_FREE"];
-const LEVELS = ["EASY", "MEDIUM", "HARD"];
+const { width } = Dimensions.get('window');
+
+// כל אחד מכיל גם label למשתמש, וגם value ל־enum
+const CUISINES = [
+  { label: "Italian", value: "ITALIAN", emoji: "🍝" },
+  { label: "Chinese", value: "CHINESE", emoji: "🥡" },
+  { label: "Indian", value: "INDIAN", emoji: "🍛" },
+  { label: "Mexican", value: "MEXICAN", emoji: "🌮" },
+];
+const LIMITATIONS = [
+  { label: "Vegetarian", value: "VEGETARIAN", emoji: "🥗" },
+  { label: "Vegan", value: "VEGAN", emoji: "🥕" },
+  { label: "Gluten Free", value: "GLUTEN_FREE", emoji: "🌾" },
+];
+const LEVELS = [
+  { label: "Easy", value: "EASY", emoji: "🟢" },
+  { label: "Medium", value: "MEDIUM", emoji: "🟠" },
+  { label: "Hard", value: "HARD", emoji: "🔴" },
+];
+
+const MIN_PRICE = 0, MAX_PRICE = 62;
 
 const SearchScreen: React.FC<{ navigation: any }> = ({ navigation }) => {
-  const [selectedCuisine, setSelectedCuisine] = useState("");
-  const [selectedLimitation, setSelectedLimitation] = useState("");
-  const [selectedDifficulty, setSelectedDifficulty] = useState("");
-  const [priceMin, setPriceMin] = useState("5");
-  const [priceMax, setPriceMax] = useState("20");
+  const [selectedCuisine, setSelectedCuisine] = useState<string>("");
+  const [selectedLimitation, setSelectedLimitation] = useState<string>("");
+  const [selectedDifficulty, setSelectedDifficulty] = useState<string>("");
+  const [priceRange, setPriceRange] = useState([MIN_PRICE, MAX_PRICE]);
   const [loading, setLoading] = useState(false);
   const [results, setResults] = useState<IDish[]>([]);
 
-  /** ─────────────────────────  SEARCH  ───────────────────────── */
   const handleSearch = async () => {
     setLoading(true);
     try {
@@ -38,8 +56,8 @@ const SearchScreen: React.FC<{ navigation: any }> = ({ navigation }) => {
         cuisine: selectedCuisine,
         limitation: selectedLimitation,
         level: selectedDifficulty,
-        priceMin: parseFloat(priceMin),
-        priceMax: parseFloat(priceMax),
+        priceMin: priceRange[0],
+        priceMax: priceRange[1],
       });
       const { data } = await request;
       setResults(data);
@@ -51,7 +69,6 @@ const SearchScreen: React.FC<{ navigation: any }> = ({ navigation }) => {
     }
   };
 
-  /** ────────────────────  ADD TO SHOPPING LIST  ─────────────────── */
   const handleAddToShoppingList = async (dishId: string) => {
     try {
       const token = await AsyncStorage.getItem("accessToken");
@@ -68,182 +85,168 @@ const SearchScreen: React.FC<{ navigation: any }> = ({ navigation }) => {
     }
   };
 
-  /** ─────────────────────────  RENDER  ───────────────────────── */
   return (
-    <ScrollView contentContainerStyle={styles.container}>
-      {/* HEADER */}
-      <Text style={styles.headerText}>Search Dishes</Text>
-
-      {/* PRICE RANGE */}
-      <Text style={styles.filterLabel}>Price Range:</Text>
-      <View style={styles.priceInputContainer}>
-        <TextInput
-          style={styles.priceInput}
-          keyboardType="numeric"
-          value={priceMin}
-          onChangeText={setPriceMin}
-          placeholder="Min"
-        />
-        <Text style={styles.toText}>to</Text>
-        <TextInput
-          style={styles.priceInput}
-          keyboardType="numeric"
-          value={priceMax}
-          onChangeText={setPriceMax}
-          placeholder="Max"
-        />
+    <ScrollView contentContainerStyle={styles.scrollView}>
+      {/* --- Header --- */}
+      <View style={styles.searchHeader}>
+        <View style={styles.headerIconBox}>
+          <Icon name="magnify" size={30} color="#fff" />
+        </View>
+        <View style={{ flex: 1, paddingLeft: 10 }}>
+          <Text style={styles.headerTitle}>What would you like to eat today?</Text>
+          <Text style={styles.headerSubtitle}>
+            Discover amazing dishes tailored for you
+          </Text>
+        </View>
       </View>
 
-      {/* CUISINE */}
-      <Text style={styles.filterLabel}>Cuisine:</Text>
-      <View style={styles.selectionContainer}>
-        {CUISINES.map((cuisine) => (
-          <TouchableOpacity
-            key={cuisine}
-            style={[
-              styles.optionButton,
-              selectedCuisine === cuisine && styles.optionButtonSelected,
-            ]}
-            onPress={() => setSelectedCuisine(cuisine)}
-          >
-            <Text
+      {/* --- Filters Section --- */}
+      <View style={styles.card}>
+        {/* Price Range */}
+        <Text style={styles.sectionTitle}>Price Range</Text>
+        <View style={styles.sliderContainer}>
+          <MultiSlider
+            values={priceRange}
+            min={MIN_PRICE}
+            max={MAX_PRICE}
+            step={1}
+            sliderLength={width * 0.7}
+            onValuesChange={setPriceRange}
+            selectedStyle={{ backgroundColor: "#2563eb" }}
+            markerStyle={styles.sliderMarker}
+            pressedMarkerStyle={styles.sliderMarkerActive}
+            trackStyle={{ height: 5, borderRadius: 3 }}
+          />
+          <View style={styles.sliderLabels}>
+            <Text style={styles.sliderLabel}>₪{priceRange[0]}</Text>
+            <Text style={styles.sliderLabel}>₪{priceRange[1]}</Text>
+          </View>
+        </View>
+
+        {/* Cuisine */}
+        <Text style={styles.filterLabel}>Cuisine</Text>
+        <View style={styles.gridCompact}>
+          {CUISINES.map(({ label, value, emoji }) => (
+            <TouchableOpacity
+              key={value}
               style={[
-                styles.optionText,
-                selectedCuisine === cuisine && styles.optionTextSelected,
+                styles.gridMiniButton,
+                selectedCuisine === value && styles.gridMiniButtonSelected,
               ]}
+              onPress={() =>
+                setSelectedCuisine(selectedCuisine === value ? "" : value)
+              }
+              activeOpacity={0.85}
             >
-              {cuisine}
-            </Text>
-          </TouchableOpacity>
-        ))}
-      </View>
-
-      {/* LIMITATION */}
-      <Text style={styles.filterLabel}>Dietary Limitations:</Text>
-      <View style={styles.selectionContainer}>
-        {LIMITATIONS.map((limit) => (
-          <TouchableOpacity
-            key={limit}
-            style={[
-              styles.optionButton,
-              selectedLimitation === limit && styles.optionButtonSelected,
-            ]}
-            onPress={() => setSelectedLimitation(limit)}
-          >
-            <Text
+              <Text style={styles.emojiSmall}>{emoji}</Text>
+              <Text
+                style={[
+                  styles.gridMiniButtonText,
+                  selectedCuisine === value && styles.gridMiniButtonTextSelected,
+                ]}
+              >
+                {label}
+              </Text>
+            </TouchableOpacity>
+          ))}
+        </View>
+        {/* Limitations */}
+        <Text style={styles.filterLabel}>Dietary Limitations</Text>
+        <View style={styles.gridCompact}>
+          {LIMITATIONS.map(({ label, value, emoji }) => (
+            <TouchableOpacity
+              key={value}
               style={[
-                styles.optionText,
-                selectedLimitation === limit && styles.optionTextSelected,
+                styles.gridMiniButton,
+                selectedLimitation === value && styles.gridMiniButtonSelected,
               ]}
+              onPress={() =>
+                setSelectedLimitation(selectedLimitation === value ? "" : value)
+              }
+              activeOpacity={0.85}
             >
-              {limit}
-            </Text>
-          </TouchableOpacity>
-        ))}
-      </View>
-
-      {/* DIFFICULTY */}
-      <Text style={styles.filterLabel}>Difficulty Level:</Text>
-      <View style={styles.selectionContainer}>
-        {LEVELS.map((level) => (
-          <TouchableOpacity
-            key={level}
-            style={[
-              styles.optionButton,
-              selectedDifficulty === level && styles.optionButtonSelected,
-            ]}
-            onPress={() => setSelectedDifficulty(level)}
-          >
-            <Text
+              <Text style={styles.emojiSmall}>{emoji}</Text>
+              <Text
+                style={[
+                  styles.gridMiniButtonText,
+                  selectedLimitation === value && styles.gridMiniButtonTextSelected,
+                ]}
+              >
+                {label}
+              </Text>
+            </TouchableOpacity>
+          ))}
+        </View>
+        {/* Difficulty */}
+        <Text style={styles.filterLabel}>Difficulty Level</Text>
+        <View style={styles.gridCompact}>
+          {LEVELS.map(({ label, value, emoji }) => (
+            <TouchableOpacity
+              key={value}
               style={[
-                styles.optionText,
-                selectedDifficulty === level && styles.optionTextSelected,
+                styles.gridMiniButton,
+                selectedDifficulty === value && styles.gridMiniButtonSelected,
               ]}
+              onPress={() =>
+                setSelectedDifficulty(selectedDifficulty === value ? "" : value)
+              }
+              activeOpacity={0.85}
             >
-              {level}
-            </Text>
-          </TouchableOpacity>
-        ))}
+              <Text style={styles.emojiSmall}>{emoji}</Text>
+              <Text
+                style={[
+                  styles.gridMiniButtonText,
+                  selectedDifficulty === value && styles.gridMiniButtonTextSelected,
+                ]}
+              >
+                {label}
+              </Text>
+            </TouchableOpacity>
+          ))}
+        </View>
+        {/* חיפוש */}
+        <TouchableOpacity style={styles.searchButton} onPress={handleSearch}>
+          <Text style={styles.searchButtonText}>Search</Text>
+        </TouchableOpacity>
       </View>
 
-      {/* SEARCH BUTTON */}
-      <TouchableOpacity style={styles.searchButton} onPress={handleSearch}>
-        <Text style={styles.searchButtonText}>Search</Text>
-      </TouchableOpacity>
-
-      {/* LOADING */}
+      {/* לודינג */}
       {loading && (
-        <ActivityIndicator
-          size="large"
-          color="#1E3A8A"
-          style={{ marginTop: 20 }}
-        />
+        <ActivityIndicator size="large" color="#2563eb" style={{ marginTop: 18 }} />
       )}
 
-      {/* RESULTS */}
-      <View style={{ marginTop: 30 }}>
+      {/* תוצאות חיפוש */}
+      <View style={{ marginTop: 18, width: "100%", alignItems: "center" }}>
         {results.map((dish) => (
-          <View key={dish._id} style={styles.trendingRecipe}>
+          <View key={dish._id} style={styles.dishCard}>
             <Image
-              source={
-                dish.imageUrl ? { uri: dish.imageUrl } : dishPlaceholder
-              }
+              source={dish.imageUrl ? { uri: dish.imageUrl } : dishPlaceholder}
               style={styles.recipeImage}
             />
-
             <View style={styles.recipeInfo}>
               <Text style={styles.recipeTitle}>{dish.name}</Text>
-              <Text style={styles.recipeDesc}>
-                {dish.details || "No details available"}
-              </Text>
-
+              <Text style={styles.recipeDesc}>{dish.details || "No details available"}</Text>
               <View style={styles.recipeDetails}>
-                <Text style={styles.recipeTime}>{dish.level}</Text>
-                <Text style={styles.recipeRating}>
-                  Calories: {dish.dishCalories}
-                </Text>
+                <Text style={styles.recipeTag}>{dish.level}</Text>
+                <Text style={styles.recipeTag}>{dish.cuisine}</Text>
+                <Text style={styles.recipeTag}>{dish.limitation}</Text>
               </View>
-
               <View style={styles.recipeDetails}>
-                <Text style={styles.recipeCuisine}>
-                  Cuisine: {dish.cuisine}
-                </Text>
+                <Text style={styles.recipePrice}>${dish.price}</Text>
+                <Text style={styles.recipeCalories}>Calories: {dish.dishCalories}</Text>
               </View>
-
-              <View style={styles.recipeDetails}>
-                <Text style={styles.recipeLimitation}>
-                  Limitation: {dish.limitation}
-                </Text>
-              </View>
-
-              <View style={styles.recipeDetails}>
-                <Text style={styles.recipePrice}>Price: ${dish.price}</Text>
-              </View>
-
-              {/* quick action icons */}
               <View style={styles.iconContainer}>
                 <TouchableOpacity
-                  onPress={() =>
-                    navigation.navigate("DishDetail", { dishId: dish._id })
-                  }
+                  onPress={() => navigation.navigate("DishDetail", { dishId: dish._id })}
+                  style={styles.circleIcon}
                 >
-                  <Icon
-                    name="information"
-                    size={24}
-                    color="#1E3A8A"
-                    style={styles.icon}
-                  />
+                  <Icon name="information" size={20} color="#2563eb" />
                 </TouchableOpacity>
-
                 <TouchableOpacity
                   onPress={() => handleAddToShoppingList(dish._id)}
+                  style={styles.circleIcon}
                 >
-                  <Icon
-                    name="clipboard-list"
-                    size={24}
-                    color="#1E3A8A"
-                    style={styles.icon}
-                  />
+                  <Icon name="clipboard-list" size={20} color="#2563eb" />
                 </TouchableOpacity>
               </View>
             </View>
@@ -254,141 +257,281 @@ const SearchScreen: React.FC<{ navigation: any }> = ({ navigation }) => {
   );
 };
 
-/* ─────────────────────────  STYLES  ───────────────────────── */
-
+/* --- styles --- */
 const styles = StyleSheet.create({
-  container: {
-    paddingHorizontal: 20,
-    paddingTop: 40,
-    paddingBottom: 40,
-    backgroundColor: "#FFFFFF",
+  scrollView: {
+    flexGrow: 1,
+    backgroundColor: "#e4f0fd",
+    alignItems: "center",
+    paddingBottom: 24,
+    minHeight: 700,
+    paddingTop: Platform.OS === "ios" ? 24 : 10,
   },
-  headerText: {
-    fontSize: 24,
-    fontWeight: "bold",
-    marginBottom: 20,
-    textAlign: "center",
-    color: "#1F1F1F",
-  },
-  /* ───── filter controls ───── */
-  filterLabel: {
-    fontSize: 16,
-    fontWeight: "bold",
-    marginTop: 10,
-  },
-  priceInputContainer: {
+  searchHeader: {
     flexDirection: "row",
     alignItems: "center",
-    marginVertical: 10,
-  },
-  priceInput: {
-    backgroundColor: "#FFFFFF",
-    borderColor: "#1E3A8A",
-    borderWidth: 1,
-    padding: 8,
-    borderRadius: 5,
-    width: "40%",
-    textAlign: "center",
-  },
-  toText: {
-    marginHorizontal: 10,
-    fontSize: 16,
-  },
-  selectionContainer: {
-    flexDirection: "row",
-    flexWrap: "wrap",
-    marginVertical: 10,
-  },
-  optionButton: {
-    backgroundColor: "#F0F0F0",
-    paddingVertical: 5,
-    paddingHorizontal: 15,
-    borderRadius: 20,
-    margin: 5,
-  },
-  optionButtonSelected: {
-    backgroundColor: "#1E3A8A",
-  },
-  optionText: {
-    color: "#1E3A8A",
-  },
-  optionTextSelected: {
-    color: "#FFFFFF",
-  },
-  searchButton: {
-    backgroundColor: "#1E3A8A",
-    padding: 15,
+    backgroundColor: "#eaf3ff",
     borderRadius: 25,
+    marginTop: 10,
+    marginBottom: 13,
+    padding: 13,
+    width: width * 0.93,
+    minHeight: 67,
+    shadowColor: "#2563eb66",
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.09,
+    shadowRadius: 13,
+    elevation: 7,
+  },
+  headerIconBox: {
+    backgroundColor: "#2563eb",
+    width: 44,
+    height: 44,
+    borderRadius: 17,
     alignItems: "center",
-    marginTop: 15,
-  },
-  searchButtonText: {
-    color: "#FFFFFF",
-    fontWeight: "bold",
-    fontSize: 16,
-  },
-
-  /* ───── result card (mirrors DishScreen) ───── */
-  trendingRecipe: {
-    flexDirection: "row",
-    marginBottom: 20,
-    backgroundColor: "#fff",
-    borderRadius: 10,
-    overflow: "hidden",
-    shadowColor: "#000",
-    shadowOpacity: 0.1,
-    shadowRadius: 10,
+    justifyContent: "center",
+    marginRight: 8,
+    shadowColor: "#3b82f6",
+    shadowOpacity: 0.16,
+    shadowRadius: 7,
     elevation: 5,
   },
-  recipeImage: {
-    width: 120,
-    height: 120,
+  headerTitle: {
+    fontSize: 17.2,
+    fontWeight: "700",
+    color: "#2563eb",
+    marginBottom: 2,
+  },
+  headerSubtitle: {
+    fontSize: 12.5,
+    color: "#6487b0",
+    fontWeight: "500",
+    opacity: 0.8,
+    marginLeft: 1,
+    marginTop: 1,
+  },
+  card: {
+    width: "95%",
+    maxWidth: 440,
+    backgroundColor: "#fff",
+    borderRadius: 23,
+    padding: 16,
+    marginVertical: 7,
+    shadowColor: "#2563eb",
+    shadowOffset: { width: 0, height: 5 },
+    shadowOpacity: 0.11,
+    shadowRadius: 15,
+    elevation: 7,
+    alignItems: "center",
+  },
+  sectionTitle: {
+    fontSize: 15,
+    fontWeight: "700",
+    color: "#2563eb",
+    marginBottom: 2,
+    textAlign: "center",
+  },
+  sliderContainer: {
+    alignItems: "center",
+    width: "99%",
+    marginVertical: 6,
+  },
+  sliderMarker: {
+    backgroundColor: "#2563eb",
+    height: 23,
+    width: 23,
     borderRadius: 15,
+    borderWidth: 2,
+    borderColor: "#fff",
+    shadowColor: "#2563eb",
+    shadowOpacity: 0.16,
+    shadowRadius: 4,
+    elevation: 2,
+  },
+  sliderMarkerActive: {
+    backgroundColor: "#1e3a8a",
+    borderColor: "#a3bffa",
+  },
+  sliderLabels: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    width: "92%",
+    marginTop: 5,
+    marginBottom: 2,
+  },
+  sliderLabel: {
+    fontSize: 14,
+    fontWeight: "700",
+    color: "#2563eb",
+    opacity: 0.75,
+    backgroundColor: "#eaf3ff",
+    paddingHorizontal: 11,
+    paddingVertical: 2,
+    borderRadius: 13,
+  },
+  filterLabel: {
+    fontSize: 13,
+    fontWeight: "700",
+    color: "#415c78",
+    marginTop: 5,
+    marginBottom: 1,
+    opacity: 0.82,
+    alignSelf: "flex-start",
+  },
+  // גריד קומפקטי!
+  gridCompact: {
+    flexDirection: "row",
+    flexWrap: "wrap",
+    justifyContent: "flex-start",
+    width: "100%",
+    marginVertical: 2,
+    gap: 6,
+  },
+  gridMiniButton: {
+    flexBasis: "28%", // 3 בשורה במסכים צרים, 4 בגדולים
+    minWidth: 95,
+    backgroundColor: "#eaf3ff",
+    paddingVertical: 10,
+    borderRadius: 12,
+    margin: 3,
+    alignItems: "center",
+    justifyContent: "center",
+    borderWidth: 1.1,
+    borderColor: "#eaf3ff",
+    elevation: 2,
+    flexShrink: 1,
+  },
+  gridMiniButtonSelected: {
+    backgroundColor: "#f6f8ff",
+    borderColor: "#2563eb",
+    shadowColor: "#2563eb44",
+    shadowOpacity: 0.11,
+    shadowRadius: 8,
+  },
+  emojiSmall: {
+    fontSize: 20,
+    marginBottom: 1,
+  },
+  gridMiniButtonText: {
+    color: "#2563eb",
+    fontWeight: "700",
+    fontSize: 13,
+    marginTop: 0,
+  },
+  gridMiniButtonTextSelected: {
+    color: "#e54349",
+  },
+  searchButton: {
+    backgroundColor: "#e8f2ff",
+    borderRadius: 19,
+    height: 40,
+    justifyContent: "center",
+    alignItems: "center",
+    borderWidth: 2,
+    borderColor: "#2186eb",
+    marginTop: 12,
+    marginBottom: 6,
+    width: "93%",
+    alignSelf: "center",
+    shadowColor: "#2563eb22",
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.06,
+    shadowRadius: 6,
+    elevation: 2,
+  },
+  searchButtonText: {
+    color: "#2186eb",
+    fontSize: 15.5,
+    fontWeight: "700",
+    letterSpacing: 0.11,
+    textAlign: "center",
+  },
+  /* כרטיס מנה */
+  dishCard: {
+    flexDirection: "row",
+    width: "97%",
+    maxWidth: 440,
+    backgroundColor: "#fff",
+    borderRadius: 23,
+    marginBottom: 18,
+    alignItems: "center",
+    padding: 9,
+    shadowColor: "#2563eb",
+    shadowOffset: { width: 0, height: 8 },
+    shadowOpacity: 0.09,
+    shadowRadius: 15,
+    elevation: 7,
+    alignSelf: "center",
+  },
+  recipeImage: {
+    width: 80,
+    height: 80,
+    borderRadius: 15,
+    marginRight: 8,
+    backgroundColor: "#f7fafd",
   },
   recipeInfo: {
     flex: 1,
-    padding: 10,
+    paddingRight: 2,
   },
   recipeTitle: {
-    fontSize: 16,
+    fontSize: 15,
     fontWeight: "bold",
+    color: "#2563eb",
+    marginBottom: 2,
   },
   recipeDesc: {
     fontSize: 12,
-    color: "#777",
-    marginVertical: 5,
+    color: "#6e7e97",
+    marginBottom: 2,
   },
   recipeDetails: {
     flexDirection: "row",
-    justifyContent: "space-between",
+    alignItems: "center",
+    gap: 5,
+    marginBottom: 1,
+    flexWrap: "wrap",
   },
-  recipeTime: {
-    fontSize: 12,
-    color: "#555",
-  },
-  recipeRating: {
-    fontSize: 12,
-    color: "#F39C12",
-  },
-  recipeCuisine: {
+  recipeTag: {
+    backgroundColor: "#e4f0fd",
+    color: "#2563eb",
     fontSize: 11,
-    color: "#555",
-  },
-  recipeLimitation: {
-    fontSize: 11,
-    color: "#555",
+    fontWeight: "600",
+    paddingHorizontal: 7,
+    paddingVertical: 1,
+    borderRadius: 9,
+    marginRight: 4,
+    marginTop: 1,
+    opacity: 0.87,
   },
   recipePrice: {
-    fontSize: 11,
+    color: "#2dc44a",
     fontWeight: "bold",
-    color: "#2E8B57",
+    fontSize: 12,
+    marginRight: 6,
+  },
+  recipeCalories: {
+    fontSize: 10.5,
+    color: "#a4791d",
+    marginRight: 5,
   },
   iconContainer: {
     flexDirection: "row",
-    marginTop: 8,
+    marginTop: 6,
+    gap: 7,
   },
-  icon: {
-    marginRight: 15,
+  circleIcon: {
+    backgroundColor: "#e4f0fd",
+    borderRadius: 16,
+    width: 32,
+    height: 32,
+    justifyContent: "center",
+    alignItems: "center",
+    marginRight: 5,
+    shadowColor: "#bcd7f8",
+    shadowOpacity: 0.13,
+    shadowRadius: 4,
+    elevation: 1,
   },
 });
 
