@@ -1,4 +1,4 @@
-import React, { useCallback, useState } from "react";
+import React, { useEffect, useState, useCallback } from "react";
 import { useFocusEffect } from "@react-navigation/native";
 import {
   ScrollView,
@@ -6,51 +6,48 @@ import {
   Text,
   View,
   TouchableOpacity,
+  TextInput,
   ActivityIndicator,
   Alert,
   Modal,
   Platform,
   Dimensions,
 } from "react-native";
-import MultiSlider from "@ptomasroos/react-native-multi-slider";
 import Icon from "react-native-vector-icons/MaterialCommunityIcons";
 import { getDishes } from "../services/dish_service";
 import { IDish } from "../services/intefaces/dish";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { addDishesToShoppingList } from "../services/shopping_list_service";
 import { DishCard } from "../components/DishCard";
+import MultiSlider from "@ptomasroos/react-native-multi-slider";
 
-const { width, height } = Dimensions.get("window");
-const CARD_MAX_WIDTH = 440;
+const { width } = Dimensions.get("window");
 const MIN_PRICE = 0, MAX_PRICE = 62;
 
 const CUISINES = [
-  { label: "Italian", value: "ITALIAN", emoji: "🍝" },
-  { label: "Chinese", value: "CHINESE", emoji: "🥡" },
-  { label: "Indian", value: "INDIAN", emoji: "🍛" },
-  { label: "Mexican", value: "MEXICAN", emoji: "🌮" },
+  { value: "ITALIAN", label: "Italian", emoji: "🍝" },
+  { value: "CHINESE", label: "Chinese", emoji: "🥡" },
+  { value: "INDIAN", label: "Indian", emoji: "🍛" },
+  { value: "MEXICAN", label: "Mexican", emoji: "🌮" },
 ];
 const LIMITATIONS = [
-  { label: "Vegetarian", value: "VEGETARIAN", emoji: "🥗" },
-  { label: "Vegan", value: "VEGAN", emoji: "🥕" },
-  { label: "Gluten Free", value: "GLUTEN_FREE", emoji: "🌾" },
+  { value: "VEGETARIAN", label: "Vegetarian", emoji: "🥗" },
+  { value: "VEGAN", label: "Vegan", emoji: "🥕" },
+  { value: "GLUTEN_FREE", label: "Gluten Free", emoji: "🌾" },
 ];
 const LEVELS = [
-  { label: "Easy", value: "EASY", emoji: "🟢" },
-  { label: "Medium", value: "MEDIUM", emoji: "🟠" },
-  { label: "Hard", value: "HARD", emoji: "🔴" },
+  { value: "EASY", label: "Easy", emoji: "🟢" },
+  { value: "MEDIUM", label: "Medium", emoji: "🟠" },
+  { value: "HARD", label: "Hard", emoji: "🔴" },
 ];
 
 const DishScreen: React.FC<{ navigation: any }> = ({ navigation }) => {
   const [showFilters, setShowFilters] = useState(false);
-
   const [selectedCuisine, setSelectedCuisine] = useState<string>("");
   const [selectedLimitation, setSelectedLimitation] = useState<string>("");
   const [selectedDifficulty, setSelectedDifficulty] = useState<string>("");
   const [priceRange, setPriceRange] = useState<[number, number]>([MIN_PRICE, MAX_PRICE]);
-
   const [loading, setLoading] = useState(true);
-
   const [originalDishes, setOriginalDishes] = useState<IDish[]>([]);
   const [filteredDishes, setFilteredDishes] = useState<IDish[]>([]);
 
@@ -59,7 +56,6 @@ const DishScreen: React.FC<{ navigation: any }> = ({ navigation }) => {
       const fetchAllDishes = async () => {
         setLoading(true);
         handleClearFilters(false);
-
         const { request } = getDishes({});
         try {
           const response = await request;
@@ -67,7 +63,6 @@ const DishScreen: React.FC<{ navigation: any }> = ({ navigation }) => {
             (a, b) =>
               new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
           );
-
           setOriginalDishes(sortedDishes);
           setFilteredDishes(sortedDishes);
         } catch (error) {
@@ -77,7 +72,6 @@ const DishScreen: React.FC<{ navigation: any }> = ({ navigation }) => {
           setLoading(false);
         }
       };
-
       fetchAllDishes();
     }, [])
   );
@@ -100,7 +94,6 @@ const DishScreen: React.FC<{ navigation: any }> = ({ navigation }) => {
 
   const handleSearch = () => {
     let results = [...originalDishes];
-
     if (selectedCuisine) {
       results = results.filter((dish) => dish.cuisine === selectedCuisine);
     }
@@ -110,9 +103,11 @@ const DishScreen: React.FC<{ navigation: any }> = ({ navigation }) => {
     if (selectedDifficulty) {
       results = results.filter((dish) => dish.level === selectedDifficulty);
     }
-    const [min, max] = priceRange;
-    results = results.filter((dish) => dish.price >= min && dish.price <= max);
-
+    results = results.filter(
+      (dish) =>
+        dish.price >= priceRange[0] &&
+        dish.price <= priceRange[1]
+    );
     setFilteredDishes(results);
     setShowFilters(false);
   };
@@ -123,17 +118,15 @@ const DishScreen: React.FC<{ navigation: any }> = ({ navigation }) => {
     setSelectedDifficulty("");
     setPriceRange([MIN_PRICE, MAX_PRICE]);
     setFilteredDishes(originalDishes);
-    if (closeFilterView) {
-      setShowFilters(false);
-    }
+    if (closeFilterView) setShowFilters(false);
   };
 
   return (
-    <View style={styles.container}>
-      {/* --- Header --- */}
+    <View style={{ flex: 1, backgroundColor: "#e4f0fd" }}>
+      {/* Header */}
       <View style={styles.searchHeader}>
         <View style={styles.headerIconBox}>
-          <Icon name="silverware-fork-knife" size={28} color="#fff" />
+          <Icon name="silverware-fork-knife" size={30} color="#fff" />
         </View>
         <View style={{ flex: 1, paddingLeft: 10 }}>
           <Text style={styles.headerTitle}>Explore Our Dishes</Text>
@@ -149,9 +142,7 @@ const DishScreen: React.FC<{ navigation: any }> = ({ navigation }) => {
         </TouchableOpacity>
       </View>
 
-      <Text style={styles.sectionTitle}>Dishes</Text>
-
-      {/* --- FILTER MODAL --- */}
+      {/* Filter Modal */}
       <Modal
         visible={showFilters}
         animationType="slide"
@@ -161,11 +152,11 @@ const DishScreen: React.FC<{ navigation: any }> = ({ navigation }) => {
         <View style={styles.modalOverlay}>
           <View style={styles.modalCard}>
             <ScrollView
-              contentContainerStyle={styles.modalContent}
               showsVerticalScrollIndicator={false}
-              bounces
+              contentContainerStyle={{ paddingBottom: 12 }}
             >
-              {/* Slider price */}
+              <Text style={styles.filterTitle}>Filter Dishes</Text>
+              {/* --- Price Range --- */}
               <Text style={styles.filterLabel}>Price Range</Text>
               <View style={styles.sliderContainer}>
                 <MultiSlider
@@ -173,7 +164,7 @@ const DishScreen: React.FC<{ navigation: any }> = ({ navigation }) => {
                   min={MIN_PRICE}
                   max={MAX_PRICE}
                   step={1}
-                  sliderLength={width * 0.7}
+                  sliderLength={width * 0.72}
                   onValuesChange={(vals) => setPriceRange([vals[0], vals[1]])}
                   selectedStyle={{ backgroundColor: "#2563eb" }}
                   markerStyle={styles.sliderMarker}
@@ -185,11 +176,10 @@ const DishScreen: React.FC<{ navigation: any }> = ({ navigation }) => {
                   <Text style={styles.sliderLabel}>₪{priceRange[1]}</Text>
                 </View>
               </View>
-
-              {/* Cuisine */}
+              {/* --- Cuisine --- */}
               <Text style={styles.filterLabel}>Cuisine</Text>
               <View style={styles.gridCompact}>
-                {CUISINES.map(({ label, value, emoji }) => (
+                {CUISINES.map(({ value, label, emoji }) => (
                   <TouchableOpacity
                     key={value}
                     style={[
@@ -199,7 +189,7 @@ const DishScreen: React.FC<{ navigation: any }> = ({ navigation }) => {
                     onPress={() =>
                       setSelectedCuisine(selectedCuisine === value ? "" : value)
                     }
-                    activeOpacity={0.85}
+                    activeOpacity={0.86}
                   >
                     <Text style={styles.emojiSmall}>{emoji}</Text>
                     <Text
@@ -213,10 +203,10 @@ const DishScreen: React.FC<{ navigation: any }> = ({ navigation }) => {
                   </TouchableOpacity>
                 ))}
               </View>
-              {/* Limitations */}
+              {/* --- Limitations --- */}
               <Text style={styles.filterLabel}>Dietary Limitations</Text>
               <View style={styles.gridCompact}>
-                {LIMITATIONS.map(({ label, value, emoji }) => (
+                {LIMITATIONS.map(({ value, label, emoji }) => (
                   <TouchableOpacity
                     key={value}
                     style={[
@@ -226,7 +216,7 @@ const DishScreen: React.FC<{ navigation: any }> = ({ navigation }) => {
                     onPress={() =>
                       setSelectedLimitation(selectedLimitation === value ? "" : value)
                     }
-                    activeOpacity={0.85}
+                    activeOpacity={0.86}
                   >
                     <Text style={styles.emojiSmall}>{emoji}</Text>
                     <Text
@@ -240,10 +230,10 @@ const DishScreen: React.FC<{ navigation: any }> = ({ navigation }) => {
                   </TouchableOpacity>
                 ))}
               </View>
-              {/* Difficulty */}
-              <Text style={styles.filterLabel}>Difficulty Level</Text>
+              {/* --- Difficulty --- */}
+              <Text style={styles.filterLabel}>Difficulty</Text>
               <View style={styles.gridCompact}>
-                {LEVELS.map(({ label, value, emoji }) => (
+                {LEVELS.map(({ value, label, emoji }) => (
                   <TouchableOpacity
                     key={value}
                     style={[
@@ -253,7 +243,7 @@ const DishScreen: React.FC<{ navigation: any }> = ({ navigation }) => {
                     onPress={() =>
                       setSelectedDifficulty(selectedDifficulty === value ? "" : value)
                     }
-                    activeOpacity={0.85}
+                    activeOpacity={0.86}
                   >
                     <Text style={styles.emojiSmall}>{emoji}</Text>
                     <Text
@@ -267,24 +257,35 @@ const DishScreen: React.FC<{ navigation: any }> = ({ navigation }) => {
                   </TouchableOpacity>
                 ))}
               </View>
-
-              {/* Actions */}
-              <TouchableOpacity style={styles.searchButton} onPress={handleSearch}>
-                <Text style={styles.searchButtonText}>Apply</Text>
-              </TouchableOpacity>
-              <TouchableOpacity
-                style={[styles.searchButton, styles.clearButton]}
-                onPress={() => handleClearFilters(true)}
-              >
-                <Text style={styles.clearButtonText}>Clear</Text>
-              </TouchableOpacity>
+              {/* --- Actions --- */}
+              <View style={styles.buttonRow}>
+                <TouchableOpacity
+                  style={[styles.modernButton, styles.clearModern]}
+                  onPress={() => handleClearFilters(true)}
+                  activeOpacity={0.83}
+                >
+                  <Text style={[styles.modernButtonText, styles.clearModernText]}>
+                    Clear
+                  </Text>
+                </TouchableOpacity>
+                <TouchableOpacity
+                  style={[styles.modernButton, styles.applyModern]}
+                  onPress={handleSearch}
+                  activeOpacity={0.83}
+                >
+                  <Text style={[styles.modernButtonText, styles.applyModernText]}>
+                    Apply
+                  </Text>
+                </TouchableOpacity>
+              </View>
             </ScrollView>
           </View>
         </View>
       </Modal>
 
-      {/* --- MAIN CONTENT --- */}
+      {/* --- Main Content --- */}
       <ScrollView contentContainerStyle={styles.scrollViewContent}>
+        <Text style={styles.sectionTitle}>Dishes</Text>
         {loading ? (
           <ActivityIndicator size="large" color="#2563eb" style={{ marginTop: 48 }} />
         ) : (
@@ -312,47 +313,43 @@ const DishScreen: React.FC<{ navigation: any }> = ({ navigation }) => {
   );
 };
 
-/* --- styles --- */
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: "#e4f0fd",
-  },
+  // HEADER
   searchHeader: {
     flexDirection: "row",
     alignItems: "center",
     backgroundColor: "#eaf3ff",
-    borderRadius: 25,
-    marginTop: Platform.OS === "ios" ? 18 : 10,
-    marginBottom: 6,
-    padding: 13,
-    width: width * 0.93,
-    minHeight: 64,
+    borderRadius: 23,
+    marginTop: Platform.OS === "ios" ? 10 : 7,
+    marginBottom: 13,
+    padding: 14,
+    width: width * 0.96,
     alignSelf: "center",
-    shadowColor: "#2563eb66",
-    shadowOffset: { width: 0, height: 4 },
+    minHeight: 59,
+    shadowColor: "#2563eb33",
+    shadowOffset: { width: 0, height: 5 },
     shadowOpacity: 0.09,
-    shadowRadius: 13,
-    elevation: 7,
+    shadowRadius: 11,
+    elevation: 6,
   },
   headerIconBox: {
     backgroundColor: "#2563eb",
     width: 44,
     height: 44,
-    borderRadius: 17,
+    borderRadius: 15,
     alignItems: "center",
     justifyContent: "center",
     marginRight: 8,
     shadowColor: "#3b82f6",
-    shadowOpacity: 0.16,
+    shadowOpacity: 0.14,
     shadowRadius: 7,
-    elevation: 5,
+    elevation: 4,
   },
   headerTitle: {
-    fontSize: 17.5,
+    fontSize: 17.2,
     fontWeight: "700",
     color: "#2563eb",
-    marginBottom: 1,
+    marginBottom: 2,
   },
   headerSubtitle: {
     fontSize: 12.5,
@@ -364,62 +361,60 @@ const styles = StyleSheet.create({
   },
   filterButton: {
     backgroundColor: "#eaf3ff",
-    borderRadius: 24,
-    padding: 9,
-    elevation: 2,
+    borderRadius: 25,
+    padding: 10,
     alignItems: "center",
     justifyContent: "center",
+    marginLeft: 10,
+    shadowColor: "#2563eb33",
+    shadowOpacity: 0.06,
+    shadowRadius: 6,
+    elevation: 2,
   },
-  sectionTitle: {
-    fontSize: 17,
-    fontWeight: "700",
-    color: "#2563eb",
-    marginBottom: 7,
-    alignSelf: "center",
-    marginTop: 3,
-  },
-  // FILTER MODAL
+  // MODAL
   modalOverlay: {
     flex: 1,
-    backgroundColor: "#1117",
+    backgroundColor: "#181f2c44",
     justifyContent: "flex-end",
   },
   modalCard: {
     backgroundColor: "#fff",
-    borderTopLeftRadius: 30,
-    borderTopRightRadius: 30,
-    width: width * 0.98,
-    minHeight: height * 0.54,
-    maxHeight: height * 0.85,
-    alignSelf: "center",
-    shadowColor: "#2563eb",
-    shadowOffset: { width: 0, height: -5 },
-    shadowOpacity: 0.12,
+    borderTopLeftRadius: 28,
+    borderTopRightRadius: 28,
+    paddingTop: 16,
+    paddingHorizontal: 17,
+    paddingBottom: Platform.OS === "ios" ? 28 : 14,
+    shadowColor: "#2563eb77",
+    shadowOffset: { width: 0, height: -4 },
+    shadowOpacity: 0.11,
     shadowRadius: 16,
-    elevation: 14,
-    marginBottom: 4,
-    paddingTop: 18,
-    paddingHorizontal: 11,
-    paddingBottom: 10,
+    elevation: 17,
+    maxHeight: "87%",
+    minHeight: 375,
   },
-  modalContent: {
-    paddingBottom: 14,
-    alignItems: "center",
-    justifyContent: "center",
+  filterTitle: {
+    fontSize: 19.7,
+    fontWeight: "800",
+    color: "#2563eb",
+    marginBottom: 11,
+    alignSelf: "center",
+    letterSpacing: 0.05,
   },
   filterLabel: {
-    fontSize: 13,
+    fontSize: 13.2,
     fontWeight: "700",
     color: "#415c78",
-    marginTop: 9,
-    marginBottom: 2,
-    opacity: 0.82,
+    marginTop: 8,
+    marginBottom: 3,
+    opacity: 0.81,
     alignSelf: "flex-start",
   },
+  // SLIDER
   sliderContainer: {
     alignItems: "center",
-    width: "99%",
-    marginVertical: 6,
+    width: "100%",
+    marginVertical: 3,
+    marginBottom: 8,
   },
   sliderMarker: {
     backgroundColor: "#2563eb",
@@ -429,7 +424,7 @@ const styles = StyleSheet.create({
     borderWidth: 2,
     borderColor: "#fff",
     shadowColor: "#2563eb",
-    shadowOpacity: 0.16,
+    shadowOpacity: 0.13,
     shadowRadius: 4,
     elevation: 2,
   },
@@ -440,34 +435,35 @@ const styles = StyleSheet.create({
   sliderLabels: {
     flexDirection: "row",
     justifyContent: "space-between",
-    width: "92%",
-    marginTop: 5,
-    marginBottom: 2,
+    width: "97%",
+    marginTop: 3,
+    marginBottom: 1,
   },
   sliderLabel: {
     fontSize: 14,
     fontWeight: "700",
     color: "#2563eb",
-    opacity: 0.75,
+    opacity: 0.80,
     backgroundColor: "#eaf3ff",
-    paddingHorizontal: 11,
+    paddingHorizontal: 13,
     paddingVertical: 2,
     borderRadius: 13,
   },
+  // GRID BUTTONS
   gridCompact: {
     flexDirection: "row",
     flexWrap: "wrap",
     justifyContent: "flex-start",
     width: "100%",
-    marginVertical: 2,
-    gap: 6,
+    marginVertical: 4,
+    gap: 9,
   },
   gridMiniButton: {
-    flexBasis: "28%",
+    flexBasis: "27%",
     minWidth: 95,
     backgroundColor: "#eaf3ff",
-    paddingVertical: 10,
-    borderRadius: 12,
+    paddingVertical: 13,
+    borderRadius: 13,
     margin: 3,
     alignItems: "center",
     justifyContent: "center",
@@ -484,59 +480,75 @@ const styles = StyleSheet.create({
     shadowRadius: 8,
   },
   emojiSmall: {
-    fontSize: 20,
-    marginBottom: 1,
+    fontSize: 23,
+    marginBottom: 2,
   },
   gridMiniButtonText: {
     color: "#2563eb",
     fontWeight: "700",
-    fontSize: 13,
+    fontSize: 13.8,
     marginTop: 0,
   },
   gridMiniButtonTextSelected: {
     color: "#e54349",
   },
-  searchButton: {
-    backgroundColor: "#e8f2ff",
-    borderRadius: 19,
-    height: 40,
-    justifyContent: "center",
-    alignItems: "center",
-    borderWidth: 2,
-    borderColor: "#2186eb",
-    marginTop: 12,
-    marginBottom: 6,
-    width: "93%",
-    alignSelf: "center",
-    shadowColor: "#2563eb22",
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.06,
-    shadowRadius: 6,
-    elevation: 2,
+  // MODERN ACTION BUTTONS
+  buttonRow: {
+    flexDirection: 'row',
+    width: '100%',
+    gap: 14,
+    marginTop: 17,
+    marginBottom: 5,
   },
-  searchButtonText: {
-    color: "#2186eb",
-    fontSize: 15.5,
+  modernButton: {
+    flex: 1,
+    height: 43,
+    borderRadius: 21,
+    alignItems: 'center',
+    justifyContent: 'center',
+    shadowColor: '#2563eb22',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.13,
+    shadowRadius: 8,
+    elevation: 3,
+    borderWidth: 1.1,
+    borderColor: '#d7e4fa',
+    backgroundColor: "#f6f8ff",
+  },
+  clearModern: {
+    backgroundColor: "#fff",
+    borderColor: "#e99a96",
+    shadowColor: "#e5434924",
+  },
+  applyModern: {
+    backgroundColor: "#2563eb",
+    borderColor: "#2563eb",
+  },
+  modernButtonText: {
     fontWeight: "700",
-    letterSpacing: 0.11,
-    textAlign: "center",
+    fontSize: 16.1,
+    letterSpacing: 0.02,
+    color: "#2563eb",
   },
-  clearButton: {
-    backgroundColor: "#fbe4e4",
-    borderColor: "#e54349",
-    marginTop: 0,
-  },
-  clearButtonText: {
+  clearModernText: {
     color: "#e54349",
-    fontWeight: "700",
-    fontSize: 15.5,
-    letterSpacing: 0.11,
-    textAlign: "center",
+  },
+  applyModernText: {
+    color: "#fff",
+  },
+  // MAIN CONTENT
+  sectionTitle: {
+    fontSize: 19,
+    fontWeight: "bold",
+    marginBottom: 10,
+    color: "#2363eb",
+    alignSelf: "center",
+    marginTop: 3,
   },
   scrollViewContent: {
-    paddingTop: 2,
+    paddingTop: 10,
     paddingHorizontal: 9,
-    paddingBottom: 20,
+    paddingBottom: 80,
   },
   noResultsText: {
     textAlign: "center",
