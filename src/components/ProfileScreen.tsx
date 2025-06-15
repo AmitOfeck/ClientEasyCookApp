@@ -12,6 +12,7 @@ import {
 import { getProfile, updateProfile, IProfile } from "../services/profile_service";
 import ProfileEditModal from "./ProfileEditModal";
 import { NavigationProp, useFocusEffect } from '@react-navigation/native';
+import { getFullImageUrl } from "../utils/getFullImageUrl";
 
 export const ProfileScreen = ({ navigation }: { navigation: NavigationProp<any> }) => {
   const [activeTab, setActiveTab] = useState<"recipe" | "favorites">("recipe");
@@ -135,7 +136,7 @@ export const ProfileScreen = ({ navigation }: { navigation: NavigationProp<any> 
         <Image
           source={{
             uri: profile?.profileImage
-              ? `http://10.0.2.2:3000${profile.profileImage}`
+              ? getFullImageUrl(profile.profileImage)
               : "https://via.placeholder.com/150", // fallback image
           }}
           style={styles.avatar}
