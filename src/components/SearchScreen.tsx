@@ -109,7 +109,7 @@ const SearchScreen: React.FC<{ navigation: any }> = ({ navigation }) => {
       {/* --- Filters Section --- */}
       <View style={styles.card}>
         {/* Price Range */}
-        <Text style={styles.sectionTitle}>Price Range</Text>
+        <Text style={styles.filterLabel}>Price Range</Text>
         <View style={styles.sliderContainer}>
           <MultiSlider
             values={priceRange}
