@@ -18,6 +18,8 @@ import dishPlaceholder from "../assets/dish.png";
 import { IDish } from "../services/intefaces/dish";
 import { addDishesToShoppingList } from "../services/shopping_list_service";
 import AsyncStorage from "@react-native-async-storage/async-storage";
+import { DishCard } from "./DishCard";
+import { getFullImageUrl } from "../utils/getFullImageUrl";
 
 const { width } = Dimensions.get('window');
 
@@ -220,43 +222,16 @@ const SearchScreen: React.FC<{ navigation: any }> = ({ navigation }) => {
       )}
 
       {/* תוצאות חיפוש */}
-      <View style={{ marginTop: 18, width: "100%", alignItems: "center" }}>
-        {results.map((dish) => (
-          <View key={dish._id} style={styles.dishCard}>
-            <Image
-              source={dish.imageUrl ? { uri: dish.imageUrl } : dishPlaceholder}
-              style={styles.recipeImage}
-            />
-            <View style={styles.recipeInfo}>
-              <Text style={styles.recipeTitle}>{dish.name}</Text>
-              <Text style={styles.recipeDesc}>{dish.details || "No details available"}</Text>
-              <View style={styles.recipeDetails}>
-                <Text style={styles.recipeTag}>{dish.level}</Text>
-                <Text style={styles.recipeTag}>{dish.cuisine}</Text>
-                <Text style={styles.recipeTag}>{dish.limitation}</Text>
-              </View>
-              <View style={styles.recipeDetails}>
-                <Text style={styles.recipePrice}>${dish.price}</Text>
-                <Text style={styles.recipeCalories}>Calories: {dish.dishCalories}</Text>
-              </View>
-              <View style={styles.iconContainer}>
-                <TouchableOpacity
-                  onPress={() => navigation.navigate("DishDetail", { dishId: dish._id })}
-                  style={styles.circleIcon}
-                >
-                  <Icon name="information" size={20} color="#2563eb" />
-                </TouchableOpacity>
-                <TouchableOpacity
-                  onPress={() => handleAddToShoppingList(dish._id)}
-                  style={styles.circleIcon}
-                >
-                  <Icon name="clipboard-list" size={20} color="#2563eb" />
-                </TouchableOpacity>
-              </View>
-            </View>
+      <View style={{ marginTop: 18, width: "100%", alignItems: "center", paddingBottom: 70 }}>
+          {results.map((dish) => (
+          <DishCard
+              key={dish._id}
+              dish={dish}
+              onInfoPress={() => navigation.navigate("DishDetail", { dishId: dish._id })}
+              onAddPress={() => handleAddToShoppingList(dish._id)}
+           />
+          ))}
           </View>
-        ))}
-      </View>
     </ScrollView>
   );
 };
