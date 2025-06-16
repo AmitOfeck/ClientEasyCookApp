@@ -1,25 +1,23 @@
-import React, { useState } from "react";
+import React, { useState, useRef, useEffect } from "react";
 import {
   View,
   Text,
   TouchableOpacity,
   StyleSheet,
   ScrollView,
-  ActivityIndicator,
   Alert,
-  Image,
   Dimensions,
   Platform,
+  Animated,
+  Easing,
 } from "react-native";
 import MultiSlider from "@ptomasroos/react-native-multi-slider";
 import Icon from "react-native-vector-icons/MaterialCommunityIcons";
 import { searchDish } from "../services/search_service";
-import dishPlaceholder from "../assets/dish.png";
 import { IDish } from "../services/intefaces/dish";
 import { addDishesToShoppingList } from "../services/shopping_list_service";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { DishCard } from "./DishCard";
-import { getFullImageUrl } from "../utils/getFullImageUrl";
 
 const { width } = Dimensions.get('window');
 
@@ -49,6 +47,34 @@ const SearchScreen: React.FC<{ navigation: any }> = ({ navigation }) => {
   const [priceRange, setPriceRange] = useState([MIN_PRICE, MAX_PRICE]);
   const [loading, setLoading] = useState(false);
   const [results, setResults] = useState<IDish[]>([]);
+
+  const spinAnim = useRef(new Animated.Value(0)).current;
+  const loopRef = useRef<any>(null);
+
+  useEffect(() => {
+    if (loading) {
+      loopRef.current = Animated.loop(
+        Animated.timing(spinAnim, {
+          toValue: 1,
+          duration: 1100,
+          easing: Easing.linear,
+          useNativeDriver: true,
+        })
+      );
+      loopRef.current.start();
+    } else {
+      if (loopRef.current) {
+        loopRef.current.stop();
+        loopRef.current = null;
+      }
+      spinAnim.setValue(0);
+    }
+  }, [loading]);
+
+  const spin = spinAnim.interpolate({
+    inputRange: [0, 1],
+    outputRange: ["0deg", "360deg"],
+  });
 
   const handleSearch = async () => {
     setLoading(true);
@@ -88,11 +114,11 @@ const SearchScreen: React.FC<{ navigation: any }> = ({ navigation }) => {
 
   return (
     <ScrollView
-  contentContainerStyle={[
-    styles.scrollView,
-    { paddingBottom: 90 } 
-  ]}
->
+      contentContainerStyle={[
+        styles.scrollView,
+        { paddingBottom: 90 }
+      ]}
+    >
       {/* --- Header --- */}
       <View style={styles.searchHeader}>
         <View style={styles.headerIconBox}>
@@ -128,7 +154,6 @@ const SearchScreen: React.FC<{ navigation: any }> = ({ navigation }) => {
             <Text style={styles.sliderLabel}>₪{priceRange[1]}</Text>
           </View>
         </View>
-
         {/* Cuisine */}
         <Text style={styles.filterLabel}>Cuisine</Text>
         <View style={styles.gridCompact}>
@@ -216,25 +241,40 @@ const SearchScreen: React.FC<{ navigation: any }> = ({ navigation }) => {
         </TouchableOpacity>
       </View>
 
-      {/* לודינג */}
       {loading && (
-        <ActivityIndicator size="large" color="#2563eb" style={{ marginTop: 18 }} />
+        <View style={{ alignItems: "center", marginTop: 18 }}>
+          <Animated.View style={{ transform: [{ rotate: spin }] }}>
+            <Text style={{ fontSize: 48 }}>🍽️</Text>
+            {/* אפשר להחליף לאימוג'י אחר או אייקון */}
+            {/* <Icon name="silverware-fork-knife" size={48} color="#2563eb" /> */}
+          </Animated.View>
+          <Text style={{
+            marginTop: 12,
+            color: "#2563eb",
+            fontWeight: "700",
+            fontSize: 16,
+          }}>
+            Looking for delicious dishes...
+          </Text>
+        </View>
       )}
 
       {/* תוצאות חיפוש */}
       <View style={{ marginTop: 18, width: "100%", alignItems: "center", paddingBottom: 70 }}>
-          {results.map((dish) => (
+        {results.map((dish) => (
           <DishCard
-              key={dish._id}
-              dish={dish}
-              onInfoPress={() => navigation.navigate("DishDetail", { dishId: dish._id })}
-              onAddPress={() => handleAddToShoppingList(dish._id)}
-           />
-          ))}
-          </View>
+            key={dish._id}
+            dish={dish}
+            onInfoPress={() => navigation.navigate("DishDetail", { dishId: dish._id })}
+            onAddPress={() => handleAddToShoppingList(dish._id)}
+          />
+        ))}
+      </View>
     </ScrollView>
   );
 };
+
+export default SearchScreen;
 
 /* --- styles --- */
 const styles = StyleSheet.create({
@@ -514,4 +554,3 @@ const styles = StyleSheet.create({
   },
 });
 
-export default SearchScreen;
