@@ -7,86 +7,45 @@ import {
   TouchableOpacity,
   Image,
   ActivityIndicator,
-  Platform,
+  Dimensions,
 } from 'react-native';
-import { StackNavigationProp } from '@react-navigation/stack';
+import { StackScreenProps } from '@react-navigation/stack';
 import { CartStackParamList } from '../navigation/CartStackScreen';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { fetchBestCart } from '../services/cart_service';
-import Icon from 'react-native-vector-icons/MaterialCommunityIcons';
 
-type NavigationProp = StackNavigationProp<CartStackParamList, 'CartOptions'>;
+const { width } = Dimensions.get('window');
 
-type CartOption = {
-  _id: string;
-  superId: string;
-  superImage?: string;
-  totalCost: number;
-  deliveryPrice: number;
-  products: {
-    itemId: string;
-    name: string;
-    unit_info: string;
-    image_url: string;
-    price: number;
-    quantity: number;
-  }[];
-  missingProducts?: string[];
-};
+type Props = StackScreenProps<CartStackParamList, 'CartOptions'>;
 
-type Props = {
-  navigation: NavigationProp;
-};
-
-const CartOptionsScreen: React.FC<Props> = ({ navigation }) => {
-  const [cartOptions, setCartOptions] = useState<CartOption[]>([]);
-  const [loading, setLoading] = useState(true);
+const CartOptionsScreen: React.FC<Props> = ({ route, navigation }) => {
+  const initialCartOptions = route.params?.cartOptions;
+  const [cartOptions, setCartOptions] = useState(initialCartOptions || []);
+  const [loading, setLoading] = useState(!initialCartOptions || initialCartOptions.length === 0);
 
   useEffect(() => {
-    const getCartOptions = async () => {
-      setLoading(true);
-      try {
-        const userId = await AsyncStorage.getItem('userId');
-        if (!userId) {
-          setCartOptions([]);
+    if (!initialCartOptions || initialCartOptions.length === 0) {
+      const getCartOptions = async () => {
+        setLoading(true);
+        try {
+          const userId = await AsyncStorage.getItem('userId');
+          if (!userId) return;
+          const response = await fetchBestCart(userId);
+          setCartOptions(response.data);
+        } catch (error) {
+          console.error('Error fetching cart options:', error);
+        } finally {
           setLoading(false);
-          return;
         }
-        const response = await fetchBestCart(userId);
-        setCartOptions(response.data || []);
-      } catch (error) {
-        setCartOptions([]);
-        console.error('Error fetching cart options:', error);
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    getCartOptions();
+      };
+      getCartOptions();
+    }
   }, []);
 
-  const renderSuperImage = (superImage?: string) => {
-    if (superImage) {
-      return (
-        <Image
-          source={{ uri: superImage }}
-          style={styles.image}
-        />
-      );
-    } else {
-      // Modern emoji style
-      return (
-        <View style={styles.emojiBox}>
-          <Text style={styles.emojiText}>🏪</Text>
-        </View>
-      );
-    }
-  };
-
-  const renderItem = ({ item }: { item: CartOption }) => (
+  const renderItem = ({ item }: { item: any }) => (
     <TouchableOpacity
       style={styles.card}
-      activeOpacity={0.85}
+      activeOpacity={0.89}
       onPress={() =>
         navigation.navigate('CartDetail', {
           products: item.products,
@@ -96,64 +55,40 @@ const CartOptionsScreen: React.FC<Props> = ({ navigation }) => {
         })
       }
     >
-      <View style={styles.row}>
-        {renderSuperImage(item.superImage)}
-        <View style={styles.details}>
-          <Text style={styles.superText} numberOfLines={1}>
+      <View style={styles.cardRow}>
+        {/* תמונה או אימוג'י */}
+        {item.superImage ? (
+          <Image source={{ uri: item.superImage }} style={styles.marketImg} />
+        ) : (
+          <View style={styles.marketImgEmoji}><Text style={{ fontSize: 36 }}>🏪</Text></View>
+        )}
+
+        <View style={styles.cardBody}>
+          <Text style={styles.marketTitle} numberOfLines={1}>
             {item.superId.replace(/-/g, ' ')}
           </Text>
-          <View style={styles.priceRow}>
-            <View style={styles.priceSubRow}>
-              <Icon name="cart-outline" color="#2563eb" size={15} style={{marginRight:3}} />
-              <Text style={styles.priceText}>₪{item.totalCost.toFixed(2)}</Text>
-            </View>
-            <View style={styles.priceSubRow}>
-              <Icon name="truck-delivery-outline" color="#36ad55" size={15} style={{marginRight:3}} />
-              <Text style={styles.deliveryText}>₪{item.deliveryPrice}</Text>
-            </View>
+          <Text style={styles.marketSubtitle}>
+            The best prices from this supermarket
+          </Text>
+          <View style={{ flexDirection: 'row', alignItems: 'center', marginTop: 6 }}>
+            <Text style={styles.priceTotal}>₪{item.totalCost.toFixed(2)}</Text>
+            <Text style={styles.deliveryText}>Delivery: ₪{item.deliveryPrice}</Text>
           </View>
           {item.missingProducts && item.missingProducts.length > 0 && (
-            <View style={styles.missingRow}>
-              <Icon name="alert-circle-outline" color="#e54349" size={13} />
-              <Text style={styles.missingText}>
-                {item.missingProducts.length} missing item{item.missingProducts.length > 1 ? 's' : ''}
-              </Text>
-            </View>
+            <Text style={styles.missingText}>
+              {item.missingProducts.length} missing item{item.missingProducts.length > 1 ? 's' : ''}
+            </Text>
           )}
         </View>
       </View>
     </TouchableOpacity>
   );
 
-  // --- empty state ---
   if (loading) {
     return (
       <View style={styles.loaderWrap}>
         <ActivityIndicator size="large" color="#2563eb" />
-      </View>
-    );
-  }
-  if (!cartOptions.length) {
-    return (
-      <View style={styles.container}>
-        <View style={styles.headerWrap}>
-          <View style={styles.headerIconBox}>
-            <Icon name="cart-outline" size={26} color="#fff" />
-          </View>
-          <View>
-            <Text style={styles.headerTitle}>Cart Options</Text>
-            <Text style={styles.headerSubtitle}>
-              Review supermarkets for your shopping list and compare prices and delivery!
-            </Text>
-          </View>
-        </View>
-        <View style={styles.emptyStateWrap}>
-          <Icon name="store-remove-outline" size={42} color="#2563eb" style={{ marginBottom: 9 }} />
-          <Text style={styles.emptyText}>No supermarkets found for your list.</Text>
-          <Text style={styles.emptySubText}>
-            Try changing your shopping list or checking your location.
-          </Text>
-        </View>
+        <Text style={styles.loaderText}>Finding the best supermarkets for you...</Text>
       </View>
     );
   }
@@ -163,23 +98,33 @@ const CartOptionsScreen: React.FC<Props> = ({ navigation }) => {
       {/* Header */}
       <View style={styles.headerWrap}>
         <View style={styles.headerIconBox}>
-          <Icon name="cart-outline" size={26} color="#fff" />
+          <Text style={{ fontSize: 26 }}>🛒</Text>
         </View>
         <View>
-          <Text style={styles.headerTitle}>Cart Options</Text>
+          <Text style={styles.headerTitle}>Supermarket Options</Text>
           <Text style={styles.headerSubtitle}>
-            Review supermarkets for your shopping list and compare prices and delivery!
+            Choose your favorite supermarket and review your cart
           </Text>
         </View>
       </View>
-      {/* List */}
-      <FlatList
-        data={cartOptions}
-        keyExtractor={(item) => item._id}
-        renderItem={renderItem}
-        contentContainerStyle={{ paddingVertical: 8, paddingBottom: 22 }}
-        showsVerticalScrollIndicator={false}
-      />
+
+      {/* רשימת סופרים */}
+      {cartOptions.length === 0 ? (
+        <View style={styles.emptyStateWrap}>
+          <Text style={styles.emptyStateText}>No supermarkets found.</Text>
+          <Text style={styles.emptyStateSubText}>
+            We couldn't find any cart options for your list. Try updating your list and searching again!
+          </Text>
+        </View>
+      ) : (
+        <FlatList
+          data={cartOptions}
+          keyExtractor={(item) => item._id}
+          renderItem={renderItem}
+          contentContainerStyle={{ paddingBottom: 24 }}
+          showsVerticalScrollIndicator={false}
+        />
+      )}
     </View>
   );
 };
@@ -189,164 +134,161 @@ export default CartOptionsScreen;
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#e4f0fd',
-    paddingTop: Platform.OS === 'ios' ? 7 : 4,
-    paddingHorizontal: 0,
+    backgroundColor: '#f5f7fb',
+    paddingHorizontal: width < 400 ? 8 : 18,
+    paddingTop: width < 400 ? 14 : 28,
   },
   headerWrap: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: '#eaf3ff',
-    borderRadius: 20,
-    marginTop: 15,
-    marginBottom: 20,
-    padding: 13,
-    width: '93%',
-    alignSelf: 'center',
-    minHeight: 62,
-    shadowColor: '#2563eb33',
+    flexDirection: "row",
+    alignItems: "center",
+    backgroundColor: "#eaf3ff",
+    borderRadius: 22,
+    marginTop: 8,
+    marginBottom: 15,
+    padding: 12,
+    width: "99%",
+    alignSelf: "center",
+    minHeight: 61,
+    shadowColor: "#2563eb33",
     shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.09,
-    shadowRadius: 12,
+    shadowRadius: 11,
     elevation: 7,
-    gap: 12,
   },
   headerIconBox: {
-    backgroundColor: '#2563eb',
-    width: 45,
-    height: 45,
-    borderRadius: 16,
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginRight: 12,
-    shadowColor: '#2563eb',
+    backgroundColor: "#2563eb",
+    width: 44,
+    height: 44,
+    borderRadius: 17,
+    alignItems: "center",
+    justifyContent: "center",
+    marginRight: 11,
+    shadowColor: "#2563eb",
     shadowOpacity: 0.13,
     shadowRadius: 8,
     elevation: 5,
   },
   headerTitle: {
-    fontSize: 18.8,
-    fontWeight: '800',
-    color: '#2563eb',
+    fontSize: 17.2,
+    fontWeight: "700",
+    color: "#2563eb",
     marginBottom: 2,
-    letterSpacing: 0.05,
   },
   headerSubtitle: {
     fontSize: 12.5,
-    color: '#6487b0',
-    fontWeight: '500',
-    opacity: 0.86,
+    color: "#6487b0",
+    fontWeight: "500",
+    opacity: 0.85,
+    marginLeft: 1,
     marginTop: 1,
-    maxWidth: 240,
   },
   card: {
-    backgroundColor: '#fff',
-    borderRadius: 18,
-    marginBottom: 15,
-    padding: 15,
-    marginHorizontal: 13,
-    shadowColor: '#2563eb15',
-    shadowOpacity: 0.12,
-    shadowRadius: 15,
-    elevation: 6,
+    backgroundColor: "#fff",
+    borderRadius: 15,
+    padding: width < 400 ? 13 : 16,
+    marginBottom: width < 400 ? 10 : 15,
+    shadowColor: "#2563eb0a",
+    shadowOpacity: 0.08,
+    shadowRadius: 7,
+    elevation: 2,
     borderWidth: 1,
-    borderColor: '#e6ebf6',
-    gap: 3,
+    borderColor: "#f0f3fa",
   },
-  row: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 15,
+  cardRow: {
+    flexDirection: "row",
+    alignItems: "center",
   },
-  image: {
+  marketImg: {
     width: 54,
     height: 54,
-    borderRadius: 14,
-    backgroundColor: '#eaf3ff',
-    resizeMode: 'cover',
+    borderRadius: 11,
+    backgroundColor: "#eaf3ff",
+    marginRight: 13,
+    resizeMode: "cover",
   },
-  emojiBox: {
+  marketImgEmoji: {
     width: 54,
     height: 54,
-    borderRadius: 14,
-    backgroundColor: '#eaf3ff',
-    alignItems: 'center',
-    justifyContent: 'center',
+    borderRadius: 11,
+    backgroundColor: "#f6f8ff",
+    alignItems: "center",
+    justifyContent: "center",
+    marginRight: 13,
   },
-  emojiText: {
-    fontSize: 28,
-    marginTop: Platform.OS === 'ios' ? 1 : 0,
-  },
-  details: {
+  cardBody: {
     flex: 1,
-    justifyContent: 'center',
+    minWidth: 0,
   },
-  superText: {
-    fontSize: 16.1,
-    fontWeight: '700',
-    color: '#2563eb',
-    marginBottom: 3,
-    letterSpacing: 0.04,
+  marketTitle: {
+    fontSize: 15.7,
+    fontWeight: "700",
+    color: "#2563eb",
+    marginBottom: 1,
+    textTransform: "capitalize",
   },
-  priceRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 18,
-    marginTop: 2,
-    flexWrap: 'wrap',
-    marginBottom: 2,
+  marketSubtitle: {
+    fontSize: 12.3,
+    color: "#415c78",
+    fontWeight: "500",
+    opacity: 0.78,
+    marginBottom: 1,
+    marginLeft: 2,
   },
-  priceSubRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 2,
-    marginRight: 10,
-  },
-  priceText: {
-    fontSize: 14.7,
-    color: '#222',
-    fontWeight: '700',
+  priceTotal: {
+    fontSize: 15.5,
+    color: "#36ad55",
+    fontWeight: "700",
+    marginRight: 12,
   },
   deliveryText: {
-    fontSize: 13.9,
-    color: '#36ad55',
-    fontWeight: '700',
-  },
-  missingRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginTop: 8,
-    gap: 4,
+    fontSize: 12.3,
+    color: "#2563eb",
+    fontWeight: "600",
+    backgroundColor: "#eaf3ff",
+    borderRadius: 7,
+    paddingHorizontal: 8,
+    paddingVertical: 2,
+    marginLeft: 4,
   },
   missingText: {
-    fontSize: 12.8,
-    color: '#e54349',
-    fontWeight: '700',
-    marginLeft: 4,
+    marginTop: 6,
+    fontSize: 12,
+    color: "#e54349",
+    fontWeight: "600",
+  },
+  loaderWrap: {
+    flex: 1,
+    alignItems: "center",
+    justifyContent: "center",
+    paddingBottom: 110,
+    backgroundColor: "#f5f7fb",
+  },
+  loaderText: {
+    marginTop: 18,
+    fontSize: 16.5,
+    color: "#2563eb",
+    fontWeight: "600",
+    textAlign: "center",
+    opacity: 0.92,
   },
   emptyStateWrap: {
     alignItems: 'center',
     justifyContent: 'center',
-    marginTop: 58,
+    paddingVertical: 36,
+    width: '100%',
   },
-  emptyText: {
+  emptyStateText: {
+    fontSize: 16.2,
+    fontWeight: '600',
     color: '#2563eb',
-    fontSize: 17,
-    fontWeight: 'bold',
-    marginBottom: 5,
+    marginBottom: 4,
     textAlign: 'center',
   },
-  emptySubText: {
-    color: '#7a8dad',
-    fontSize: 13.5,
+  emptyStateSubText: {
+    fontSize: 13.3,
+    color: '#8fa0b7',
+    opacity: 0.85,
     textAlign: 'center',
     maxWidth: 260,
-    opacity: 0.86,
-  },
-  loaderWrap: {
-    flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-    backgroundColor: '#e4f0fd',
   },
 });

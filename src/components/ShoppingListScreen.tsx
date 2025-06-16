@@ -85,20 +85,8 @@ const ShoppingListScreen: React.FC = () => {
   useFocusEffect(useCallback(() => { fetchShoppingList(); }, []));
 
   // --- LOGIC ---
-  const handleGoToCart = async () => {
-    try {
-      const userId = await AsyncStorage.getItem("userId");
-      if (!userId) throw new Error("User ID not found");
-      const response = await apiClient.get(`/cart/bestCart/${userId}`);
-      const cartOptions = response.data;
-      if (!Array.isArray(cartOptions) || cartOptions.length === 0) {
-        Alert.alert("No carts found", "Could not find any cart options for your shopping list.");
-        return;
-      }
-      navigation.navigate("CartOptions", { cartOptions });
-    } catch (error) {
-      Alert.alert("Error", "Failed to get cart options. Please try again.");
-    }
+  const handleGoToCart = () => {
+    navigation.navigate("CartOptions", { cartOptions: [] });
   };
 
   // Dishes logic
