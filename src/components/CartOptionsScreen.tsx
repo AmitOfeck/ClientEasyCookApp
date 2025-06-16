@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useState , useRef } from "react";
 import {
   View,
   Text,
@@ -8,6 +8,8 @@ import {
   Image,
   ActivityIndicator,
   Dimensions,
+  Animated, 
+  Easing,   
 } from "react-native";
 import Icon from "react-native-vector-icons/MaterialCommunityIcons";
 import { StackNavigationProp } from "@react-navigation/stack";
@@ -42,6 +44,24 @@ const CartOptionsScreen: React.FC<{ navigation: NavigationProp; route: any }> = 
 }) => {
   const [cartOptions, setCartOptions] = useState<CartOption[]>(route.params?.cartOptions || []);
   const [loading, setLoading] = useState(cartOptions.length === 0);
+
+  const spinAnim = useRef(new Animated.Value(0)).current;
+
+  useEffect(() => {
+    if (loading) {
+      Animated.loop(
+        Animated.timing(spinAnim, {
+          toValue: 1,
+          duration: 1100,
+          easing: Easing.linear,
+          useNativeDriver: true,
+        })
+      ).start();
+    } else {
+      spinAnim.stopAnimation();
+      spinAnim.setValue(0);
+    }
+  }, [loading]);
 
   useEffect(() => {
     if (cartOptions.length === 0) {
@@ -107,17 +127,20 @@ const CartOptionsScreen: React.FC<{ navigation: NavigationProp; route: any }> = 
     </TouchableOpacity>
   );
 
+    // --- אנימציה ---
+    const spin = spinAnim.interpolate({
+      inputRange: [0, 1],
+      outputRange: ["0deg", "360deg"],
+    });
+
   // --- LOADER ---
   if (loading) {
     return (
       <View style={styles.loaderWrap}>
         {/* Animated spinning cart icon */}
-        <Icon
-          name="cart-outline"
-          size={52}
-          color="#2563eb"
-          style={{ marginBottom: 9, transform: [{ rotate: "22deg" }] }}
-        />
+        <Animated.View style={{ marginBottom: 9, transform: [{ rotate: spin }] }}>
+          <Icon name="cart-outline" size={52} color="#2563eb" />
+        </Animated.View>
         <ActivityIndicator size="large" color="#2563eb" style={{ marginBottom: 16 }} />
         <Text style={styles.loadingMainText}>
           We're finding the best deals for you...
