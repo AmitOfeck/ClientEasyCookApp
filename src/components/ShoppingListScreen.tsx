@@ -1,143 +1,145 @@
-import React, { useState, useCallback, useEffect } from 'react';
+import React, { useState, useCallback } from "react";
 import {
-  View, Text, StyleSheet, FlatList, TouchableOpacity, ActivityIndicator,
-  RefreshControl, TextInput, Alert, Image, LayoutAnimation, UIManager, Platform, ScrollView
-} from 'react-native';
-import Icon from 'react-native-vector-icons/MaterialCommunityIcons';
-import AsyncStorage from '@react-native-async-storage/async-storage';
-import { useFocusEffect, useNavigation } from '@react-navigation/native';
-import apiClient from '../services/api-client';
-import { updateItemQuantity, removeShoppingItem, clearShoppingList, replaceShoppingItem } from '../services/shopping_list_service';
-import { StackNavigationProp } from '@react-navigation/stack';
-import { CartStackParamList } from '../navigation/CartStackScreen';
+  View,
+  Text,
+  StyleSheet,
+  ScrollView,
+  TouchableOpacity,
+  Image,
+  ActivityIndicator,
+  TextInput,
+  Alert,
+  Dimensions,
+  Platform,
+} from "react-native";
+import Icon from "react-native-vector-icons/MaterialCommunityIcons";
+import { useFocusEffect, useNavigation } from "@react-navigation/native";
+import AsyncStorage from "@react-native-async-storage/async-storage";
+import apiClient from "../services/api-client";
+import {
+  updateItemQuantity,
+  removeShoppingItem,
+  clearShoppingList,
+  replaceShoppingItem,
+} from "../services/shopping_list_service";
+import { StackNavigationProp } from "@react-navigation/stack";
+import { CartStackParamList } from "../navigation/CartStackScreen";
+
+const { width } = Dimensions.get("window");
+const allowedUnits = ["gram", "kg", "ml", "liter"];
 
 type ShoppingItem = { name: string; unit: string; quantity: number };
 type PreparedDish = { dishId: string; count: number };
-type DishDetails = { _id: string; name: string; image: string };
-type Navigation = StackNavigationProp<CartStackParamList, 'ShoppingList'>;
-
-const allowedUnits = ['gram', 'kg', 'ml', 'liter'];
+type DishDetails = { _id: string; name: string; imageUrl?: string; details?: string };
+type Navigation = StackNavigationProp<CartStackParamList, "ShoppingList">;
 
 const ShoppingListScreen: React.FC = () => {
   const navigation = useNavigation<Navigation>();
+  const [tab, setTab] = useState<"dishes" | "ingredients">("dishes");
   const [items, setItems] = useState<ShoppingItem[]>([]);
   const [preparedDishes, setPreparedDishes] = useState<PreparedDish[]>([]);
   const [dishDetails, setDishDetails] = useState<Record<string, DishDetails>>({});
   const [loading, setLoading] = useState(false);
-  const [refreshing, setRefreshing] = useState(false);
   const [editItemIndex, setEditItemIndex] = useState<number | null>(null);
-  const [editedQuantity, setEditedQuantity] = useState<string>('0');
-  const [selectedUnit, setSelectedUnit] = useState<string>('gram');
-  const [showDishes, setShowDishes] = useState(true);
-  const [showItems, setShowItems] = useState(true);
+  const [editedQuantity, setEditedQuantity] = useState<string>("0");
+  const [selectedUnit, setSelectedUnit] = useState<string>("gram");
 
+  // --- DATA FETCHING ---
   const fetchDishDetails = async (dishes: PreparedDish[]) => {
     try {
-      const responses = await Promise.all(dishes.map((dish) => apiClient.get(`/dish/${dish.dishId}`)));
+      const responses = await Promise.all(
+        dishes.map((dish) => apiClient.get(`/dish/${dish.dishId}`))
+      );
       const details: Record<string, DishDetails> = {};
-      responses.forEach((res) => { const dish = res.data; details[dish._id] = dish; });
+      responses.forEach((res) => {
+        const dish = res.data;
+        details[dish._id] = dish;
+      });
       setDishDetails(details);
     } catch (error) {
-      console.error('Failed to fetch dish details:', error);
+      console.error("Failed to fetch dish details:", error);
     }
   };
 
   const fetchShoppingList = async () => {
     try {
       setLoading(true);
-      const response = await apiClient.get('/shopping-list');
+      const response = await apiClient.get("/shopping-list");
       const { items, preparedDishes } = response.data;
       setItems(items);
-      const dishesArray = preparedDishes ? Object.entries(preparedDishes).map(([dishId, count]) => ({ dishId, count: Number(count) })) : [];
+      const dishesArray = preparedDishes
+        ? Object.entries(preparedDishes).map(([dishId, count]) => ({
+            dishId,
+            count: Number(count),
+          }))
+        : [];
       setPreparedDishes(dishesArray);
       await fetchDishDetails(dishesArray);
     } catch (error) {
-      console.error('Failed to fetch shopping list:', error);
+      console.error("Failed to fetch shopping list:", error);
     } finally {
       setLoading(false);
-      setRefreshing(false);
     }
   };
 
   useFocusEffect(useCallback(() => { fetchShoppingList(); }, []));
 
+  // --- LOGIC ---
   const handleGoToCart = async () => {
     try {
-      const userId = await AsyncStorage.getItem('userId');
-      if (!userId) throw new Error('User ID not found');
+      const userId = await AsyncStorage.getItem("userId");
+      if (!userId) throw new Error("User ID not found");
       const response = await apiClient.get(`/cart/bestCart/${userId}`);
       const cartOptions = response.data;
       if (!Array.isArray(cartOptions) || cartOptions.length === 0) {
-        Alert.alert('No carts found', 'Could not find any cart options for your shopping list.');
+        Alert.alert("No carts found", "Could not find any cart options for your shopping list.");
         return;
       }
-      navigation.navigate('CartOptions', { cartOptions });
+      navigation.navigate("CartOptions", { cartOptions });
     } catch (error) {
-      console.error('Failed to fetch cart options from Wolt:', error);
-      Alert.alert('Error', 'Failed to get cart options. Please try again.');
+      Alert.alert("Error", "Failed to get cart options. Please try again.");
     }
   };
 
+  // Dishes logic
   const handleIncrementDish = async (dishId: string) => {
-    try {
-      await apiClient.post('/shopping-list/add-dishes', { dishIds: [dishId] });
-      fetchShoppingList();
-    } catch (error) {
-      console.error('Failed to increment dish count:', error);
-    }
+    await apiClient.post("/shopping-list/add-dishes", { dishIds: [dishId] });
+    fetchShoppingList();
   };
-
   const handleDecrementDish = async (dishId: string) => {
-    try {
-      await apiClient.put('/shopping-list/remove-dish', { dishId });
-      fetchShoppingList();
-    } catch (error) {
-      console.error('Failed to decrement dish count:', error);
-    }
+    await apiClient.put("/shopping-list/remove-dish", { dishId });
+    fetchShoppingList();
   };
 
+  // Items logic
   const handleIncrementItem = async (index: number) => {
     const item = items[index];
-    try {
-      await updateItemQuantity(item.name, item.unit, 1);
-      fetchShoppingList();
-    } catch (error) {
-      console.error('Failed to increment quantity:', error);
-    }
+    await updateItemQuantity(item.name, item.unit, 1);
+    fetchShoppingList();
   };
-
   const handleDecrementItem = async (index: number) => {
     const item = items[index];
     if (item.quantity <= 1) return;
-    try {
-      await updateItemQuantity(item.name, item.unit, -1);
-      fetchShoppingList();
-    } catch (error) {
-      console.error('Failed to decrement quantity:', error);
-    }
+    await updateItemQuantity(item.name, item.unit, -1);
+    fetchShoppingList();
   };
-
   const handleRemoveItem = async (index: number) => {
     const item = items[index];
-    try {
-      await removeShoppingItem(item.name);
-      fetchShoppingList();
-    } catch (error) {
-      console.error('Failed to remove item:', error);
-    }
+    await removeShoppingItem(item.name);
+    fetchShoppingList();
   };
 
   const handleClearList = () => {
-    Alert.alert('Are you sure?', 'This will remove all items from your shopping list.', [
-      { text: 'Cancel', style: 'cancel' },
-      { text: 'Yes, clear it', style: 'destructive', onPress: async () => {
-        try {
+    Alert.alert("Are you sure?", "This will remove all items from your shopping list.", [
+      { text: "Cancel", style: "cancel" },
+      {
+        text: "Yes, clear it",
+        style: "destructive",
+        onPress: async () => {
           await clearShoppingList();
           fetchShoppingList();
-        } catch (error) {
-          console.error('Failed to clear list:', error);
-        }
-      } }
+        },
+      },
     ]);
   };
 
@@ -148,114 +150,206 @@ const ShoppingListScreen: React.FC = () => {
     setEditItemIndex(index);
   };
 
-  const renderPreparedDish = ({ item }: { item: PreparedDish }) => {
-    const dish = dishDetails[item.dishId];
+  // --- CARDS ---
+
+  // Dishes card
+  const renderDishCard = (dish: PreparedDish) => {
+    const d = dishDetails[dish.dishId];
     return (
-      <View style={styles.dishCardRow}>
-        {dish?.image ? (
-          <Image source={{ uri: dish.image }} style={styles.dishImage} />
+      <View style={styles.cardRecipe} key={dish.dishId}>
+        {d?.imageUrl ? (
+          <Image source={{ uri: d.imageUrl }} style={styles.cardRecipeImg} />
         ) : (
-          <View style={[styles.dishImage, styles.placeholder]}>
-            <Icon name="food" size={24} color="#888" />
+          <View style={[styles.cardRecipeImg, { backgroundColor: "#eaf3ff", justifyContent: "center", alignItems: "center" }]}>
+            <Icon name="food" size={36} color="#bcd7fa" />
           </View>
         )}
-  
-        <Text style={styles.itemName}>{dish?.name || item.dishId}</Text>
-  
-        <View style={styles.controls}>
-          <TouchableOpacity onPress={() => handleDecrementDish(item.dishId)} style={styles.circleButton}>
-            <Icon name="minus" size={18} color="#1E3A8A" />
+        <Text style={styles.cardRecipeTitle} numberOfLines={1}>
+          {d?.name || "Unknown Dish"}
+        </Text>
+        {d?.details && (
+          <Text style={styles.cardRecipeDesc} numberOfLines={2}>
+            {d.details}
+          </Text>
+        )}
+        <View style={styles.recipeActions}>
+          <TouchableOpacity
+            style={styles.actionIcon}
+            onPress={() => handleDecrementDish(dish.dishId)}
+          >
+            <Icon name="minus" size={17} color="#2563eb" />
           </TouchableOpacity>
-          <Text style={styles.quantityText}>{item.count}</Text>
-          <TouchableOpacity onPress={() => handleIncrementDish(item.dishId)} style={styles.circleButton}>
-            <Icon name="plus" size={18} color="#1E3A8A" />
+          <Text style={styles.cardRecipeQty}>{dish.count}</Text>
+          <TouchableOpacity
+            style={styles.actionIcon}
+            onPress={() => handleIncrementDish(dish.dishId)}
+          >
+            <Icon name="plus" size={17} color="#2563eb" />
           </TouchableOpacity>
         </View>
       </View>
     );
   };
-  
 
-  const renderItem = ({ item, index }: { item: ShoppingItem; index: number }) => (
-    <View style={styles.itemCard}>
-  <View style={styles.itemLeft}>
-    <Text style={styles.itemName}>{item.name}</Text>
-  </View>
-  <View style={styles.itemControls}>
-    <TouchableOpacity onPress={() => handleDecrementItem(index)} style={styles.circleButton}>
-      <Icon name="minus" size={18} color="#1E3A8A" />
-    </TouchableOpacity>
-    <TouchableOpacity onPress={() => openEditModal(index)}>
-      <Text style={styles.quantityText}>{item.quantity} {item.unit}</Text>
-    </TouchableOpacity>
-    <TouchableOpacity onPress={() => handleIncrementItem(index)} style={styles.circleButton}>
-      <Icon name="plus" size={18} color="#1E3A8A" />
-    </TouchableOpacity>
-    <TouchableOpacity onPress={() => handleRemoveItem(index)} style={styles.removeButton}>
-      <Icon name="trash-can-outline" size={20} color="red" />
-    </TouchableOpacity>
-  </View>
-</View>
+  // Ingredients row – כמו רשימת קניות אמיתית (לא כרטיסייה)
+  const renderItemRow = (item: ShoppingItem, index: number) => (
+    <View style={styles.ingredientRow} key={`${item.name}-${index}`}>
+      <Text style={styles.ingredientName} numberOfLines={1}>{item.name}</Text>
+      <View style={styles.ingredientActionWrap}>
+        <TouchableOpacity
+          style={styles.iconSmall}
+          onPress={() => handleDecrementItem(index)}
+        >
+          <Icon name="minus" size={15} color="#2563eb" />
+        </TouchableOpacity>
+        <TouchableOpacity onPress={() => openEditModal(index)}>
+          <Text style={styles.ingredientQty}>
+            {item.quantity} {item.unit}
+          </Text>
+        </TouchableOpacity>
+        <TouchableOpacity
+          style={styles.iconSmall}
+          onPress={() => handleIncrementItem(index)}
+        >
+          <Icon name="plus" size={15} color="#2563eb" />
+        </TouchableOpacity>
+        <TouchableOpacity
+          style={styles.iconTrashSmall}
+          onPress={() => handleRemoveItem(index)}
+        >
+          <Icon name="trash-can-outline" size={16} color="#e54349" />
+        </TouchableOpacity>
+      </View>
+    </View>
   );
 
-  if (loading) return <View style={styles.container}><ActivityIndicator size="large" color="#1E3A8A" /></View>;
+  // --- LOADING ---
+  if (loading) {
+    return (
+      <View style={styles.loaderWrap}>
+        <ActivityIndicator size="large" color="#2563eb" />
+      </View>
+    );
+  }
 
+  // --- MAIN RENDER ---
   return (
-    <ScrollView style={styles.container} contentContainerStyle={{ paddingBottom: 140 }}>
-      <TouchableOpacity onPress={() => { LayoutAnimation.configureNext(LayoutAnimation.Presets.easeInEaseOut); setShowDishes(!showDishes); }}>
-        <Text style={styles.header}>🍽️ Prepared Dishes {showDishes ? '▼' : '▲'}</Text>
-      </TouchableOpacity>
-      {showDishes && (
-        <FlatList data={preparedDishes} keyExtractor={(item) => item.dishId} renderItem={renderPreparedDish} scrollEnabled={false} />
-      )}
+    <ScrollView
+      style={{ flex: 1, backgroundColor: "#e4f0fd" }}
+      contentContainerStyle={{ paddingBottom: 100 }}
+    >
+      {/* Header */}
+      <View style={styles.headerWrap}>
+        <View style={styles.headerIconBox}>
+          <Icon name="cart-outline" size={26} color="#fff" />
+        </View>
+        <View>
+          <Text style={styles.headerTitle}>My Shopping List</Text>
+          <Text style={styles.headerSubtitle}>
+            Manage your saved dishes and ingredients
+          </Text>
+        </View>
+      </View>
 
-      <TouchableOpacity onPress={() => { LayoutAnimation.configureNext(LayoutAnimation.Presets.easeInEaseOut); setShowItems(!showItems); }}>
-        <Text style={[styles.header, { marginTop: 20 }]}>🧾 Shopping List {showItems ? '▼' : '▲'}</Text>
-      </TouchableOpacity>
-      {showItems && (
-        <FlatList
-          data={items}
-          keyExtractor={(item, index) => `${item.name}-${index}`}
-          renderItem={renderItem}
-          scrollEnabled={false}
-        />
-      )}
-
-      <View style={styles.buttonContainer}>
-        <TouchableOpacity style={styles.clearButton} onPress={handleClearList}>
-          <Text style={styles.clearButtonText}>Clear List</Text>
+      {/* Tabs */}
+      <View style={styles.tabContainer}>
+        <TouchableOpacity
+          style={[styles.tab, tab === "dishes" && styles.tabActive]}
+          onPress={() => setTab("dishes")}
+        >
+          <Text
+            style={[styles.tabText, tab === "dishes" && styles.tabTextActive]}
+          >
+            Dishes
+          </Text>
         </TouchableOpacity>
-        <TouchableOpacity style={styles.cartButton} onPress={handleGoToCart}>
-          <Text style={styles.cartButtonText}>GO TO CART</Text>
+        <TouchableOpacity
+          style={[styles.tab, tab === "ingredients" && styles.tabActive]}
+          onPress={() => setTab("ingredients")}
+        >
+          <Text
+            style={[
+              styles.tabText,
+              tab === "ingredients" && styles.tabTextActive,
+            ]}
+          >
+            Ingredients
+          </Text>
         </TouchableOpacity>
       </View>
 
+      {/* Cards / List */}
+      {tab === "dishes" ? (
+        <View style={styles.cardWrapper}>{preparedDishes.map(renderDishCard)}</View>
+      ) : (
+        <View style={styles.ingredientList}>
+          {items.length === 0 ? (
+            <Text style={{ color: "#7a8dad", marginTop: 14, alignSelf: "center" }}>No items in shopping list.</Text>
+          ) : (
+            items.map((item, idx) => renderItemRow(item, idx))
+          )}
+        </View>
+      )}
+
+      {/* Actions */}
+      <View style={styles.actionRow}>
+        <TouchableOpacity style={styles.clearBtn} onPress={handleClearList}>
+          <Text style={styles.clearBtnText}>Clear List</Text>
+        </TouchableOpacity>
+        <TouchableOpacity style={styles.cartBtn} onPress={handleGoToCart}>
+          <Text style={styles.cartBtnText}>GO TO CART</Text>
+        </TouchableOpacity>
+      </View>
+
+      {/* Edit Modal */}
       {editItemIndex !== null && (
         <View style={styles.modalOverlay}>
           <View style={styles.modalContent}>
             <Text style={styles.modalTitle}>Edit Quantity</Text>
-            <TextInput style={styles.modalInput} keyboardType="numeric" value={editedQuantity} onChangeText={setEditedQuantity} />
+            <TextInput
+              style={styles.modalInput}
+              keyboardType="numeric"
+              value={editedQuantity}
+              onChangeText={setEditedQuantity}
+            />
             <View style={styles.unitSelector}>
               {allowedUnits.map((unit) => (
-                <TouchableOpacity key={unit} style={[styles.unitButton, selectedUnit === unit && styles.unitButtonSelected]} onPress={() => setSelectedUnit(unit)}>
-                  <Text style={[styles.unitButtonText, selectedUnit === unit && styles.unitButtonTextSelected]}>{unit}</Text>
+                <TouchableOpacity
+                  key={unit}
+                  style={[
+                    styles.unitBtn,
+                    selectedUnit === unit && styles.unitBtnSelected,
+                  ]}
+                  onPress={() => setSelectedUnit(unit)}
+                >
+                  <Text
+                    style={[
+                      styles.unitBtnText,
+                      selectedUnit === unit && styles.unitBtnTextSelected,
+                    ]}
+                  >
+                    {unit}
+                  </Text>
                 </TouchableOpacity>
               ))}
             </View>
             <View style={styles.modalActions}>
-              <TouchableOpacity onPress={() => setEditItemIndex(null)}><Text style={styles.cancelText}>Cancel</Text></TouchableOpacity>
-              <TouchableOpacity onPress={async () => {
-                const item = items[editItemIndex];
-                const newQuantity = parseFloat(editedQuantity);
-                if (isNaN(newQuantity) || newQuantity <= 0) return Alert.alert('Invalid quantity');
-                try {
+              <TouchableOpacity onPress={() => setEditItemIndex(null)}>
+                <Text style={styles.cancelText}>Cancel</Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                onPress={async () => {
+                  const item = items[editItemIndex];
+                  const newQuantity = parseFloat(editedQuantity);
+                  if (isNaN(newQuantity) || newQuantity <= 0)
+                    return Alert.alert("Invalid quantity");
                   await replaceShoppingItem(item.name, selectedUnit, newQuantity);
                   setEditItemIndex(null);
                   fetchShoppingList();
-                } catch (error) {
-                  console.error('Error replacing item:', error);
-                }
-              }}><Text style={styles.saveText}>Save</Text></TouchableOpacity>
+                }}
+              >
+                <Text style={styles.saveText}>Save</Text>
+              </TouchableOpacity>
             </View>
           </View>
         </View>
@@ -267,212 +361,350 @@ const ShoppingListScreen: React.FC = () => {
 export default ShoppingListScreen;
 
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: '#F0F4F8',
-    paddingTop: 40,
-    paddingHorizontal: 16,
+  headerWrap: {
+    flexDirection: "row",
+    alignItems: "center",
+    backgroundColor: "#eaf3ff",
+    borderRadius: 22,
+    marginTop: 13,
+    marginBottom: 17,
+    padding: 13,
+    width: "95%",
+    alignSelf: "center",
+    minHeight: 68,
+    shadowColor: "#2563eb33",
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.09,
+    shadowRadius: 11,
+    elevation: 7,
   },
-  header: {
-    fontSize: 20,
-    fontWeight: 'bold',
-    color: '#1E3A8A',
-    marginBottom: 12,
+  headerIconBox: {
+    backgroundColor: "#2563eb",
+    width: 44,
+    height: 44,
+    borderRadius: 17,
+    alignItems: "center",
+    justifyContent: "center",
+    marginRight: 11,
+    shadowColor: "#2563eb",
+    shadowOpacity: 0.13,
+    shadowRadius: 8,
+    elevation: 5,
   },
-  dishCard: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: '#FFFFFF',
-    borderRadius: 12,
-    borderWidth: 1,
-    borderColor: '#E0E0E0',
-    padding: 10,
-    marginBottom: 10,
+  headerTitle: {
+    fontSize: 17.2,
+    fontWeight: "700",
+    color: "#2563eb",
+    marginBottom: 2,
   },
-  dishImage: {
-    width: 45,
-    height: 45,
-    borderRadius: 8,
-    marginRight: 10,
-    resizeMode: 'cover',
+  headerSubtitle: {
+    fontSize: 12.5,
+    color: "#6487b0",
+    fontWeight: "500",
+    opacity: 0.8,
+    marginLeft: 1,
+    marginTop: 1,
   },
-  placeholder: {
-    justifyContent: 'center',
-    alignItems: 'center',
+  // --- Tabs like profile ---
+  tabContainer: {
+    flexDirection: "row",
+    justifyContent: "center",
+    marginBottom: 17,
+    borderBottomWidth: 1,
+    borderBottomColor: "#e5e8ef",
+    marginHorizontal: 13,
   },
-  dishCardRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: '#FFFFFF',
-    borderRadius: 12,
-    borderWidth: 1,
-    borderColor: '#E0E0E0',
-    paddingVertical: 12,
-    paddingHorizontal: 16,
-    marginBottom: 10,
+  tab: {
+    paddingVertical: 7,
+    paddingHorizontal: 30,
+    marginHorizontal: 2,
+    borderBottomWidth: 2,
+    borderBottomColor: "transparent",
+    backgroundColor: "transparent",
   },
-  dishInfo: {
-    flex: 1,
-    marginLeft: 12,
-    justifyContent: 'space-between',
+  tabActive: {
+    borderBottomColor: "#2563eb",
   },
-  dishTitleRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
+  tabText: {
+    fontSize: 15.5,
+    color: "#8E8E93",
+    fontWeight: "700",
   },
-  itemName: {
-    flex: 1,
-    fontSize: 15,
-    fontWeight: '600',
-    color: '#1E3A8A',
+  tabTextActive: {
+    color: "#2563eb",
+    fontWeight: "bold",
   },
-  controls: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 10,
+  // --- Dishes grid (cards) ---
+  cardWrapper: {
+    flexDirection: "row",
+    flexWrap: "wrap",
+    justifyContent: "space-between",
+    paddingHorizontal: 7,
   },
-  circleButton: {
-    width: 30,
-    height: 30,
+  cardRecipe: {
+    width: width < 400 ? "47%" : 170,
+    backgroundColor: "#fff",
     borderRadius: 15,
-    backgroundColor: '#E6EDF8',
-    justifyContent: 'center',
-    alignItems: 'center',
+    marginBottom: 15,
+    alignItems: "center",
+    padding: 13,
+    elevation: 6,
+    shadowColor: "#2563eb12",
+    shadowOpacity: 0.10,
+    shadowRadius: 9,
+    marginHorizontal: 5,
+    minHeight: 175,
   },
-  quantityText: {
-    fontSize: 15,
-    fontWeight: '600',
-    color: '#1E3A8A',
-    width: 50,
-    textAlign: 'center',
+  cardRecipeImg: {
+    width: "100%",
+    height: 90,
+    borderRadius: 10,
+    marginBottom: 7,
+    backgroundColor: "#eaf3ff",
+    resizeMode: "cover",
   },
-  itemCard: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: '#FFFFFF',
-    borderRadius: 12,
+  cardRecipeTitle: {
+    fontSize: 14.7,
+    fontWeight: "bold",
+    color: "#2563eb",
+    textAlign: "center",
+    marginBottom: 2,
+    marginTop: 2,
+  },
+  cardRecipeDesc: {
+    fontSize: 12.1,
+    color: "#6e7e97",
+    marginBottom: 7,
+    textAlign: "center",
+    minHeight: 28,
+  },
+  recipeActions: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 7,
+    marginTop: 4,
+  },
+  cardRecipeQty: {
+    fontSize: 16,
+    color: "#222",
+    fontWeight: "700",
+    minWidth: 26,
+    textAlign: "center",
+    marginHorizontal: 4,
+  },
+  actionIcon: {
     borderWidth: 1,
-    borderColor: '#E0E0E0',
-    paddingHorizontal: 10,
-    paddingVertical: 12,
+    borderColor: "#2563eb",
+    borderRadius: 12,
+    width: 27,
+    height: 27,
+    backgroundColor: "#f6f9ff",
+    justifyContent: "center",
+    alignItems: "center",
+    marginHorizontal: 1,
+    shadowColor: "#2563eb12",
+    shadowOpacity: 0.10,
+    shadowRadius: 5,
+    elevation: 1,
+  },
+  // --- Ingredient list (not cards) ---
+  ingredientList: {
+    backgroundColor: "#fff",
+    borderRadius: 13,
+    marginHorizontal: 10,
+    marginBottom: 25,
+    shadowColor: "#2563eb0a",
+    shadowOpacity: 0.05,
+    shadowRadius: 5,
+    elevation: 1,
+    paddingVertical: 8,
+    paddingHorizontal: 3,
+  },
+  ingredientRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    paddingVertical: 11,
+    borderBottomWidth: 1,
+    borderBottomColor: "#f1f1f5",
+    minHeight: 46,
+    paddingHorizontal: 6,
+  },
+  ingredientName: {
+    flex: 1,
+    fontSize: 14,
+    color: "#304760",
+    fontWeight: "600",
+    marginRight: 4,
+  },
+  ingredientActionWrap: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 7,
+  },
+  ingredientQty: {
+    fontSize: 13.8,
+    color: "#2563eb",
+    fontWeight: "bold",
+    marginHorizontal: 4,
+    borderRadius: 6,
+    backgroundColor: "#eaf3ff",
+    paddingHorizontal: 7,
+    paddingVertical: 2,
+    minWidth: 40,
+    textAlign: "center",
+  },
+  iconSmall: {
+    borderWidth: 1,
+    borderColor: "#2563eb",
+    borderRadius: 10,
+    width: 22,
+    height: 22,
+    backgroundColor: "#f7fafd",
+    justifyContent: "center",
+    alignItems: "center",
+    marginHorizontal: 1,
+  },
+  iconTrashSmall: {
+    borderWidth: 1,
+    borderColor: "#e54349",
+    borderRadius: 10,
+    width: 22,
+    height: 22,
+    backgroundColor: "#fff7f8",
+    justifyContent: "center",
+    alignItems: "center",
+    marginLeft: 3,
+  },
+  // --- ACTIONS ---
+  actionRow: {
+    flexDirection: "row",
+    justifyContent: "center",
+    alignItems: "center",
+    gap: 18,
+    marginTop: 18,
     marginBottom: 10,
   },
-  itemLeft: {
+  clearBtn: {
+    backgroundColor: "#e54349",
+    paddingVertical: 11,
+    paddingHorizontal: 26,
+    borderRadius: 20,
+    alignItems: "center",
+    shadowColor: "#ffbbbb33",
+    shadowOpacity: 0.10,
+    elevation: 2,
+  },
+  clearBtnText: {
+    color: "#fff",
+    fontWeight: "bold",
+    fontSize: 15,
+    letterSpacing: 0.04,
+  },
+  cartBtn: {
+    backgroundColor: "#2563eb",
+    paddingVertical: 11,
+    paddingHorizontal: 26,
+    borderRadius: 20,
+    alignItems: "center",
+    shadowColor: "#2563eb44",
+    shadowOpacity: 0.13,
+    elevation: 3,
+  },
+  cartBtnText: {
+    color: "#fff",
+    fontWeight: "bold",
+    fontSize: 15,
+    letterSpacing: 0.04,
+  },
+  loaderWrap: {
     flex: 1,
+    justifyContent: "center",
+    alignItems: "center",
+    marginTop: 60,
+    backgroundColor: "#e4f0fd",
   },
-  itemControls: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 8,
-  },
-  removeButton: {
-    marginLeft: 10,
-  },
-  buttonContainer: {
-    flexDirection: 'row',
-    justifyContent: 'center',
-    alignItems: 'center',
-    paddingVertical: 20,
-    gap: 12, 
-  },
-  clearButton: {
-    backgroundColor: '#F87171',
-    paddingVertical: 14,
-    paddingHorizontal: 28,
-    borderRadius: 25,
-    alignItems: 'center',
-    marginHorizontal: 6,
-  },
-  clearButtonText: {
-    color: '#FFF',
-    fontWeight: '600',
-    fontSize: 14,
-  },
-  cartButton: {
-    backgroundColor: '#1E3A8A',
-    paddingVertical: 14,
-    paddingHorizontal: 28,
-    borderRadius: 25,
-    alignItems: 'center',
-    marginHorizontal: 6,
-  },
-  cartButtonText: {
-    color: '#FFF',
-    fontWeight: '600',
-    fontSize: 14,
-  },
+  // --- Modal
   modalOverlay: {
-    position: 'absolute',
+    position: "absolute",
     top: 0,
     bottom: 0,
     right: 0,
     left: 0,
-    backgroundColor: 'rgba(0,0,0,0.5)',
-    justifyContent: 'center',
-    alignItems: 'center',
+    backgroundColor: "rgba(0,0,0,0.22)",
+    justifyContent: "center",
+    alignItems: "center",
+    zIndex: 99,
   },
   modalContent: {
-    width: '80%',
-    backgroundColor: '#FFF',
-    borderRadius: 12,
-    padding: 20,
+    width: "82%",
+    backgroundColor: "#fff",
+    borderRadius: 17,
+    padding: 25,
+    alignItems: "center",
+    shadowColor: "#2563eb55",
+    shadowOpacity: 0.12,
+    shadowRadius: 16,
+    elevation: 10,
   },
   modalTitle: {
-    fontSize: 18,
-    fontWeight: 'bold',
-    color: '#1E3A8A',
-    marginBottom: 10,
-    textAlign: 'center',
+    fontSize: 17,
+    fontWeight: "bold",
+    color: "#2563eb",
+    marginBottom: 12,
+    textAlign: "center",
   },
   modalInput: {
     borderWidth: 1,
-    borderColor: '#CCC',
-    borderRadius: 8,
+    borderColor: "#c5dbfc",
+    borderRadius: 11,
     padding: 10,
-    fontSize: 16,
-    marginBottom: 10,
-    textAlign: 'center',
+    fontSize: 17,
+    marginBottom: 13,
+    minWidth: 65,
+    textAlign: "center",
   },
   unitSelector: {
-    flexDirection: 'row',
-    justifyContent: 'center',
-    flexWrap: 'wrap',
-    marginBottom: 12,
+    flexDirection: "row",
+    justifyContent: "center",
+    flexWrap: "wrap",
+    marginBottom: 13,
+    gap: 7,
   },
-  unitButton: {
-    borderWidth: 1,
-    borderColor: '#1E3A8A',
-    borderRadius: 20,
-    paddingHorizontal: 12,
-    paddingVertical: 6,
+  unitBtn: {
+    borderWidth: 1.2,
+    borderColor: "#2563eb",
+    borderRadius: 19,
+    paddingHorizontal: 13,
+    paddingVertical: 7,
     marginHorizontal: 4,
     marginVertical: 4,
+    backgroundColor: "#eaf3ff",
   },
-  unitButtonSelected: {
-    backgroundColor: '#1E3A8A',
+  unitBtnSelected: {
+    backgroundColor: "#2563eb",
   },
-  unitButtonText: {
-    color: '#1E3A8A',
-    fontSize: 14,
+  unitBtnText: {
+    color: "#2563eb",
+    fontSize: 14.2,
+    fontWeight: "600",
   },
-  unitButtonTextSelected: {
-    color: '#FFF',
-    fontWeight: '600',
+  unitBtnTextSelected: {
+    color: "#fff",
+    fontWeight: "bold",
   },
   modalActions: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    marginTop: 12,
+    flexDirection: "row",
+    justifyContent: "space-between",
+    gap: 35,
+    marginTop: 13,
   },
   cancelText: {
-    color: '#6B7280',
+    color: "#6B7280",
     fontSize: 16,
   },
   saveText: {
-    color: '#1E3A8A',
-    fontWeight: 'bold',
+    color: "#2563eb",
+    fontWeight: "bold",
     fontSize: 16,
   },
 });
-
