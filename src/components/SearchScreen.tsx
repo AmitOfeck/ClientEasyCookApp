@@ -38,7 +38,7 @@ const LEVELS = [
   { label: "Hard", value: "HARD", emoji: "🔴" },
 ];
 
-const MIN_PRICE = 0, MAX_PRICE = 62;
+const MIN_PRICE = 0, MAX_PRICE = 500;
 
 const SearchScreen: React.FC<{ navigation: any }> = ({ navigation }) => {
   const [selectedCuisine, setSelectedCuisine] = useState<string>("");
