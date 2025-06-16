@@ -465,21 +465,22 @@ const styles = StyleSheet.create({
   cardWrapper: {
     flexDirection: "row",
     flexWrap: "wrap",
-    justifyContent: "space-between",
-    paddingHorizontal: 7,
+    justifyContent: "space-between", // רווח שווה בין הכרטיסים
+    width: "100%",
+    paddingHorizontal: 12, // שחק עם המספר עד שזה יושב מדויק
   },
   cardRecipe: {
-    width: width < 400 ? "48%" : 168, 
+    width: "47%", // שים לב שזה מחושב רספונסיבי
     backgroundColor: "#fff",
-    borderRadius: 16,
-    marginBottom: width < 400 ? 6 : 11,
+    borderRadius: 18,
+    marginBottom: 11, // היה 15, תנסה אפילו 8-10
+    marginHorizontal: 2, // היה 5-8, תוריד ל-2-4
     alignItems: "center",
-    padding: width < 400 ? 7 : 11,
+    padding: 12,
     elevation: 5,
-    shadowColor: "#2563eb12",
-    shadowOpacity: 0.12,
+    shadowColor: "#2563eb11",
+    shadowOpacity: 0.1,
     shadowRadius: 8,
-    marginHorizontal: width < 400 ? 1 : 6,
   },
   cardRecipeImg: {
     width: "100%",
