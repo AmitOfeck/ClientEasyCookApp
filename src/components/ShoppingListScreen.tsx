@@ -279,17 +279,32 @@ const ShoppingListScreen: React.FC = () => {
       </View>
 
       {/* Cards / List */}
-      {tab === "dishes" ? (
-        <View style={styles.cardWrapper}>{preparedDishes.map(renderDishCard)}</View>
-      ) : (
-        <View style={styles.ingredientList}>
-          {items.length === 0 ? (
-            <Text style={{ color: "#7a8dad", marginTop: 14, alignSelf: "center" }}>No items in shopping list.</Text>
-          ) : (
-            items.map((item, idx) => renderItemRow(item, idx))
-          )}
-        </View>
-      )}
+{tab === "dishes" ? (
+  preparedDishes.length === 0 ? (
+    <View style={styles.emptyStateWrap}>
+      <Icon name="emoticon-sad-outline" size={44} color="#2563eb" style={{ marginBottom: 8 }} />
+      <Text style={styles.emptyStateText}>No dishes in your shopping list yet.</Text>
+      <Text style={styles.emptyStateSubText}>
+        Search and add dishes to start building your cart!
+      </Text>
+    </View>
+  ) : (
+    <View style={styles.cardWrapper}>
+      {preparedDishes.map(renderDishCard)}
+    </View>
+  )
+) : (
+  <View style={styles.ingredientList}>
+    {items.length === 0 ? (
+      <View style={styles.emptyStateWrap}>
+        <Icon name="emoticon-sad-outline" size={40} color="#2563eb" style={{ marginBottom: 8 }} />
+        <Text style={styles.emptyStateText}>No items in shopping list.</Text>
+      </View>
+    ) : (
+      items.map((item, idx) => renderItemRow(item, idx))
+    )}
+  </View>
+)}
 
       {/* Actions */}
       <View style={styles.actionRow}>
@@ -758,5 +773,25 @@ const styles = StyleSheet.create({
     gap: width < 400 ? 4 : 7, 
     width: "100%",
     paddingHorizontal: width < 400 ? 1 : 7, 
+  },
+  emptyStateWrap: {
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingVertical: 38,
+    width: '100%',
+  },
+  emptyStateText: {
+    fontSize: 16.2,
+    fontWeight: '600',
+    color: '#2563eb',
+    marginBottom: 4,
+    textAlign: 'center',
+  },
+  emptyStateSubText: {
+    fontSize: 13.3,
+    color: '#8fa0b7',
+    opacity: 0.85,
+    textAlign: 'center',
+    maxWidth: 260,
   },
 });
