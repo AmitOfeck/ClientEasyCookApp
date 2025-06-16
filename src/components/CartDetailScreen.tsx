@@ -73,15 +73,19 @@ const CartDetailScreen: React.FC<Props> = ({ route }) => {
           </View>
         </View>
         <TouchableOpacity
-          onPress={() => handleWoltPress(item.itemId)}
-          style={[
-            styles.woltButton,
-            isAdded ? styles.woltButtonActive : {},
-          ]}
-          activeOpacity={0.85}
-        >
-          <Image source={woltLogo} style={styles.woltLogo} />
-        </TouchableOpacity>
+              onPress={() => handleWoltPress(item.itemId)}
+              style={[
+                styles.woltButton,
+                isAdded ? styles.woltButtonActive : styles.woltButtonDefault,
+              ]}
+              activeOpacity={0.85}
+              >
+              <Image
+              source={woltLogo}
+              style={styles.woltLogo}
+              resizeMode="contain"
+            />
+          </TouchableOpacity>
       </View>
     )
   };
@@ -291,27 +295,27 @@ const styles = StyleSheet.create({
   },
   // --- Wolt Button ---
   woltButton: {
-    backgroundColor: "#1cb0f6",
-    paddingVertical: 7,
-    paddingHorizontal: 12,
-    borderRadius: 22,
-    marginLeft: 12,
+    marginTop: 12,
+    borderRadius: 26,
+    paddingVertical: 8,
+    paddingHorizontal: 24,
     alignItems: "center",
     justifyContent: "center",
-    minWidth: 40,
-    minHeight: 32,
-    shadowColor: "#2563eb22",
-    shadowOpacity: 0.11,
-    shadowRadius: 5,
-    elevation: 1,
+    borderWidth: 2,
+    flexDirection: "row",
+    alignSelf: "flex-start",
   },
   woltButtonActive: {
-    backgroundColor: "#36ad55",
+    backgroundColor:"#c7e3ee", 
+    borderColor: "#26A9E0",
+    },
+  woltButtonDefault: {
+    backgroundColor: "#fff",          
+    borderColor: "#26A9E0",            
   },
   woltLogo: {
-    width: 31,
-    height: 15,
-    resizeMode: "contain",
+    width: 37,  
+    height: 16,
   },
   // --- Missing Section ---
   missingBox: {
