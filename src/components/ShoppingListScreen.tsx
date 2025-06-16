@@ -278,7 +278,7 @@ const ShoppingListScreen: React.FC = () => {
         </TouchableOpacity>
       </View>
 
-      {/* Cards / List */}
+{/* Cards / List */}
 {tab === "dishes" ? (
   preparedDishes.length === 0 ? (
     <View style={styles.emptyStateWrap}>
@@ -294,17 +294,21 @@ const ShoppingListScreen: React.FC = () => {
     </View>
   )
 ) : (
-  <View style={styles.ingredientList}>
-    {items.length === 0 ? (
-      <View style={styles.emptyStateWrap}>
-        <Icon name="emoticon-sad-outline" size={40} color="#2563eb" style={{ marginBottom: 8 }} />
-        <Text style={styles.emptyStateText}>No items in shopping list.</Text>
-      </View>
-    ) : (
-      items.map((item, idx) => renderItemRow(item, idx))
-    )}
-  </View>
+  items.length === 0 ? (
+    <View style={styles.emptyStateWrap}>
+      <Icon name="playlist-remove" size={40} color="#2563eb" style={{ marginBottom: 8 }} />
+      <Text style={styles.emptyStateText}>No ingredients in your list yet.</Text>
+      <Text style={styles.emptyStateSubText}>
+        Add ingredients manually or by adding dishes to fill up your shopping list.
+      </Text>
+    </View>
+  ) : (
+    <View style={styles.ingredientList}>
+      {items.map((item, idx) => renderItemRow(item, idx))}
+    </View>
+  )
 )}
+
 
       {/* Actions */}
       <View style={styles.actionRow}>
