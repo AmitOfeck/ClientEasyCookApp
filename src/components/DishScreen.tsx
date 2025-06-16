@@ -22,7 +22,7 @@ import { DishCard } from "../components/DishCard";
 import MultiSlider from "@ptomasroos/react-native-multi-slider";
 
 const { width } = Dimensions.get("window");
-const MIN_PRICE = 0, MAX_PRICE = 62;
+const MIN_PRICE = 0, MAX_PRICE = 500;
 
 const CUISINES = [
   { value: "ITALIAN", label: "Italian", emoji: "🍝" },
