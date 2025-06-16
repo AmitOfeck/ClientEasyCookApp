@@ -141,7 +141,7 @@ const CartOptionsScreen: React.FC<{ navigation: NavigationProp; route: any }> = 
         <Animated.View style={{ marginBottom: 9, transform: [{ rotate: spin }] }}>
           <Icon name="cart-outline" size={52} color="#2563eb" />
         </Animated.View>
-        <ActivityIndicator size="large" color="#2563eb" style={{ marginBottom: 16 }} />
+        {/* <ActivityIndicator size="large" color="#2563eb" style={{ marginBottom: 16 }} /> */}
         <Text style={styles.loadingMainText}>
           We're finding the best deals for you...
         </Text>
