@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState } from "react";
 import {
   View,
   Text,
@@ -8,46 +8,66 @@ import {
   Image,
   ActivityIndicator,
   Dimensions,
-} from 'react-native';
-import { StackScreenProps } from '@react-navigation/stack';
-import { CartStackParamList } from '../navigation/CartStackScreen';
-import AsyncStorage from '@react-native-async-storage/async-storage';
-import { fetchBestCart } from '../services/cart_service';
+} from "react-native";
+import Icon from "react-native-vector-icons/MaterialCommunityIcons";
+import { StackNavigationProp } from "@react-navigation/stack";
+import { CartStackParamList } from "../navigation/CartStackScreen";
+import AsyncStorage from "@react-native-async-storage/async-storage";
+import { fetchBestCart } from "../services/cart_service";
 
-const { width } = Dimensions.get('window');
+const { width } = Dimensions.get("window");
 
-type Props = StackScreenProps<CartStackParamList, 'CartOptions'>;
+type NavigationProp = StackNavigationProp<CartStackParamList, "CartOptions">;
 
-const CartOptionsScreen: React.FC<Props> = ({ route, navigation }) => {
-  const initialCartOptions = route.params?.cartOptions;
-  const [cartOptions, setCartOptions] = useState(initialCartOptions || []);
-  const [loading, setLoading] = useState(!initialCartOptions || initialCartOptions.length === 0);
+type CartOption = {
+  _id: string;
+  superId: string;
+  superImage?: string;
+  totalCost: number;
+  deliveryPrice: number;
+  products: {
+    itemId: string;
+    name: string;
+    unit_info: string;
+    image_url: string;
+    price: number;
+    quantity: number;
+  }[];
+  missingProducts?: string[];
+};
+
+const CartOptionsScreen: React.FC<{ navigation: NavigationProp; route: any }> = ({
+  navigation,
+  route,
+}) => {
+  const [cartOptions, setCartOptions] = useState<CartOption[]>(route.params?.cartOptions || []);
+  const [loading, setLoading] = useState(cartOptions.length === 0);
 
   useEffect(() => {
-    if (!initialCartOptions || initialCartOptions.length === 0) {
-      const getCartOptions = async () => {
+    if (cartOptions.length === 0) {
+      (async () => {
         setLoading(true);
         try {
-          const userId = await AsyncStorage.getItem('userId');
+          const userId = await AsyncStorage.getItem("userId");
           if (!userId) return;
           const response = await fetchBestCart(userId);
           setCartOptions(response.data);
-        } catch (error) {
-          console.error('Error fetching cart options:', error);
+        } catch (err) {
+          // Handle error (could show an error message)
         } finally {
           setLoading(false);
         }
-      };
-      getCartOptions();
+      })();
     }
   }, []);
 
-  const renderItem = ({ item }: { item: any }) => (
+  // --- SUPERMARKET CARD ---
+  const renderItem = ({ item }: { item: CartOption }) => (
     <TouchableOpacity
       style={styles.card}
-      activeOpacity={0.89}
+      activeOpacity={0.92}
       onPress={() =>
-        navigation.navigate('CartDetail', {
+        navigation.navigate("CartDetail", {
           products: item.products,
           superId: item.superId,
           totalCost: item.totalCost,
@@ -55,118 +75,133 @@ const CartOptionsScreen: React.FC<Props> = ({ route, navigation }) => {
         })
       }
     >
-      <View style={styles.cardRow}>
-        {/* תמונה או אימוג'י */}
-        {item.superImage ? (
-          <Image source={{ uri: item.superImage }} style={styles.marketImg} />
+      <View style={styles.row}>
+        {item?.superImage ? (
+          <Image source={{ uri: item.superImage }} style={styles.image} />
         ) : (
-          <View style={styles.marketImgEmoji}><Text style={{ fontSize: 36 }}>🏪</Text></View>
+          <View style={styles.imagePlaceholder}>
+            <Text style={{ fontSize: 36 }}>🏪</Text>
+          </View>
         )}
-
-        <View style={styles.cardBody}>
-          <Text style={styles.marketTitle} numberOfLines={1}>
-            {item.superId.replace(/-/g, ' ')}
-          </Text>
-          <Text style={styles.marketSubtitle}>
-            The best prices from this supermarket
-          </Text>
-          <View style={{ flexDirection: 'row', alignItems: 'center', marginTop: 6 }}>
-            <Text style={styles.priceTotal}>₪{item.totalCost.toFixed(2)}</Text>
-            <Text style={styles.deliveryText}>Delivery: ₪{item.deliveryPrice}</Text>
+        <View style={styles.details}>
+          <Text style={styles.superText}>{item.superId.replace(/-/g, " ")}</Text>
+          <View style={{ flexDirection: "row", alignItems: "center", marginTop: 1 }}>
+            <Text style={styles.priceText}>Total: ₪{item.totalCost.toFixed(2)}</Text>
+            <Text style={styles.deliveryText}>
+              {"  "}
+              <Icon name="truck-fast-outline" size={15} color="#7b9fe7" />
+              {"  "}Delivery: ₪{item.deliveryPrice}
+            </Text>
           </View>
           {item.missingProducts && item.missingProducts.length > 0 && (
-            <Text style={styles.missingText}>
-              {item.missingProducts.length} missing item{item.missingProducts.length > 1 ? 's' : ''}
-            </Text>
+            <View style={styles.missingBox}>
+              <Icon name="alert-circle-outline" size={16} color="#ffb300" />
+              <Text style={styles.missingText}>
+                {item.missingProducts.length} missing item
+                {item.missingProducts.length > 1 ? "s" : ""}
+              </Text>
+            </View>
           )}
         </View>
       </View>
     </TouchableOpacity>
   );
 
+  // --- LOADER ---
   if (loading) {
     return (
       <View style={styles.loaderWrap}>
-        <ActivityIndicator size="large" color="#2563eb" />
-        <Text style={styles.loaderText}>Finding the best supermarkets for you...</Text>
+        {/* Animated spinning cart icon */}
+        <Icon
+          name="cart-outline"
+          size={52}
+          color="#2563eb"
+          style={{ marginBottom: 9, transform: [{ rotate: "22deg" }] }}
+        />
+        <ActivityIndicator size="large" color="#2563eb" style={{ marginBottom: 16 }} />
+        <Text style={styles.loadingMainText}>
+          We're finding the best deals for you...
+        </Text>
+        <Text style={styles.loadingSubText}>
+          This might take a few seconds. Please wait while we check the best supermarket options nearby!
+        </Text>
       </View>
     );
   }
 
+  // --- MAIN ---
   return (
     <View style={styles.container}>
-      {/* Header */}
+      {/* Header – like all app screens */}
       <View style={styles.headerWrap}>
         <View style={styles.headerIconBox}>
-          <Text style={{ fontSize: 26 }}>🛒</Text>
+          <Icon name="cart-outline" size={27} color="#fff" />
         </View>
-        <View>
-          <Text style={styles.headerTitle}>Supermarket Options</Text>
+        <View style={{ flex: 1, paddingLeft: 10 }}>
+          <Text style={styles.headerTitle}>Cart Options</Text>
           <Text style={styles.headerSubtitle}>
-            Choose your favorite supermarket and review your cart
+            Choose your preferred supermarket and see your best cart!
           </Text>
         </View>
       </View>
 
-      {/* רשימת סופרים */}
-      {cartOptions.length === 0 ? (
-        <View style={styles.emptyStateWrap}>
-          <Text style={styles.emptyStateText}>No supermarkets found.</Text>
-          <Text style={styles.emptyStateSubText}>
-            We couldn't find any cart options for your list. Try updating your list and searching again!
-          </Text>
-        </View>
-      ) : (
-        <FlatList
-          data={cartOptions}
-          keyExtractor={(item) => item._id}
-          renderItem={renderItem}
-          contentContainerStyle={{ paddingBottom: 24 }}
-          showsVerticalScrollIndicator={false}
-        />
-      )}
+      <FlatList
+        data={cartOptions}
+        keyExtractor={(item) => item._id}
+        renderItem={renderItem}
+        contentContainerStyle={{ paddingVertical: 13 }}
+        showsVerticalScrollIndicator={false}
+        ListEmptyComponent={
+          <View style={styles.emptyWrap}>
+            <Icon name="store-off" size={42} color="#7a8dad" style={{ marginBottom: 10 }} />
+            <Text style={styles.emptyText}>No cart options found</Text>
+            <Text style={styles.emptySubText}>Try adding more items to your list</Text>
+          </View>
+        }
+      />
     </View>
   );
 };
 
 export default CartOptionsScreen;
 
+// --- Styles ---
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#f5f7fb',
-    paddingHorizontal: width < 400 ? 8 : 18,
-    paddingTop: width < 400 ? 14 : 28,
+    backgroundColor: "#e4f0fd",
+    paddingTop: 24,
+    paddingHorizontal: 0,
   },
   headerWrap: {
     flexDirection: "row",
     alignItems: "center",
     backgroundColor: "#eaf3ff",
-    borderRadius: 22,
-    marginTop: 8,
-    marginBottom: 15,
-    padding: 12,
-    width: "99%",
+    borderRadius: 23,
+    marginTop: 9,
+    marginBottom: 17,
+    padding: 13,
+    width: width * 0.97,
     alignSelf: "center",
-    minHeight: 61,
+    minHeight: 59,
     shadowColor: "#2563eb33",
-    shadowOffset: { width: 0, height: 4 },
+    shadowOffset: { width: 0, height: 5 },
     shadowOpacity: 0.09,
     shadowRadius: 11,
-    elevation: 7,
+    elevation: 6,
   },
   headerIconBox: {
     backgroundColor: "#2563eb",
     width: 44,
     height: 44,
-    borderRadius: 17,
+    borderRadius: 15,
     alignItems: "center",
     justifyContent: "center",
-    marginRight: 11,
-    shadowColor: "#2563eb",
-    shadowOpacity: 0.13,
-    shadowRadius: 8,
-    elevation: 5,
+    marginRight: 8,
+    shadowColor: "#3b82f6",
+    shadowOpacity: 0.14,
+    shadowRadius: 7,
+    elevation: 4,
   },
   headerTitle: {
     fontSize: 17.2,
@@ -178,117 +213,125 @@ const styles = StyleSheet.create({
     fontSize: 12.5,
     color: "#6487b0",
     fontWeight: "500",
-    opacity: 0.85,
+    opacity: 0.8,
     marginLeft: 1,
     marginTop: 1,
+    textAlign: "left",
+    maxWidth: 260,
   },
   card: {
     backgroundColor: "#fff",
-    borderRadius: 15,
-    padding: width < 400 ? 13 : 16,
-    marginBottom: width < 400 ? 10 : 15,
-    shadowColor: "#2563eb0a",
-    shadowOpacity: 0.08,
-    shadowRadius: 7,
-    elevation: 2,
-    borderWidth: 1,
-    borderColor: "#f0f3fa",
+    borderRadius: 18,
+    marginHorizontal: 13,
+    marginBottom: 13,
+    padding: 13,
+    shadowColor: "#2563eb12",
+    shadowOpacity: 0.13,
+    shadowRadius: 8,
+    elevation: 4,
+    borderBottomWidth: 1,
+    borderBottomColor: "#eaf3ff",
   },
-  cardRow: {
+  row: {
     flexDirection: "row",
     alignItems: "center",
+    gap: 13,
   },
-  marketImg: {
-    width: 54,
-    height: 54,
-    borderRadius: 11,
+  image: {
+    width: 64,
+    height: 64,
+    borderRadius: 32,
+    marginRight: 10,
     backgroundColor: "#eaf3ff",
-    marginRight: 13,
-    resizeMode: "cover",
   },
-  marketImgEmoji: {
-    width: 54,
-    height: 54,
-    borderRadius: 11,
-    backgroundColor: "#f6f8ff",
+  imagePlaceholder: {
+    width: 64,
+    height: 64,
+    borderRadius: 32,
+    backgroundColor: "#eaf3ff",
     alignItems: "center",
     justifyContent: "center",
-    marginRight: 13,
+    marginRight: 10,
   },
-  cardBody: {
+  details: {
     flex: 1,
-    minWidth: 0,
+    minHeight: 54,
+    justifyContent: "center",
   },
-  marketTitle: {
-    fontSize: 15.7,
-    fontWeight: "700",
+  superText: {
+    fontSize: 15.9,
+    fontWeight: "800",
+    color: "#2363eb",
+    marginBottom: 2,
+  },
+  priceText: {
+    fontSize: 14.4,
     color: "#2563eb",
-    marginBottom: 1,
-    textTransform: "capitalize",
-  },
-  marketSubtitle: {
-    fontSize: 12.3,
-    color: "#415c78",
-    fontWeight: "500",
-    opacity: 0.78,
-    marginBottom: 1,
-    marginLeft: 2,
-  },
-  priceTotal: {
-    fontSize: 15.5,
-    color: "#36ad55",
-    fontWeight: "700",
-    marginRight: 12,
+    fontWeight: "bold",
+    marginRight: 3,
   },
   deliveryText: {
-    fontSize: 12.3,
-    color: "#2563eb",
-    fontWeight: "600",
-    backgroundColor: "#eaf3ff",
-    borderRadius: 7,
-    paddingHorizontal: 8,
+    fontSize: 12.4,
+    color: "#7b9fe7",
+    marginLeft: 5,
+  },
+  missingBox: {
+    flexDirection: "row",
+    alignItems: "center",
+    marginTop: 7,
+    backgroundColor: "#fffbe9",
+    borderRadius: 8,
     paddingVertical: 2,
-    marginLeft: 4,
+    paddingHorizontal: 8,
+    alignSelf: "flex-start",
   },
   missingText: {
-    marginTop: 6,
-    fontSize: 12,
-    color: "#e54349",
-    fontWeight: "600",
+    color: "#eaa100",
+    fontWeight: "bold",
+    fontSize: 12.8,
+    marginLeft: 4,
   },
   loaderWrap: {
     flex: 1,
+    justifyContent: "center",
+    alignItems: "center",
+    backgroundColor: "#e4f0fd",
+    paddingHorizontal: 32,
+  },
+  loadingMainText: {
+    fontSize: 17,
+    color: "#2563eb",
+    fontWeight: "700",
+    textAlign: "center",
+    marginBottom: 6,
+  },
+  loadingSubText: {
+    fontSize: 13.5,
+    color: "#7b9fe7",
+    opacity: 0.93,
+    textAlign: "center",
+    marginBottom: 2,
+    marginTop: 1,
+    lineHeight: 19,
+  },
+  emptyWrap: {
     alignItems: "center",
     justifyContent: "center",
-    paddingBottom: 110,
-    backgroundColor: "#f5f7fb",
+    paddingVertical: 60,
+    width: "100%",
   },
-  loaderText: {
-    marginTop: 18,
-    fontSize: 16.5,
-    color: "#2563eb",
-    fontWeight: "600",
-    textAlign: "center",
-    opacity: 0.92,
-  },
-  emptyStateWrap: {
-    alignItems: 'center',
-    justifyContent: 'center',
-    paddingVertical: 36,
-    width: '100%',
-  },
-  emptyStateText: {
+  emptyText: {
     fontSize: 16.2,
-    fontWeight: '600',
-    color: '#2563eb',
-    marginBottom: 4,
-    textAlign: 'center',
+    fontWeight: "600",
+    color: "#2563eb",
+    marginBottom: 3,
+    textAlign: "center",
   },
-  emptyStateSubText: {
+  emptySubText: {
     fontSize: 13.3,
-    color: '#8fa0b7',
-    opacity: 0.85,
-    textAlign: 'center',
-    maxWidth: 260,
+    color: "#8fa0b7",
+    opacity: 0.8,
+    textAlign: "center",
+    maxWidth: 250,
   },
 });
