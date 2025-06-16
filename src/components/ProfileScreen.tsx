@@ -12,6 +12,7 @@ import {
 import { getProfile, updateProfile, IProfile } from "../services/profile_service";
 import ProfileEditModal from "./ProfileEditModal";
 import { NavigationProp, useFocusEffect } from '@react-navigation/native';
+import { getFullImageUrl } from "../utils/getFullImageUrl";
 
 export const ProfileScreen = ({ navigation }: { navigation: NavigationProp<any> }) => {
   const [activeTab, setActiveTab] = useState<"recipe" | "favorites">("recipe");
@@ -21,7 +22,6 @@ export const ProfileScreen = ({ navigation }: { navigation: NavigationProp<any> 
 
   const fetchProfile = async () => {
     const { request, abort } = getProfile();
-  
     try {
       const res = await request;
       setProfile(res.data);
@@ -30,11 +30,8 @@ export const ProfileScreen = ({ navigation }: { navigation: NavigationProp<any> 
     } finally {
       setLoading(false);
     }
-  
     return () => abort();
   };
-  
-
   useFocusEffect(
     useCallback(() => {
       fetchProfile();
@@ -59,17 +56,22 @@ export const ProfileScreen = ({ navigation }: { navigation: NavigationProp<any> 
     formData.append("userName", updatedData.userName);
     formData.append("email", updatedData.email);
 
-    if (updatedData.address?.city) formData.append("city", updatedData.address.city);
-    if (updatedData.address?.street) formData.append("street", updatedData.address.street);
-    if (updatedData.address?.building !== undefined)
-      formData.append("building", updatedData.address.building.toString());
+    if (updatedData.address) {
+      formData.append("address", JSON.stringify(updatedData.address));
+    }
 
-    if (updatedData.profileImage?.uri) {
-      formData.append("profileImage", {
-        uri: updatedData.profileImage.uri,
-        type: updatedData.profileImage.type || "image/jpeg",
-        name: updatedData.profileImage.fileName || "profile.jpg",
-      } as any);
+    if (
+      updatedData.profileImage?.uri &&
+      !updatedData.profileImage.uri.startsWith("http")
+    ) {
+      formData.append(
+        "profileImage",
+        {
+          uri: updatedData.profileImage.uri,
+          type: updatedData.profileImage.type || "image/jpeg",
+          name: updatedData.profileImage.fileName || "profile.jpg",
+        } as any
+      );
     }
 
     const { request, abort } = updateProfile(formData);
@@ -79,9 +81,12 @@ export const ProfileScreen = ({ navigation }: { navigation: NavigationProp<any> 
       fetchProfile();
       setEditModalVisible(false);
       navigation.navigate("Profile");
-    } catch (err) {
-      console.error(err);
-      Alert.alert("Update Failed", "Could not update your profile.");
+    } catch (err: any) {
+      // <<< מציגים עכשיו גם את הודעת השגיאה שמגיעה מהשרת >>>
+      const serverMsg =
+        err.response?.data?.message || "Could not update your profile.";
+      console.error("Update profile error:", serverMsg);
+      Alert.alert("Update Failed", serverMsg);
       setEditModalVisible(false);
     }
 
@@ -184,7 +189,7 @@ export const ProfileScreen = ({ navigation }: { navigation: NavigationProp<any> 
           userName: profile.userName,
           email: profile?.email,
           address: profile.addresses?.[0],
-          profileImage: profile.profileImage,
+          profileImage: profile.profileImage? { uri: `http://10.0.2.2:3000${profile.profileImage}`} : undefined,
         }}
       />
 

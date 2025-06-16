@@ -19,6 +19,8 @@ export type CartStackParamList = {
         price: number;
         quantity: number;
       }[];
+      superImage?: string;      
+      deliveryPrice: number; 
     }[];
   };
   CartDetail: {
@@ -31,7 +33,9 @@ export type CartStackParamList = {
     }[];
     superId: string;
     totalCost: number;
-    missingProducts?: string[]; // ← הוספת פרופס
+    missingProducts?: string[]; 
+    superImage?: string;       
+    deliveryPrice: number; 
   };
 };
 
