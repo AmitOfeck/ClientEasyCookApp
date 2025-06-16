@@ -91,6 +91,8 @@ const CartOptionsScreen: React.FC<{ navigation: NavigationProp; route: any }> = 
           products: item.products,
           superId: item.superId,
           totalCost: item.totalCost,
+          superImage: item.superImage,       // <-- הוסף שדה זה
+          deliveryPrice: item.deliveryPrice, // <-- וגם את זה
           missingProducts: item.missingProducts || [],
         })
       }
