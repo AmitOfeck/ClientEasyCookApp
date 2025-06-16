@@ -3,7 +3,7 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import { refresh } from './auth_service';
 
 const apiClient = axios.create({
-  baseURL: 'http://10.0.2.2:3000',
+  baseURL: 'http://easycook.cs.colman.ac.il',
   headers: {
     'Content-Type': 'application/json'
   }
