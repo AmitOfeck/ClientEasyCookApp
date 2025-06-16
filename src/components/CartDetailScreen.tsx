@@ -15,7 +15,7 @@ import { useFocusEffect } from '@react-navigation/native';
 
 const { width } = Dimensions.get("window");
 
-// השתמש בלוגו PNG שקוף!
+// ודא שהקובץ הוא PNG שקוף!
 const woltLogo = require("../assets/woltLogo.png");
 
 type Props = StackScreenProps<CartStackParamList, 'CartDetail'>;
@@ -60,32 +60,32 @@ const CartDetailScreen: React.FC<Props> = ({ route }) => {
 
     return (
       <View style={[
-        styles.itemRow,
-        isMissing && styles.itemRowMissing,
+        styles.productCard,
+        isMissing && styles.productCardMissing,
       ]}>
-        <Image source={{ uri: item.image_url }} style={styles.image} />
-        <View style={styles.itemInfo}>
-          <Text style={styles.itemName} numberOfLines={2}>{item.name}</Text>
-          <View style={styles.itemDetails}>
-            <Text style={styles.subText}>x{item.quantity}</Text>
+        <Image source={{ uri: item.image_url }} style={styles.productImg} />
+        <View style={styles.productDetails}>
+          <Text style={styles.productName} numberOfLines={2}>{item.name}</Text>
+          <View style={styles.detailsRow}>
+            <Text style={styles.quantityText}>x{item.quantity}</Text>
             <Text style={styles.dot}>·</Text>
             <Text style={styles.priceText}>₪{item.price.toFixed(2)}</Text>
           </View>
         </View>
         <TouchableOpacity
-              onPress={() => handleWoltPress(item.itemId)}
-              style={[
-                styles.woltButton,
-                isAdded ? styles.woltButtonActive : styles.woltButtonDefault,
-              ]}
-              activeOpacity={0.85}
-              >
-              <Image
-              source={woltLogo}
-              style={styles.woltLogo}
-              resizeMode="contain"
-            />
-          </TouchableOpacity>
+          onPress={() => handleWoltPress(item.itemId)}
+          style={[
+            styles.woltButton,
+            isAdded ? styles.woltButtonAdded : styles.woltButtonDefault,
+          ]}
+          activeOpacity={0.88}
+        >
+          <Image
+            source={woltLogo}
+            style={styles.woltLogo}
+            resizeMode="contain"
+          />
+        </TouchableOpacity>
       </View>
     )
   };
@@ -232,90 +232,95 @@ const styles = StyleSheet.create({
     marginBottom: 9,
     marginTop: 9,
   },
-  // --- Product Row ---
-  itemRow: {
-    flexDirection: 'row',
-    backgroundColor: '#fff',
-    padding: 10,
-    marginBottom: 8,
-    borderRadius: 10,
-    borderWidth: 1,
-    borderColor: '#f2f3fa',
+  // --- Product Card ---
+  productCard: {
+    flexDirection: "row",
     alignItems: "center",
-    minHeight: 62,
-    shadowColor: "#2563eb08",
-    shadowOpacity: 0.06,
-    shadowRadius: 2,
+    backgroundColor: "#fff",
+    borderRadius: 19,
+    paddingVertical: 10,
+    paddingHorizontal: 13,
+    marginBottom: 8,
+    shadowColor: "#2563eb0f",
+    shadowOpacity: 0.08,
+    shadowRadius: 6,
     elevation: 1,
+    borderWidth: 1,
+    borderColor: "#f2f3fa",
+    minHeight: 60,
   },
-  itemRowMissing: {
+  productCardMissing: {
     backgroundColor: "#fffbe7",
     borderColor: "#ffe39a",
   },
-  image: {
-    width: 44,
-    height: 44,
-    borderRadius: 8,
-    resizeMode: 'cover',
-    backgroundColor: "#eaf3ff",
-    marginRight: 9,
+  productImg: {
+    width: 58,
+    height: 58,
+    borderRadius: 14,
+    borderWidth: 1,
+    borderColor: "#e3e8ef",
+    backgroundColor: "#f3f7fc",
+    marginRight: 12,
+    shadowColor: "#b1c7e6",
+    shadowOpacity: 0.16,
+    shadowRadius: 4,
+    elevation: 2,
   },
-  itemInfo: {
+  productDetails: {
     flex: 1,
-    justifyContent: 'center',
+    justifyContent: "center",
   },
-  itemName: {
-    fontSize: 15.3,
-    fontWeight: '700',
-    color: '#2363eb',
-    marginBottom: 2,
-    lineHeight: 18,
+  productName: {
+    fontSize: 15.2,
+    fontWeight: "600",
+    color: "#2c3f62",
+    marginBottom: 3,
+    letterSpacing: 0.1,
   },
-  itemDetails: {
+  detailsRow: {
     flexDirection: "row",
     alignItems: "center",
-    marginBottom: 0,
-    gap: 6,
+    marginTop: 2,
   },
-  subText: {
-    fontSize: 12.3,
-    color: '#6e7e97',
+  quantityText: {
+    fontSize: 13.2,
+    color: "#7e8592",
     fontWeight: "600",
   },
-  priceText: {
-    fontSize: 12.3,
-    color: "#15955c",
-    fontWeight: "700",
-  },
   dot: {
-    fontSize: 15,
-    color: "#dadada",
+    fontSize: 13,
     marginHorizontal: 4,
-    marginBottom: 2,
+    color: "#bbc5d1",
+    fontWeight: "800",
+  },
+  priceText: {
+    fontSize: 13.2,
+    color: "#13a442",
+    fontWeight: "700",
   },
   // --- Wolt Button ---
   woltButton: {
-    marginTop: 12,
-    borderRadius: 26,
-    paddingVertical: 8,
-    paddingHorizontal: 24,
+    marginLeft: 12,
+    borderRadius: 22,
+    width: 68,
+    height: 38,
     alignItems: "center",
     justifyContent: "center",
     borderWidth: 2,
     flexDirection: "row",
-    alignSelf: "flex-start",
+    alignSelf: "center",
   },
-  woltButtonActive: {
-    backgroundColor:"#c7e3ee", 
-    borderColor: "#26A9E0",
-    },
   woltButtonDefault: {
-    backgroundColor: "#fff",          
-    borderColor: "#26A9E0",            
+    backgroundColor: "#fff",
+    borderColor: "#26A9E0",
+  },
+  woltButtonAdded: {
+    backgroundColor: "#b9d7e6", // צבע עדין, קצת כהה מהקודם
+    borderColor: "#26A9E0",
   },
   woltLogo: {
-    width: 37,  
-    height: 16,
+    width: 44,
+    height: 23,
   },
   // --- Missing Section ---
   missingBox: {
