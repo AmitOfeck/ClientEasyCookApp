@@ -140,7 +140,7 @@ export const ProfileScreen = ({ navigation }: { navigation: NavigationProp<any> 
         <Image
           source={{
             uri: profile?.profileImage
-              ? getFullImageUrl(profile.profileImage)
+              ? `http://easycook.cs.colman.ac.il${profile.profileImage}`
               : "https://via.placeholder.com/150", // fallback image
           }}
           style={styles.avatar}
