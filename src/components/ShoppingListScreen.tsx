@@ -293,13 +293,21 @@ const ShoppingListScreen: React.FC = () => {
 
       {/* Actions */}
       <View style={styles.actionRow}>
-        <TouchableOpacity style={styles.clearBtn} onPress={handleClearList}>
-          <Text style={styles.clearBtnText}>Clear List</Text>
-        </TouchableOpacity>
-        <TouchableOpacity style={styles.cartBtn} onPress={handleGoToCart}>
-          <Text style={styles.cartBtnText}>GO TO CART</Text>
-        </TouchableOpacity>
-      </View>
+  <TouchableOpacity
+    style={[styles.modernButton, styles.clearModern]}
+    onPress={handleClearList}
+    activeOpacity={0.83}
+  >
+    <Text style={[styles.modernButtonText, styles.clearModernText]}>Clear List</Text>
+  </TouchableOpacity>
+  <TouchableOpacity
+    style={[styles.modernButton, styles.applyModern]}
+    onPress={handleGoToCart}
+    activeOpacity={0.83}
+  >
+    <Text style={[styles.modernButtonText, styles.applyModernText]}>GO TO CART</Text>
+  </TouchableOpacity>
+</View>
 
       {/* Edit Modal */}
       {editItemIndex !== null && (
@@ -442,18 +450,17 @@ const styles = StyleSheet.create({
     paddingHorizontal: 7,
   },
   cardRecipe: {
-    width: width < 400 ? "47%" : 170,
+    width: width < 400 ? "48%" : 168, 
     backgroundColor: "#fff",
-    borderRadius: 15,
-    marginBottom: 15,
+    borderRadius: 16,
+    marginBottom: width < 400 ? 6 : 11,
     alignItems: "center",
-    padding: 13,
-    elevation: 6,
+    padding: width < 400 ? 7 : 11,
+    elevation: 5,
     shadowColor: "#2563eb12",
-    shadowOpacity: 0.10,
-    shadowRadius: 9,
-    marginHorizontal: 5,
-    minHeight: 175,
+    shadowOpacity: 0.12,
+    shadowRadius: 8,
+    marginHorizontal: width < 400 ? 1 : 6,
   },
   cardRecipeImg: {
     width: "100%",
@@ -577,12 +584,12 @@ const styles = StyleSheet.create({
   },
   // --- ACTIONS ---
   actionRow: {
-    flexDirection: "row",
-    justifyContent: "center",
-    alignItems: "center",
-    gap: 18,
-    marginTop: 18,
-    marginBottom: 10,
+    flexDirection: 'row',
+    width: '100%',
+    gap: width < 400 ? 7 : 14,
+    marginTop: width < 400 ? 8 : 14,
+    marginBottom: width < 400 ? 5 : 12,
+    paddingHorizontal: width < 400 ? 2 : 8,
   },
   clearBtn: {
     backgroundColor: "#e54349",
@@ -706,5 +713,50 @@ const styles = StyleSheet.create({
     color: "#2563eb",
     fontWeight: "bold",
     fontSize: 16,
+  },
+  modernButton: {
+    flex: 1,
+    height: 43,
+    borderRadius: 21,
+    alignItems: 'center',
+    justifyContent: 'center',
+    shadowColor: '#2563eb22',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.13,
+    shadowRadius: 8,
+    elevation: 3,
+    borderWidth: 1.1,
+    borderColor: '#d7e4fa',
+    backgroundColor: "#f6f8ff",
+  },
+  clearModern: {
+    backgroundColor: "#fff",
+    borderColor: "#e99a96",
+    shadowColor: "#e5434924",
+  },
+  applyModern: {
+    backgroundColor: "#2563eb",
+    borderColor: "#2563eb",
+  },
+  modernButtonText: {
+    fontWeight: "700",
+    fontSize: 16.1,
+    letterSpacing: 0.02,
+    color: "#2563eb",
+  },
+  clearModernText: {
+    color: "#e54349",
+  },
+  applyModernText: {
+    color: "#fff",
+  },
+  // --- קירוב מרווח כרטיסי מנות ---
+  gridWrapRecipe: {
+    flexDirection: "row",
+    flexWrap: "wrap",
+    justifyContent: "flex-start",
+    gap: width < 400 ? 4 : 7, 
+    width: "100%",
+    paddingHorizontal: width < 400 ? 1 : 7, 
   },
 });
