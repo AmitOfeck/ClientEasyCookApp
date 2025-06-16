@@ -15,6 +15,9 @@ import { useFocusEffect } from '@react-navigation/native';
 
 const { width } = Dimensions.get("window");
 
+// השתמש בלוגו PNG שקוף!
+const woltLogo = require("../assets/woltLogo.png");
+
 type Props = StackScreenProps<CartStackParamList, 'CartDetail'>;
 
 const CartDetailScreen: React.FC<Props> = ({ route }) => {
@@ -40,46 +43,52 @@ const CartDetailScreen: React.FC<Props> = ({ route }) => {
   );
 
   const handleWoltPress = (itemId: string) => {
-    // toggle: add/remove item
     setAddedItems((prev) => ({
       ...prev,
       [itemId]: !prev[itemId]
     }));
-    // אם זו פעם ראשונה שסימן, פתח את וולט
     if (!addedItems[itemId]) {
       const woltUrl = `https://wolt.com/he/isr/wolt/venue/${superId}/itemid-${itemId}`;
       Linking.openURL(woltUrl);
     }
   };
 
+  // === Product Row ===
   const renderItem = ({ item }: { item: typeof products[0] }) => {
     const isAdded = addedItems[item.itemId];
+    const isMissing = missingProducts.includes(item.name) || missingProducts.includes(item.itemId);
+
     return (
-      <View style={styles.itemRow}>
+      <View style={[
+        styles.itemRow,
+        isMissing && styles.itemRowMissing,
+      ]}>
         <Image source={{ uri: item.image_url }} style={styles.image} />
         <View style={styles.itemInfo}>
-          <Text style={styles.itemName}>{item.name}</Text>
-          <Text style={styles.subText}>🧮 Quantity: {item.quantity}</Text>
-          <Text style={styles.subText}>💸 Price: ₪{item.price.toFixed(2)}</Text>
-          <TouchableOpacity
-            onPress={() => handleWoltPress(item.itemId)}
-            style={[
-              styles.woltButton,
-              { backgroundColor: isAdded ? '#36ad55' : '#2563eb' }
-            ]}
-          >
-            <Text style={styles.buttonText}>
-              {isAdded ? 'Added to Wolt (Undo)' : 'Add to Wolt cart'}
-            </Text>
-          </TouchableOpacity>
+          <Text style={styles.itemName} numberOfLines={2}>{item.name}</Text>
+          <View style={styles.itemDetails}>
+            <Text style={styles.subText}>x{item.quantity}</Text>
+            <Text style={styles.dot}>·</Text>
+            <Text style={styles.priceText}>₪{item.price.toFixed(2)}</Text>
+          </View>
         </View>
+        <TouchableOpacity
+          onPress={() => handleWoltPress(item.itemId)}
+          style={[
+            styles.woltButton,
+            isAdded ? styles.woltButtonActive : {},
+          ]}
+          activeOpacity={0.85}
+        >
+          <Image source={woltLogo} style={styles.woltLogo} />
+        </TouchableOpacity>
       </View>
     )
   };
 
+  // === HEADER ===
   const ListHeader = () => (
     <View>
-      {/* Header with image/emoji and store info */}
       <View style={styles.headerWrap}>
         <View style={styles.headerImgBox}>
           {superImage ? (
@@ -95,21 +104,24 @@ const CartDetailScreen: React.FC<Props> = ({ route }) => {
           </Text>
         </View>
       </View>
-      {/* Price Summary */}
       <Text style={styles.totalText}>
-        Total: ₪{totalCost.toFixed(2)}{" "}
-        <Text style={styles.deliveryText}>
-          (including ₪{deliveryPrice.toFixed(2)} delivery)
-        </Text>
+        Total: ₪{totalCost.toFixed(2)}
+        <Text style={styles.deliveryText}> (including ₪{deliveryPrice.toFixed(2)} delivery)</Text>
       </Text>
-      <Text style={styles.sectionTitle}>🧾 Products in Cart:</Text>
+      <Text style={styles.sectionTitle}>Products in Cart:</Text>
     </View>
   );
 
+  // === FOOTER ===
   const ListFooter = () =>
     missingProducts.length > 0 ? (
-      <>
-        <Text style={styles.sectionTitle}>❗ Missing Products:</Text>
+      <View style={{ marginTop: 8 }}>
+        <View style={styles.missingBox}>
+          <Text style={styles.missingIcon}>⚠️</Text>
+          <Text style={styles.missingTextMain}>
+            {missingProducts.length} missing item{missingProducts.length > 1 ? "s" : ""}
+          </Text>
+        </View>
         <View style={styles.missingContainer}>
           {missingProducts.map((item, index) => (
             <View key={index} style={styles.missingBadge}>
@@ -117,32 +129,38 @@ const CartDetailScreen: React.FC<Props> = ({ route }) => {
             </View>
           ))}
         </View>
-      </>
+      </View>
     ) : null;
 
   return (
-    <FlatList
-      data={products}
-      keyExtractor={(item) => item.itemId}
-      renderItem={renderItem}
-      ListHeaderComponent={ListHeader}
-      ListFooterComponent={ListFooter}
-      contentContainerStyle={[
-        styles.contentContainer,
-        { paddingBottom: 50 }, // More padding for safe area/navbar
-      ]}
-      showsVerticalScrollIndicator={false}
-    />
+    <View style={styles.screenBg}>
+      <FlatList
+        data={products}
+        keyExtractor={(item) => item.itemId}
+        renderItem={renderItem}
+        ListHeaderComponent={ListHeader}
+        ListFooterComponent={ListFooter}
+        contentContainerStyle={[
+          styles.contentContainer,
+          { paddingBottom: 50 },
+        ]}
+        showsVerticalScrollIndicator={false}
+      />
+    </View>
   );
 };
 
 export default CartDetailScreen;
 
+// ========== STYLES ==========
 const styles = StyleSheet.create({
+  screenBg: {
+    flex: 1,
+    backgroundColor: "#e4f0fd",
+  },
   contentContainer: {
-    padding: 20,
-    paddingTop: 42,
-    backgroundColor: "#F0F4F8",
+    padding: 17,
+    paddingTop: 38,
     minHeight: 700,
   },
   headerWrap: {
@@ -210,44 +228,112 @@ const styles = StyleSheet.create({
     marginBottom: 9,
     marginTop: 9,
   },
+  // --- Product Row ---
   itemRow: {
     flexDirection: 'row',
-    backgroundColor: '#FFFFFF',
-    padding: 13,
-    marginBottom: 13,
-    borderRadius: 13,
+    backgroundColor: '#fff',
+    padding: 10,
+    marginBottom: 8,
+    borderRadius: 10,
     borderWidth: 1,
     borderColor: '#f2f3fa',
-    shadowColor: '#2563eb0a',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.06,
-    shadowRadius: 3,
-    elevation: 1,
     alignItems: "center",
+    minHeight: 62,
+    shadowColor: "#2563eb08",
+    shadowOpacity: 0.06,
+    shadowRadius: 2,
+    elevation: 1,
+  },
+  itemRowMissing: {
+    backgroundColor: "#fffbe7",
+    borderColor: "#ffe39a",
   },
   image: {
-    width: 62,
-    height: 62,
-    borderRadius: 11,
+    width: 44,
+    height: 44,
+    borderRadius: 8,
     resizeMode: 'cover',
-    backgroundColor: "#eaf3ff"
+    backgroundColor: "#eaf3ff",
+    marginRight: 9,
   },
   itemInfo: {
     flex: 1,
-    marginLeft: 13,
     justifyContent: 'center',
   },
   itemName: {
-    fontSize: 15.8,
+    fontSize: 15.3,
     fontWeight: '700',
     color: '#2363eb',
-    marginBottom: 3,
+    marginBottom: 2,
+    lineHeight: 18,
+  },
+  itemDetails: {
+    flexDirection: "row",
+    alignItems: "center",
+    marginBottom: 0,
+    gap: 6,
   },
   subText: {
-    fontSize: 12.4,
-    color: '#537399',
-    marginBottom: 1,
-    fontWeight: "500"
+    fontSize: 12.3,
+    color: '#6e7e97',
+    fontWeight: "600",
+  },
+  priceText: {
+    fontSize: 12.3,
+    color: "#15955c",
+    fontWeight: "700",
+  },
+  dot: {
+    fontSize: 15,
+    color: "#dadada",
+    marginHorizontal: 4,
+    marginBottom: 2,
+  },
+  // --- Wolt Button ---
+  woltButton: {
+    backgroundColor: "#1cb0f6",
+    paddingVertical: 7,
+    paddingHorizontal: 12,
+    borderRadius: 22,
+    marginLeft: 12,
+    alignItems: "center",
+    justifyContent: "center",
+    minWidth: 40,
+    minHeight: 32,
+    shadowColor: "#2563eb22",
+    shadowOpacity: 0.11,
+    shadowRadius: 5,
+    elevation: 1,
+  },
+  woltButtonActive: {
+    backgroundColor: "#36ad55",
+  },
+  woltLogo: {
+    width: 31,
+    height: 15,
+    resizeMode: "contain",
+  },
+  // --- Missing Section ---
+  missingBox: {
+    backgroundColor: "#fffbe8",
+    borderRadius: 11,
+    paddingVertical: 8,
+    paddingHorizontal: 15,
+    flexDirection: "row",
+    alignItems: "center",
+    alignSelf: "flex-start",
+    marginBottom: 8,
+    marginTop: 10,
+  },
+  missingIcon: {
+    fontSize: 20,
+    marginRight: 7,
+    color: "#eaa100",
+  },
+  missingTextMain: {
+    fontWeight: "700",
+    color: "#eaa100",
+    fontSize: 15.5,
   },
   missingContainer: {
     flexDirection: 'row',
@@ -267,16 +353,5 @@ const styles = StyleSheet.create({
     color: '#B91C1C',
     fontWeight: '500',
     fontSize: 13.4,
-  },
-  woltButton: {
-    marginTop: 10,
-    padding: 10,
-    borderRadius: 7,
-    alignItems: 'center',
-  },
-  buttonText: {
-    color: 'white',
-    fontWeight: '700',
-    fontSize: 14.2,
   },
 });
