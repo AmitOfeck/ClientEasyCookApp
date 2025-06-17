@@ -1,7 +1,6 @@
 import React, { useState, useEffect } from "react";
 import {
-    View, Text, TouchableOpacity, StyleSheet,
-    Platform, ScrollView, Image, Alert
+    View, Text, TouchableOpacity, StyleSheet, Platform, ScrollView, Image, Alert
 } from "react-native";
 import Icon from "react-native-vector-icons/MaterialCommunityIcons";
 import {
@@ -9,14 +8,35 @@ import {
     healthifyDish,
     cheapifyDish
 } from "../services/dish_service";
-import { Cuisine, Level, Limitation, IDish } from "../services/intefaces/dish";
 import dishImage from '../assets/dish.png';
+import type { IDish } from "../services/intefaces/dish"; // ודא שמייבא נכון
 
-const DishDetailScreen: React.FC<{ navigation: any, route: any }> = ({ navigation, route }) => {
+// --- Pill (טיפוס פרופס) ---
+type PillProps = {
+    icon: string;
+    color: string;
+    text: string;
+};
+const Pill: React.FC<PillProps> = ({ icon, color, text }) => (
+    <View style={[styles.pill, { backgroundColor: color + "22" }]}>
+        <Icon name={icon} size={17} color={color} style={{ marginRight: 4 }} />
+        <Text style={[styles.pillText, { color }]}>{text}</Text>
+    </View>
+);
+
+const tabOptions = [
+    { key: "details", label: "Details", icon: "information-outline" },
+    { key: "ingredients", label: "Ingredients", icon: "food-apple-outline" },
+    { key: "recipe", label: "Recipe", icon: "chef-hat" },
+];
+
+// --- Component ---
+const DishDetailScreen: React.FC<{ navigation: any; route: any }> = ({ navigation, route }) => {
     const { dishId } = route.params;
     const [dish, setDish] = useState<IDish | null>(null);
     const [loading, setLoading] = useState(true);
     const [processing, setProcessing] = useState(false);
+    const [activeTab, setActiveTab] = useState<"details" | "ingredients" | "recipe">("details");
 
     useEffect(() => {
         const fetchDishDetails = async () => {
@@ -39,14 +59,9 @@ const DishDetailScreen: React.FC<{ navigation: any, route: any }> = ({ navigatio
         try {
             const { request } = healthifyDish(dish._id);
             const response = await request;
-            console.log('Healthify response:', response.status, response.data);
             setDish(response.data);
-        } catch (error: any) {
-            console.error('Healthify error:',
-                error.response?.status,
-                error.response?.data ?? error.message
-            );
-            Alert.alert("Error", `Failed to make dish healthier (${error.response?.status})`);
+        } catch (error) {
+            Alert.alert("Error", "Failed to make dish healthier.");
         } finally {
             setProcessing(false);
         }
@@ -72,120 +87,237 @@ const DishDetailScreen: React.FC<{ navigation: any, route: any }> = ({ navigatio
     if (!dish) {
         return <View style={styles.centered}><Text>Dish not found</Text></View>;
     }
-
     const isOriginal = dish.variantType === 'original';
 
+    // --- MAIN ---
     return (
-        <View style={styles.container}>
-            <ScrollView contentContainerStyle={styles.scrollViewContent}>
-                <TouchableOpacity
-                    style={styles.backButton}
-                    onPress={() => navigation.goBack()}
-                >
-                    <Icon name="arrow-left" size={24} color="#fff" />
-                </TouchableOpacity>
-                <Text style={styles.headerText}>{dish.name}</Text>
+        <View style={styles.bg}>
+
+            <ScrollView contentContainerStyle={styles.scrollContent}>
+                {/* תמונה */}
                 <Image
                     source={dish.imageUrl ? { uri: dish.imageUrl } : dishImage}
                     style={styles.dishImage}
                 />
-                <View style={styles.detailSection}>
-                    <Text style={styles.label}>Cuisine:</Text>
-                    <Text style={styles.detail}>{dish.cuisine}</Text>
-                    <Text style={styles.label}>Difficulty Level:</Text>
-                    <Text style={styles.detail}>{dish.level}</Text>
-                    <Text style={styles.label}>Limitation:</Text>
-                    <Text style={styles.detail}>{dish.limitation}</Text>
-                    <Text style={styles.label}>Price:</Text>
-                    <Text style={styles.detail}>${dish.price}</Text>
-                    <Text style={styles.label}>Calories:</Text>
-                    <Text style={styles.detail}>{dish.dishCalories} kcal</Text>
-                    <Text style={styles.label}>Ingredients Cost:</Text>
-                    <Text style={styles.detail}>${dish.ingredientsCost}</Text>
-                    <Text style={styles.label}>Average Dish Cost:</Text>
-                    <Text style={styles.detail}>${dish.averageDishCost}</Text>
-                    <Text style={styles.label}>Description:</Text>
-                    <Text style={styles.detail}>{dish.details}</Text>
+                {/* שם מנה */}
+                <Text style={styles.dishName}>{dish.name}</Text>
+
+                {/* כרטיסיות TAB */}
+                <View style={styles.tabsBar}>
+                    {tabOptions.map(tab => (
+                        <TouchableOpacity
+                            key={tab.key}
+                            style={[
+                                styles.tabBtn,
+                                activeTab === tab.key && styles.tabBtnActive
+                            ]}
+                            onPress={() => setActiveTab(tab.key as any)}
+                        >
+                            <Icon name={tab.icon} size={19} color={activeTab === tab.key ? "#2363eb" : "#b6bcd2"} />
+                            <Text style={[
+                                styles.tabBtnText,
+                                activeTab === tab.key && { color: "#2363eb" }
+                            ]}>{tab.label}</Text>
+                        </TouchableOpacity>
+                    ))}
                 </View>
-                <View style={styles.buttonContainer}>
+
+                {/* --- תוכן הטאב --- */}
+                <View style={styles.card}>
+                    {activeTab === "details" && (
+                        <View>
+                            <View style={{ flexDirection: "row", flexWrap: "wrap", gap: 6 }}>
+                                <Pill icon="cash" color="#2dc44a" text={`₪${dish.price} (est.)`} />
+                                <Pill icon="fire" color="#ff9800" text={`${dish.dishCalories || "-"} kcal`} />
+                                <Pill icon="food-variant" color="#2363eb" text={dish.cuisine} />
+                                <Pill icon="flag-outline" color="#f98607" text={dish.level} />
+                                <Pill icon="leaf" color="#67b136" text={dish.limitation} />
+                            </View>
+                            <Text style={styles.cardTitle}>Description</Text>
+                            <Text style={styles.descText}>{dish.details}</Text>
+                            <View style={{ marginTop: 15 }}>
+                                <Text style={styles.statLine}>Ingredients Cost: <Text style={styles.statVal}>₪{dish.ingredientsCost}</Text></Text>
+                                <Text style={styles.statLine}>Average Dish Cost: <Text style={styles.statVal}>₪{dish.averageDishCost}</Text></Text>
+                                <Text style={styles.statLine}>Variant: <Text style={styles.statVal}>{dish.variantType}</Text></Text>
+                            </View>
+                        </View>
+                    )}
+                    {activeTab === "ingredients" && (
+                        <View>
+                            <Text style={styles.cardTitle}>Ingredients</Text>
+                            {dish.ingredients && dish.ingredients.length > 0 ? (
+  dish.ingredients.map((ing: any, idx: number) => (
+    <View key={idx} style={styles.ingredientRow}>
+      <Icon name="circle-small" size={22} color="#ffd567" />
+      <Text style={styles.ingredientText}>
+        {/* תציג מידע בצורה ברורה */}
+        {ing.name}
+        {ing.quantity ? ` – ${ing.quantity}` : ""}
+        {ing.unit ? ` ${ing.unit}` : ""}
+        {ing.cost ? ` (₪${ing.cost})` : ""}
+      </Text>
+    </View>
+  ))
+) : (
+  <Text style={styles.emptyText}>No ingredients listed.</Text>
+)}
+                        </View>
+                    )}
+                    {activeTab === "recipe" && (
+                        <View>
+                            <Text style={styles.cardTitle}>Recipe</Text>
+                            <Text style={styles.recipeText}>{dish.recipe || "No recipe found."}</Text>
+                        </View>
+                    )}
+                </View>
+
+                {/* כפתורים שדרוג */}
+                <View style={styles.variantsBar}>
                     <TouchableOpacity
                         style={[
-                            styles.actionButton,
-                            (!isOriginal || processing) && styles.disabledButton
+                            styles.variantBtn,
+                            (!isOriginal || processing) && styles.variantBtnDisabled
                         ]}
                         disabled={!isOriginal || processing}
                         onPress={onHealthify}
                     >
-                        <Text style={styles.buttonText}>
-                            {processing && dish.variantType === 'original' ? '...' : 'Make Healthy'}
-                        </Text>
+                        <Icon name="leaf" size={18} color="#4ba548" style={{ marginRight: 8 }} />
+                        <Text style={styles.variantBtnText}>Healthier</Text>
                     </TouchableOpacity>
                     <TouchableOpacity
                         style={[
-                            styles.actionButton,
-                            (!isOriginal || processing) && styles.disabledButton
+                            styles.variantBtn,
+                            (!isOriginal || processing) && styles.variantBtnDisabled
                         ]}
                         disabled={!isOriginal || processing}
                         onPress={onCheapify}
                     >
-                        <Text style={styles.buttonText}>
-                            {processing && dish.variantType === 'original' ? '...' : 'Make Cheap'}
-                        </Text>
+                        <Icon name="currency-ils" size={18} color="#26A9E0" style={{ marginRight: 8 }} />
+                        <Text style={styles.variantBtnText}>Cheaper</Text>
                     </TouchableOpacity>
                 </View>
-
                 {!isOriginal && (
                     <Text style={styles.disabledMessageText}>
-This recipe has already been modified and cannot be changed again.
-
-</Text>
+                        This recipe has already been modified and cannot be changed again.
+                    </Text>
                 )}
             </ScrollView>
         </View>
     );
 };
 
-const styles = StyleSheet.create({
-    container: { flex: 1, padding: 20, backgroundColor: "#fff" },
-    scrollViewContent: { paddingBottom: 80 },
-    backButton: {
-        position: "absolute",
-        top: Platform.OS === "ios" ? 40 : 20,
-        left: 20,
-        padding: 12,
-        backgroundColor: "#1E3A8A",
-        borderRadius: 30,
-        zIndex: 1,
-    },
-    headerText: {
-        fontSize: 28,
-        fontWeight: "bold",
-        textAlign: "center",
-        marginTop: Platform.OS === "ios" ? 80 : 60,
-        marginBottom: 20,
-    },
-    dishImage: { width: "100%", height: 250, resizeMode: "cover", borderRadius: 10, marginBottom: 20 },
-    detailSection: { marginTop: 20 },
-    label: { fontSize: 18, fontWeight: "bold", marginBottom: 5 },
-    detail: { fontSize: 16, marginBottom: 15, color: "#333" },
-    centered: { flex: 1, justifyContent: "center", alignItems: "center" },
-    buttonContainer: { flexDirection: "row", justifyContent: "space-around", marginTop: 20 },
-    actionButton: {
-        flex: 1,
-        marginHorizontal: 5,
-        paddingVertical: 12,
-        backgroundColor: "#1E3A8A",
-        borderRadius: 8,
-        alignItems: "center",
-    },
-    disabledButton: { backgroundColor: "#ccc" },
-    buttonText: { color: "#fff", fontSize: 16, fontWeight: "bold" },
-    disabledMessageText: {
-        marginTop: 10,
-        fontSize: 12,
-        color: '#666',
-        textAlign: 'center',
-    },
-});
-
 export default DishDetailScreen;
+
+// --- כל ה-styles שלך כאן ---
+const styles = StyleSheet.create({
+    // ... (העתק את החלק שלך, לא צריך לשנות)
+    // ראה קוד קודם שלך, אין כאן שינוי מהותי
+    // (כמובן השאר כאן את הstyles הנוכחיים שלך)
+    bg: { flex: 1, backgroundColor: "#e4f0fd" },
+    scrollContent: { padding: 19, paddingBottom: 70 },
+    backButton: {
+        position: "absolute", top: Platform.OS === "ios" ? 44 : 22, left: 17, zIndex: 1,
+        backgroundColor: "#fff", padding: 7, borderRadius: 30, elevation: 5, shadowOpacity: 0.12,
+    },
+    dishImage: {
+        width: "100%", height: 202, borderRadius: 18,
+        marginTop: 16, marginBottom: 13, backgroundColor: "#f6f8ff"
+    },
+    dishName: { fontSize: 23, fontWeight: "700", color: "#2363eb", marginBottom: 13, textAlign: "center" },
+    tabsBar: {
+        flexDirection: "row",
+        borderRadius: 14,
+        backgroundColor: "#eaf3ff",
+        alignSelf: "center",
+        marginBottom: 13,
+        marginTop: 0,
+        shadowColor: "#2563eb12",
+        shadowOpacity: 0.04,
+        elevation: 1,
+        padding: 3,
+    },
+    tabBtn: {
+        flex: 1,
+        flexDirection: "row",
+        alignItems: "center",
+        paddingHorizontal: 13,
+        paddingVertical: 7,
+        borderRadius: 11,
+        marginHorizontal: 2,
+        backgroundColor: "transparent"
+    },
+    tabBtnActive: { backgroundColor: "#fff", elevation: 2 },
+    tabBtnText: {
+        marginLeft: 7,
+        fontWeight: "700",
+        color: "#b6bcd2",
+        fontSize: 14.3,
+    },
+    card: {
+        backgroundColor: "#fff",
+        borderRadius: 17,
+        padding: 18,
+        shadowColor: "#2563eb20",
+        shadowOpacity: 0.08,
+        elevation: 3,
+        marginBottom: 16,
+        minHeight: 80,
+    },
+    pill: {
+        flexDirection: "row", alignItems: "center",
+        backgroundColor: "#e4f0fd",
+        borderRadius: 13,
+        paddingHorizontal: 9, paddingVertical: 4, marginBottom: 5, marginRight: 6,
+        marginTop: 1,
+        borderWidth: 1, borderColor: "#eaf3ff"
+    },
+    pillText: { fontWeight: "700", fontSize: 13.7 },
+    cardTitle: {
+        fontWeight: "700", fontSize: 16, color: "#2363eb",
+        marginTop: 12, marginBottom: 8,
+        letterSpacing: 0.02
+    },
+    descText: { fontSize: 14.8, color: "#415c78", marginBottom: 4, marginLeft: 1 },
+    statLine: { fontSize: 13.4, color: "#6e7e97", marginTop: 2, fontWeight: "600" },
+    statVal: { fontWeight: "700", color: "#2363eb" },
+    ingredientRow: {
+        flexDirection: "row", alignItems: "center",
+        marginVertical: 2,
+    },
+    ingredientText: { fontSize: 14.2, color: "#333", marginLeft: 2, fontWeight: "600" },
+    emptyText: { fontSize: 14, color: "#bbb", fontStyle: "italic", textAlign: "center", marginTop: 7 },
+    recipeText: { fontSize: 15, color: "#222", marginTop: 5 },
+    variantsBar: {
+        flexDirection: "row", justifyContent: "center", gap: 9,
+        marginBottom: 8,
+    },
+    variantBtn: {
+        flexDirection: "row",
+        alignItems: "center",
+        backgroundColor: "#f3f9ff",
+        borderRadius: 13,
+        paddingVertical: 8,
+        paddingHorizontal: 22,
+        marginHorizontal: 6,
+        marginBottom: 0,
+        shadowColor: "#2563eb16",
+        shadowOpacity: 0.09,
+        elevation: 1,
+    },
+    variantBtnDisabled: {
+        opacity: 0.5
+    },
+    variantBtnText: {
+        fontWeight: "700",
+        color: "#2363eb",
+        fontSize: 15.5,
+    },
+    disabledMessageText: {
+        marginTop: 8,
+        fontSize: 12.5,
+        color: '#777',
+        textAlign: 'center',
+        marginBottom: 10,
+    },
+    centered: { flex: 1, justifyContent: "center", alignItems: "center" },
+});
