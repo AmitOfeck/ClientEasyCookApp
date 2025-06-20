@@ -12,16 +12,23 @@ const { width, height } = Dimensions.get('window');
 export const LoginScreen = ({ navigation }: { navigation: NavigationProp<any> }) => {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const [error, setError] = useState('');
 
   const handleLogin = async () => {
     try {
+      setError('');
       const res = await login({ email, password }).request;
       await new Promise(resolve => setTimeout(resolve, 50));
       navigation.navigate('Home');
-    } catch (err) {
-      console.error(err);
+    } catch (err: any) {
+      console.error(err?.response);
+      if (err?.response?.data) {
+        setError(err.response.data); // שגיאה מהשרת
+      } else {
+        setError('Login failed. Please check your credentials.');
+      }
     }
-  };
+  };  
 
   useEffect(() => {
     GoogleSignin.configure({
@@ -99,6 +106,9 @@ export const LoginScreen = ({ navigation }: { navigation: NavigationProp<any> })
             type="password"
           />
         </View>
+          {error ? (
+            <Text style={styles.errorText}>{error}</Text>
+          ) : null}
         <ActionButton label="Log In" onPress={handleLogin} />
         <ActionButton label="Sign Up" onPress={() => navigation.navigate('SignUp')} />
         <Text style={styles.socialText}>Or sign in with</Text>
@@ -114,6 +124,17 @@ export const LoginScreen = ({ navigation }: { navigation: NavigationProp<any> })
 };
 
 const styles = StyleSheet.create({
+  errorText: {
+    color: '#dc2626',
+    padding: 5,
+    backgroundColor: '#fee2e2',
+    borderRadius: 10,
+    textAlign: 'center',
+    marginBottom: 12,
+    fontWeight: '600',
+    fontSize: 14,
+    width: '70%',
+  },  
   scrollView: {
     flexGrow: 1,
     backgroundColor: "#e4f0fd",
@@ -198,7 +219,7 @@ const styles = StyleSheet.create({
   inputContainer: {
     width: '100%',
     gap: 16,
-    marginBottom: 18,
+    marginBottom: 10,
   },
   socialText: {
     marginTop: 18,
