@@ -33,6 +33,7 @@ export const SignUp = ({ navigation }: { navigation: NavigationProp<any> }) => {
 
   const [profileImage, setProfileImage] = useState<any>(null);
   const [openSection, setOpenSection] = useState<string | null>("personal");
+  const [error, setError] = useState('');
 
   const pickImage = () => {
     launchImageLibrary({ mediaType: "photo" }, (response) => {
@@ -61,15 +62,20 @@ export const SignUp = ({ navigation }: { navigation: NavigationProp<any> }) => {
         });
       }
 
-      const response = await register(form).request;
+      await register(form).request;
       const loginResponse = await login({
         email: formData.email,
         password: formData.password,
       }).request;
       saveTokens(loginResponse.data);
       navigation.navigate("Home");
-    } catch (error) {
-      console.error("Error during registration:", error);
+    } catch (error: any) {
+      console.error("Error during registration:", error?.response.message || error);
+      if (error?.response.data?.message) {
+        setError(error.response.data.message);
+      } else {
+        setError('Regisreation failed. Please try again later.');
+      }
     }
   };
 
@@ -116,7 +122,7 @@ export const SignUp = ({ navigation }: { navigation: NavigationProp<any> }) => {
           <Text style={styles.avatarHint}>Choose a profile image</Text>
           {/* Collapsible Sections */}
           <CollapsibleSection
-            title="Personal Details"
+            title="Personal Details*"
             open={openSection === "personal"}
             onPress={() => setOpenSection(openSection === "personal" ? null : "personal")}
           >
@@ -124,21 +130,21 @@ export const SignUp = ({ navigation }: { navigation: NavigationProp<any> }) => {
               control={control}
               name="name"
               render={({ field }) => (
-                <InputField label="Full Name" value={field.value} onChange={field.onChange} error={errors.name?.message} />
+                <InputField label="Full Name*" value={field.value} onChange={field.onChange} error={errors.name?.message} />
               )}
             />
             <Controller
               control={control}
               name="userName"
               render={({ field }) => (
-                <InputField label="User Name" value={field.value} onChange={field.onChange} error={errors.userName?.message} />
+                <InputField label="User Name*" value={field.value} onChange={field.onChange} error={errors.userName?.message} />
               )}
             />
             <Controller
               control={control}
               name="email"
               render={({ field }) => (
-                <InputField label="Email" value={field.value} onChange={field.onChange} error={errors.email?.message} type="email" />
+                <InputField label="Email*" value={field.value} onChange={field.onChange} error={errors.email?.message} type="email" />
               )}
             />
           </CollapsibleSection>
@@ -176,7 +182,7 @@ export const SignUp = ({ navigation }: { navigation: NavigationProp<any> }) => {
             />
           </CollapsibleSection>
           <CollapsibleSection
-            title="Password"
+            title="Password*"
             open={openSection === "password"}
             onPress={() => setOpenSection(openSection === "password" ? null : "password")}
           >
@@ -184,7 +190,7 @@ export const SignUp = ({ navigation }: { navigation: NavigationProp<any> }) => {
               control={control}
               name="password"
               render={({ field }) => (
-                <InputField label="Password" value={field.value} onChange={field.onChange} error={errors.password?.message} type="password" />
+                <InputField label="Password*" value={field.value} onChange={field.onChange} error={errors.password?.message} type="password" />
               )}
             />
             <Controller
@@ -192,7 +198,7 @@ export const SignUp = ({ navigation }: { navigation: NavigationProp<any> }) => {
               name="confirmPassword"
               render={({ field }) => (
                 <InputField
-                  label="Confirm Password"
+                  label="Confirm Password*"
                   value={field.value}
                   onChange={field.onChange}
                   error={errors.confirmPassword?.message}
@@ -201,6 +207,9 @@ export const SignUp = ({ navigation }: { navigation: NavigationProp<any> }) => {
               )}
             />
           </CollapsibleSection>
+          {error ? (
+            <Text style={styles.errorText}>{error}</Text>
+          ) : null}
           <TouchableOpacity
             style={[styles.signUpButton, !isValid && styles.disabledButton]}
             onPress={handleSubmit(onSubmit)}
@@ -244,6 +253,17 @@ const CollapsibleSection: React.FC<CollapsibleSectionProps> = ({
 );
 
 const styles = StyleSheet.create({
+  errorText: {
+    color: '#dc2626',
+    padding: 5,
+    backgroundColor: '#fee2e2',
+    borderRadius: 10,
+    textAlign: 'center',
+    marginBottom: 12,
+    fontWeight: '600',
+    fontSize: 14,
+    width: '70%',
+  },
   container: { flex: 1, backgroundColor: "#e4f0fd" },
   scrollView: {
     flexGrow: 1,
