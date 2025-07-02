@@ -4,23 +4,26 @@ import {
   Text,
   FlatList,
   Image,
-  StyleSheet,
   TouchableOpacity,
+  Alert,
+  ActivityIndicator,
+  Linking,
   Dimensions,
+  StyleSheet
 } from 'react-native';
 import { StackScreenProps } from '@react-navigation/stack';
-import { CartStackParamList } from '../navigation/CartStackScreen';
-import { Linking } from 'react-native';
 import { useFocusEffect } from '@react-navigation/native';
+import { CartStackParamList } from '../navigation/CartStackScreen';
+import { createCart } from '../services/cart_service';   // <-- NEW
+const { width } = Dimensions.get('window');
 
-const { width } = Dimensions.get("window");
-
-// ודא שהקובץ הוא PNG שקוף!
-const woltLogo = require("../assets/woltLogo.png");
+// transparent png please 🙂
+const woltLogo = require('../assets/woltLogo.png');
 
 type Props = StackScreenProps<CartStackParamList, 'CartDetail'>;
 
 const CartDetailScreen: React.FC<Props> = ({ route }) => {
+  /* ───────── props from route ───────── */
   const {
     products = [],
     superId = 'Unknown Store',
@@ -30,9 +33,14 @@ const CartDetailScreen: React.FC<Props> = ({ route }) => {
     deliveryPrice = 0,
   } = route.params ?? {};
 
+  /* ───────── state ───────── */
   const [addedItems, setAddedItems] = useState<{ [key: string]: boolean }>({});
   const [pendingItemId, setPendingItemId] = useState<string | null>(null);
 
+  const [saving, setSaving]       = useState(false);   // create-cart spinner
+  const [serverError, setError]   = useState<string | null>(null);
+
+  /* ───────── mark item as added after returning from Wolt ───────── */
   useFocusEffect(
     useCallback(() => {
       if (pendingItemId) {
@@ -42,36 +50,67 @@ const CartDetailScreen: React.FC<Props> = ({ route }) => {
     }, [pendingItemId])
   );
 
+  /* ───────── open Wolt for item ───────── */
   const handleWoltPress = (itemId: string) => {
-    setAddedItems((prev) => ({
-      ...prev,
-      [itemId]: !prev[itemId]
-    }));
+    setAddedItems((prev) => ({ ...prev, [itemId]: !prev[itemId] }));
     if (!addedItems[itemId]) {
-      const woltUrl = `https://wolt.com/he/isr/wolt/venue/${superId}/itemid-${itemId}`;
-      Linking.openURL(woltUrl);
+      const url = `https://wolt.com/he/isr/wolt/venue/${superId}/itemid-${itemId}`;
+      Linking.openURL(url);
     }
   };
 
-  // === Product Row ===
+  /* ───────── CREATE CART on backend ───────── */
+  const handleCreateCart = async () => {
+    setError(null);
+    setSaving(true);
+    try {
+      await createCart({
+        superId,
+        products,
+        totalCost,
+        deliveryPrice,
+        missingProducts,
+      }).request;
+      Alert.alert('Success', 'Cart created successfully!');
+    } catch (err: any) {
+      const msg =
+        err?.response?.data?.message ||
+        err?.response?.data?.errors?.join('\n') ||
+        'Failed to create cart – please try again.';
+      console.error('[cart] create error:', msg);
+      setError(msg);
+      Alert.alert('Cart creation error', msg);
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  /* ───────── render product row ───────── */
   const renderItem = ({ item }: { item: typeof products[0] }) => {
-    const isAdded = addedItems[item.itemId];
-    const isMissing = missingProducts.includes(item.name) || missingProducts.includes(item.itemId);
+    const isAdded   = addedItems[item.itemId];
+    const isMissing =
+      missingProducts.includes(item.name) ||
+      missingProducts.includes(item.itemId);
 
     return (
-      <View style={[
-        styles.productCard,
-        isMissing && styles.productCardMissing,
-      ]}>
+      <View
+        style={[
+          styles.productCard,
+          isMissing && styles.productCardMissing,
+        ]}
+      >
         <Image source={{ uri: item.image_url }} style={styles.productImg} />
         <View style={styles.productDetails}>
-          <Text style={styles.productName} numberOfLines={2}>{item.name}</Text>
+          <Text style={styles.productName} numberOfLines={2}>
+            {item.name}
+          </Text>
           <View style={styles.detailsRow}>
             <Text style={styles.quantityText}>x{item.quantity}</Text>
             <Text style={styles.dot}>·</Text>
             <Text style={styles.priceText}>₪{item.price.toFixed(2)}</Text>
           </View>
         </View>
+
         <TouchableOpacity
           onPress={() => handleWoltPress(item.itemId)}
           style={[
@@ -80,17 +119,13 @@ const CartDetailScreen: React.FC<Props> = ({ route }) => {
           ]}
           activeOpacity={0.88}
         >
-          <Image
-            source={woltLogo}
-            style={styles.woltLogo}
-            resizeMode="contain"
-          />
+          <Image source={woltLogo} style={styles.woltLogo} resizeMode="contain" />
         </TouchableOpacity>
       </View>
-    )
+    );
   };
 
-  // === HEADER ===
+  /* ───────── header ───────── */
   const ListHeader = () => (
     <View>
       <View style={styles.headerWrap}>
@@ -108,34 +143,77 @@ const CartDetailScreen: React.FC<Props> = ({ route }) => {
           </Text>
         </View>
       </View>
+
       <Text style={styles.totalText}>
         Total: ₪{totalCost.toFixed(2)}
-        <Text style={styles.deliveryText}> (including ₪{deliveryPrice.toFixed(2)} delivery)</Text>
+        <Text style={styles.deliveryText}>
+          {' '}
+          (including ₪{deliveryPrice.toFixed(2)} delivery)
+        </Text>
       </Text>
+
       <Text style={styles.sectionTitle}>Products in Cart:</Text>
     </View>
   );
 
-  // === FOOTER ===
-  const ListFooter = () =>
-    missingProducts.length > 0 ? (
-      <View style={{ marginTop: 8 }}>
-        <View style={styles.missingBox}>
-          <Text style={styles.missingIcon}>⚠️</Text>
-          <Text style={styles.missingTextMain}>
-            {missingProducts.length} missing item{missingProducts.length > 1 ? "s" : ""}
-          </Text>
-        </View>
-        <View style={styles.missingContainer}>
-          {missingProducts.map((item, index) => (
-            <View key={index} style={styles.missingBadge}>
-              <Text style={styles.missingText}>{item}</Text>
-            </View>
-          ))}
-        </View>
-      </View>
-    ) : null;
+  /* ───────── footer (missing items + create-cart button) ───────── */
+  const ListFooter = () => (
+    <View style={{ marginTop: 12 }}>
+      {missingProducts.length > 0 && (
+        <>
+          <View style={styles.missingBox}>
+            <Text style={styles.missingIcon}>⚠️</Text>
+            <Text style={styles.missingTextMain}>
+              {missingProducts.length} missing item
+              {missingProducts.length > 1 ? 's' : ''}
+            </Text>
+          </View>
 
+          <View style={styles.missingContainer}>
+            {missingProducts.map((m, i) => (
+              <View key={i} style={styles.missingBadge}>
+                <Text style={styles.missingText}>{m}</Text>
+              </View>
+            ))}
+          </View>
+        </>
+      )}
+
+      {/* server error text */}
+      {serverError && (
+        <Text style={{ color: 'red', textAlign: 'center', marginBottom: 6 }}>
+          {serverError}
+        </Text>
+      )}
+
+      {/* create cart button */}
+      <TouchableOpacity
+        style={[
+          styles.woltButton, // reuse style frame
+          {
+            backgroundColor: '#26A9E0',
+            alignSelf: 'center',
+            width: width * 0.6,
+            marginTop: 10,
+          },
+          saving && { opacity: 0.6 },
+        ]}
+        disabled={saving}
+        onPress={handleCreateCart}
+        activeOpacity={0.85}
+      >
+        {saving ? (
+          <ActivityIndicator color="#fff" />
+        ) : (
+          <Text style={{ color: '#fff', fontWeight: '700', fontSize: 16 }}>
+            Create Cart
+          </Text>
+        )}
+      </TouchableOpacity>
+    </View>
+  );
+
+  /* ───────── render ───────── */
   return (
     <View style={styles.screenBg}>
       <FlatList
@@ -144,10 +222,7 @@ const CartDetailScreen: React.FC<Props> = ({ route }) => {
         renderItem={renderItem}
         ListHeaderComponent={ListHeader}
         ListFooterComponent={ListFooter}
-        contentContainerStyle={[
-          styles.contentContainer,
-          { paddingBottom: 50 },
-        ]}
+        contentContainerStyle={[styles.contentContainer, { paddingBottom: 50 }]}
         showsVerticalScrollIndicator={false}
       />
     </View>
@@ -155,6 +230,7 @@ const CartDetailScreen: React.FC<Props> = ({ route }) => {
 };
 
 export default CartDetailScreen;
+
 
 // ========== STYLES ==========
 const styles = StyleSheet.create({

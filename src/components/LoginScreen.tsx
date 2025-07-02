@@ -1,117 +1,165 @@
-import React, { useState, useEffect } from 'react';
-import { View, Text, StyleSheet, ScrollView, Image, Dimensions, Platform } from 'react-native';
+import React, { useEffect, useState } from 'react';
+import {
+  View,
+  Text,
+  ScrollView,
+  StyleSheet,
+  Image,
+  Dimensions,
+  Platform,
+  Alert
+} from 'react-native';
+import { NavigationProp } from '@react-navigation/native';
+import {
+  GoogleSignin,
+  statusCodes,
+  User as GoogleUser,
+} from '@react-native-google-signin/google-signin';
+
 import { InputField } from './InputField';
 import { ActionButton } from './ActionButton';
 import { SocialButton } from './SocialButton';
-import { GoogleSignin, statusCodes } from '@react-native-google-signin/google-signin';
-import { googleSignIn, login, saveTokens } from '../services/auth_service';
-import { NavigationProp } from '@react-navigation/native';
+import { login, googleSignIn, saveTokens } from '../services/auth_service';
 
 const { width, height } = Dimensions.get('window');
 
 export const LoginScreen = ({ navigation }: { navigation: NavigationProp<any> }) => {
-  const [email, setEmail] = useState('');
-  const [password, setPassword] = useState('');
+  /* form fields */
+  const [email,    setEmail] = useState('');
+  const [password, setPass]  = useState('');
 
+  /* ui state */
+  const [error,  setError]  = useState<string | null>(null);
+  const [busy,   setBusy]   = useState(false);
+
+  /* ─────────────────────────  PASSWORD LOGIN  ───────────────────────── */
   const handleLogin = async () => {
+    setError(null);
+    setBusy(true);
     try {
-      const res = await login({ email, password }).request;
-      await new Promise(resolve => setTimeout(resolve, 50));
+      const { data } = await login({ email, password }).request;
+      await saveTokens(data);
       navigation.navigate('Home');
-    } catch (err) {
-      console.error(err);
+    } catch (err: any) {
+      /* Axios-style error object */
+      const msg =
+        err?.response?.status === 400
+          ? 'Wrong email or password'
+          : err?.response?.status === 404
+          ? 'Server not found'
+          : 'Something went wrong – please try again';
+      setError(msg);
+      console.error('[login] backend:', err?.response?.data ?? err);
+    } finally {
+      setBusy(false);
     }
   };
 
+  /* ─────────────────────────  GOOGLE CONFIG  ───────────────────────── */
   useEffect(() => {
     GoogleSignin.configure({
-      webClientId: '315425969009-va0ran4bg5km0fqnhvkianoms9d96f64.apps.googleusercontent.com',
+      webClientId:
+        '315425969009-va0ran4bg5km0fqnhvkianoms9d96f64.apps.googleusercontent.com',
       offlineAccess: true,
       forceCodeForRefreshToken: true,
     });
   }, []);
 
+  /* ─────────────────────────  GOOGLE LOGIN  ───────────────────────── */
   const signInWithGoogle = async () => {
+    setError(null);
+    setBusy(true);
     try {
       await GoogleSignin.hasPlayServices({ showPlayServicesUpdateDialog: true });
-      await GoogleSignin.signIn();
-      const { idToken } = await GoogleSignin.getTokens();
+
+      const userInfo:   GoogleUser = await GoogleSignin.signIn();
+      const current     = await GoogleSignin.getCurrentUser();
+      const tokens      = await GoogleSignin.getTokens();
+
+      const idToken =
+        userInfo?.idToken ??
+        current?.idToken ??
+        tokens?.idToken ??
+        null;
+
       if (!idToken) {
-        console.error('Google Sign-In produced no idToken');
+        setError('Google sign-in failed – no token received');
+        console.error('[google] no idToken', { userInfo, current, tokens });
+        setBusy(false);
         return;
       }
-      const response = await googleSignIn(idToken).request;
-      saveTokens(response.data);
+
+      /* hand to your backend */
+      const { data } = await googleSignIn(idToken).request;
+      await saveTokens(data);
       navigation.navigate('Home');
     } catch (err: any) {
-      if (err.code === statusCodes.SIGN_IN_CANCELLED) {
-        console.log('User cancelled Google Sign-In');
+      if (err?.code === statusCodes.SIGN_IN_CANCELLED) {
+        /* user tapped away – no banner */
       } else {
-        console.error('Google Sign-In Error:', err);
+        const msg =
+          err?.response?.status === 500
+            ? 'Server error during Google sign-in'
+            : 'Google sign-in failed';
+        setError(msg);
+        console.error('[google] backend:', err?.response?.data ?? err);
       }
+    } finally {
+      setBusy(false);
     }
   };
 
+  /* ─────────────────────────  RENDER  ───────────────────────── */
   return (
     <ScrollView contentContainerStyle={styles.scrollView}>
-      {/* סל קניות  */}
+      {/*  basket top-right  */}
       <View style={styles.basketWrapper}>
-        <Image
-          source={require('../assets/basket.png')}
-          style={styles.basket}
-          resizeMode="contain"
-        />
-      </View>
-      
-      {/* כותרת ראשית ולוגו */}
-      <View style={styles.header}>
-        <Image
-          source={require('../assets/easycook-logo.png')}
-          style={styles.titleImage}
-          resizeMode="contain"
-        />
-        <Text style={styles.slogan}>Shop Smarter, Eat Better</Text>
-      </View>
-      
-      {/* שליח */}
-      <View style={styles.illustrationContainer}>
-        <Image
-          source={require('../assets/rider.png')}
-          style={styles.illustration}
-          resizeMode="contain"
-        />
+        <Image source={require('../assets/basket.png')} style={styles.basket} resizeMode="contain" />
       </View>
 
-      {/* כרטיס לוגין */}
+      {/*  logo  */}
+      <View style={styles.header}>
+        <Image source={require('../assets/easycook-logo.png')} style={styles.titleImage} resizeMode="contain" />
+        <Text style={styles.slogan}>Shop Smarter, Eat Better</Text>
+      </View>
+
+      {/*  illustration  */}
+      <View style={styles.illustrationContainer}>
+        <Image source={require('../assets/rider.png')} style={styles.illustration} resizeMode="contain" />
+      </View>
+
+      {/*  login card  */}
       <View style={styles.card}>
         <Text style={styles.loginTitle}>Welcome Back!</Text>
+
+        {/*  indicative error banner  */}
+        {error && (
+          <View style={{ backgroundColor: '#FFE5E5', padding: 8, borderRadius: 8, marginBottom: 12 }}>
+            <Text style={{ color: '#B91C1C', textAlign: 'center' }}>{error}</Text>
+          </View>
+        )}
+
         <View style={styles.inputContainer}>
-          <InputField
-            label="Email"
-            value={email}
-            onChange={setEmail}
-            type="email"
-          />
-          <InputField
-            label="Password"
-            value={password}
-            onChange={setPassword}
-            type="password"
-          />
+          <InputField label="Email"    value={email}    onChange={setEmail} type="email"    editable={!busy} />
+          <InputField label="Password" value={password} onChange={setPass}  type="password" editable={!busy} />
         </View>
-        <ActionButton label="Log In" onPress={handleLogin} />
-        <ActionButton label="Sign Up" onPress={() => navigation.navigate('SignUp')} />
+
+        <ActionButton label="Log In"  onPress={handleLogin}      disabled={busy} />
+        <ActionButton label="Sign Up" onPress={() => navigation.navigate('SignUp')} disabled={busy} />
+
         <Text style={styles.socialText}>Or sign in with</Text>
         <View style={styles.socialButtonsContainer}>
           <SocialButton
             imageUrl="https://upload.wikimedia.org/wikipedia/commons/thumb/c/c1/Google_%22G%22_logo.svg/1200px-Google_%22G%22_logo.svg.png"
             onPress={signInWithGoogle}
+            disabled={busy}
           />
         </View>
       </View>
     </ScrollView>
   );
 };
+
 
 const styles = StyleSheet.create({
   scrollView: {

@@ -1,48 +1,48 @@
-import React, { useCallback, useEffect, useState } from "react";
+import React, { useCallback, useState } from 'react';
 import {
   View,
   Text,
-  StyleSheet,
   Image,
   TouchableOpacity,
   ScrollView,
   Alert,
   ActivityIndicator,
-} from "react-native";
-import { getProfile, updateProfile, IProfile } from "../services/profile_service";
-import ProfileEditModal from "./ProfileEditModal";
+  StyleSheet,          // ← keep the import; styles live elsewhere
+} from 'react-native';
 import { NavigationProp, useFocusEffect } from '@react-navigation/native';
-import { getFullImageUrl } from "../utils/getFullImageUrl";
+import { getProfile, updateProfile, IProfile } from '../services/profile_service';
+import ProfileEditModal from './ProfileEditModal';
+import { getFullImageUrl } from '../utils/getFullImageUrl';
 
 export const ProfileScreen = ({ navigation }: { navigation: NavigationProp<any> }) => {
-  const [activeTab, setActiveTab] = useState<"recipe" | "favorites">("recipe");
-  const [profile, setProfile] = useState<IProfile | null>(null);
-  const [loading, setLoading] = useState(true);
+  const [activeTab, setActiveTab]               = useState<'recipe' | 'favorites'>('recipe');
+  const [profile,   setProfile]                 = useState<IProfile | null>(null);
+  const [loading,   setLoading]                 = useState(true);
   const [editModalVisible, setEditModalVisible] = useState(false);
+  const [errorMsg,  setErrorMsg]                = useState<string | null>(null);   // ⬅️ tracks fetch-error
 
+  /* ───────────  FETCH PROFILE  ─────────── */
   const fetchProfile = async () => {
+    setLoading(true);
     const { request, abort } = getProfile();
+
     try {
       const res = await request;
       setProfile(res.data);
-    } catch (err) {
-      console.error(err);
+      setErrorMsg(null);
+    } catch (err: any) {
+      console.error('[profile] fetch error:', err?.response?.data ?? err.message);
+      setErrorMsg(err?.response?.data?.message || 'Failed to load profile');
     } finally {
       setLoading(false);
     }
     return () => abort();
   };
-  useFocusEffect(
-    useCallback(() => {
-      fetchProfile();
-    }, [])
-  );
 
-  console.log(profile)
+  useFocusEffect(useCallback(() => { fetchProfile(); }, []));
 
-  const handleEditProfile = () => {
-    setEditModalVisible(true);
-  };
+  /* ───────────  EDIT  ─────────── */
+  const handleEditProfile = () => setEditModalVisible(true);
 
   const handleSaveProfile = async (updatedData: {
     name: string;
@@ -52,72 +52,61 @@ export const ProfileScreen = ({ navigation }: { navigation: NavigationProp<any> 
     profileImage?: { uri: string; type: string; fileName: string };
   }) => {
     const formData = new FormData();
-    formData.append("name", updatedData.name);
-    formData.append("userName", updatedData.userName);
-    formData.append("email", updatedData.email);
+    formData.append('name',     updatedData.name);
+    formData.append('userName', updatedData.userName);
+    formData.append('email',    updatedData.email);
 
     if (updatedData.address) {
-      formData.append("address", JSON.stringify(updatedData.address));
+      formData.append('address', JSON.stringify(updatedData.address));
     }
 
-    if (
-      updatedData.profileImage?.uri &&
-      !updatedData.profileImage.uri.startsWith("http")
-    ) {
-      formData.append(
-        "profileImage",
-        {
-          uri: updatedData.profileImage.uri,
-          type: updatedData.profileImage.type || "image/jpeg",
-          name: updatedData.profileImage.fileName || "profile.jpg",
-        } as any
-      );
+    if (updatedData.profileImage?.uri && !updatedData.profileImage.uri.startsWith('http')) {
+      formData.append('profileImage', {
+        uri:  updatedData.profileImage.uri,
+        type: updatedData.profileImage.type  || 'image/jpeg',
+        name: updatedData.profileImage.fileName || 'profile.jpg',
+      } as any);
     }
 
     const { request, abort } = updateProfile(formData);
 
     try {
       await request;
-      fetchProfile();
+      await fetchProfile();                       // refresh UI
       setEditModalVisible(false);
-      navigation.navigate("Profile");
     } catch (err: any) {
-      // <<< מציגים עכשיו גם את הודעת השגיאה שמגיעה מהשרת >>>
-      const serverMsg =
-        err.response?.data?.message || "Could not update your profile.";
-      console.error("Update profile error:", serverMsg);
-      Alert.alert("Update Failed", serverMsg);
+      const serverMsg = err?.response?.data?.message ||
+                        err?.response?.data?.errors?.join('\n') ||
+                        'Could not update your profile.';
+      console.error('[profile] update error:', serverMsg);
+      Alert.alert('Update failed', serverMsg);    // שגיאה אינדיקטיבית
       setEditModalVisible(false);
     }
-
     return () => abort();
   };
 
-
+  /* ───────────  RENDER HELPERS  ─────────── */
   const renderCards = () => {
-    const data = activeTab === "recipe" ? profile?.dishes : profile?.favoriteDishes;
+    const data = activeTab === 'recipe' ? profile?.dishes : profile?.favoriteDishes;
 
-    if (!data || data.length === 0) {
+    if (!data?.length) {
       return (
-        <View style={{ alignItems: "center", marginTop: 20 }}>
+        <View style={{ alignItems: 'center', marginTop: 20 }}>
           <Text>No items found.</Text>
         </View>
       );
     }
 
-    return data.map((item: any, index: number) => (
-      <View key={index} style={styles.card}>
+    return data.map((item, i) => (
+      <View key={i} style={styles.card}>
         <Image source={{ uri: item.imageUrl }} style={styles.cardImage} />
-        <Text style={styles.cardTitle}>{item.name}</Text>
-        <Text style={styles.cardSubtitle}>{item.details}</Text>
-        <View style={styles.cardMeta}>
-          <Text style={styles.cardMetaText}>⭐ 1</Text>
-          <Text style={styles.cardMetaText}>⏱ 10mins</Text>
-        </View>
+        <Text style={styles.cardTitle}    numberOfLines={1}>{item.name}</Text>
+        <Text style={styles.cardSubtitle} numberOfLines={2}>{item.details}</Text>
       </View>
     ));
   };
 
+  /* ───────────  MAIN RENDER  ─────────── */
   if (loading) {
     return (
       <View style={styles.loaderContainer}>
@@ -126,27 +115,39 @@ export const ProfileScreen = ({ navigation }: { navigation: NavigationProp<any> 
     );
   }
 
-  if (!profile) {
+  if (errorMsg) {
     return (
       <View style={styles.loaderContainer}>
-        <Text>Failed to load profile.</Text>
+        <Text>{errorMsg}</Text>
+        <TouchableOpacity onPress={fetchProfile} style={{ marginTop: 14 }}>
+          <Text style={{ color: '#1E3A8A', fontWeight: '600' }}>Retry</Text>
+        </TouchableOpacity>
       </View>
     );
   }
 
+  if (!profile) {
+    return (
+      <View style={styles.loaderContainer}>
+        <Text>Profile not found.</Text>
+      </View>
+    );
+  }
+
+  /* ───────────  CONTENT  ─────────── */
   return (
     <ScrollView contentContainerStyle={styles.container}>
+      {/* top section */}
       <View style={styles.profileContainer}>
         <Image
-          source={{
-            uri: profile?.profileImage
-              ? `http://10.0.2.2:3000${profile.profileImage}`
-              : "https://via.placeholder.com/150", // fallback image
-          }}
+          source={{ uri: getFullImageUrl(profile.profileImage) }}
           style={styles.avatar}
-        /><Text style={styles.name}>{profile.name}</Text>
-        <Text style={styles.username}>@{profile.name}</Text>
-        <Text style={styles.bio}>My passion is cooking new recipes with my friends.</Text>
+        />
+        <Text style={styles.name}>{profile.name}</Text>
+        <Text style={styles.username}>@{profile.userName}</Text>
+        <Text style={styles.bio}>
+          {profile.bio ?? 'My passion is cooking new recipes with my friends.'}
+        </Text>
 
         <TouchableOpacity style={styles.editButton} onPress={handleEditProfile}>
           <Text style={styles.editButtonText}>Edit Profile</Text>
@@ -155,44 +156,41 @@ export const ProfileScreen = ({ navigation }: { navigation: NavigationProp<any> 
         <Text style={styles.recipeCount}>{profile.dishes.length} recipes</Text>
       </View>
 
-      {/* Tabs */}
+      {/* tabs */}
       <View style={styles.tabContainer}>
-        <TouchableOpacity
-          style={[styles.tab, activeTab === "recipe" && styles.tabActive]}
-          onPress={() => setActiveTab("recipe")}
-        >
-          <Text style={[styles.tabText, activeTab === "recipe" && styles.tabTextActive]}>
-            Recipe
-          </Text>
-        </TouchableOpacity>
-
-        <TouchableOpacity
-          style={[styles.tab, activeTab === "favorites" && styles.tabActive]}
-          onPress={() => setActiveTab("favorites")}
-        >
-          <Text style={[styles.tabText, activeTab === "favorites" && styles.tabTextActive]}>
-            Favorites
-          </Text>
-        </TouchableOpacity>
+        {(['recipe', 'favorites'] as const).map(t => (
+          <TouchableOpacity
+            key={t}
+            style={[styles.tab, activeTab === t && styles.tabActive]}
+            onPress={() => setActiveTab(t)}
+          >
+            <Text
+              style={[styles.tabText, activeTab === t && styles.tabTextActive]}
+            >
+              {t === 'recipe' ? 'Recipes' : 'Favorites'}
+            </Text>
+          </TouchableOpacity>
+        ))}
       </View>
 
-      {/* Cards */}
+      {/* list */}
       <View style={styles.cardWrapper}>{renderCards()}</View>
 
-      {/* Edit Modal */}
+      {/* modal */}
       <ProfileEditModal
         visible={editModalVisible}
         onClose={() => setEditModalVisible(false)}
         onSave={handleSaveProfile}
         initialData={{
-          name: profile.name,
-          userName: profile.userName,
-          email: profile?.email,
-          address: profile.addresses?.[0],
-          profileImage: profile.profileImage? { uri: `http://10.0.2.2:3000${profile.profileImage}`} : undefined,
+          name:         profile.name,
+          userName:     profile.userName,
+          email:        profile.email,
+          address:      profile.addresses?.[0],
+          profileImage: profile.profileImage
+            ? { uri: getFullImageUrl(profile.profileImage) }
+            : undefined,
         }}
       />
-
     </ScrollView>
   );
 };

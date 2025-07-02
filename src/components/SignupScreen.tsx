@@ -1,8 +1,7 @@
-import React, { useState } from "react";
+import React, { useState } from 'react';
 import {
   View,
   Text,
-  StyleSheet,
   TouchableOpacity,
   ScrollView,
   SafeAreaView,
@@ -10,16 +9,19 @@ import {
   StatusBar,
   Dimensions,
   Platform,
-} from "react-native";
-import { useForm, Controller } from "react-hook-form";
-import { zodResolver } from "@hookform/resolvers/zod";
-import { launchImageLibrary } from "react-native-image-picker";
-import { InputField } from "./InputField";
-import { signUpSchema } from "../utils/validations";
-import { login, register, saveTokens } from "../services/auth_service";
-import { NavigationProp } from "@react-navigation/native";
+  Alert,
+  ActivityIndicator,
+  StyleSheet,               // keep the import – your styles object already exists
+} from 'react-native';
+import { useForm, Controller } from 'react-hook-form';
+import { zodResolver } from '@hookform/resolvers/zod';
+import { launchImageLibrary } from 'react-native-image-picker';
+import { InputField } from './InputField';
+import { signUpSchema } from '../utils/validations';
+import { login, register, saveTokens } from '../services/auth_service';
+import { NavigationProp } from '@react-navigation/native';
 
-const { width, height } = Dimensions.get("window");
+const { width, height } = Dimensions.get('window');
 
 export const SignUp = ({ navigation }: { navigation: NavigationProp<any> }) => {
   const {
@@ -28,25 +30,31 @@ export const SignUp = ({ navigation }: { navigation: NavigationProp<any> }) => {
     formState: { errors, isValid },
   } = useForm({
     resolver: zodResolver(signUpSchema),
-    mode: "onChange",
+    mode: 'onChange',
   });
 
   const [profileImage, setProfileImage] = useState<any>(null);
-  const [openSection, setOpenSection] = useState<string | null>("personal");
+  const [openSection, setOpenSection] = useState<string | null>('personal');
+  const [serverError, setServerError] = useState<string | null>(null);  // ⬅️ holds server-side message
+  const [loading, setLoading]   = useState(false);
 
+  /* ────────── image picker ───────── */
   const pickImage = () => {
-    launchImageLibrary({ mediaType: "photo" }, (response) => {
-      if (response.assets && response.assets.length > 0) {
-        setProfileImage(response.assets[0]);
-      }
+    launchImageLibrary({ mediaType: 'photo' }, (response) => {
+      if (response.assets?.length) setProfileImage(response.assets[0]);
     });
   };
 
+  /* ────────── submit ───────── */
   const onSubmit = async (formData: any) => {
+    setServerError(null);
+    setLoading(true);
+
     try {
       const form = new FormData();
+
       Object.entries(formData).forEach(([key, value]) => {
-        if (key === "address") {
+        if (key === 'address') {
           form.append(key, JSON.stringify(value));
         } else {
           form.append(key, value);
@@ -54,25 +62,37 @@ export const SignUp = ({ navigation }: { navigation: NavigationProp<any> }) => {
       });
 
       if (profileImage) {
-        form.append("profileImage", {
-          uri: profileImage.uri,
-          name: profileImage.fileName || "profile.jpg",
-          type: profileImage.type || "image/jpeg",
-        });
+        form.append('profileImage', {
+          uri:  profileImage.uri,
+          name: profileImage.fileName || 'profile.jpg',
+          type: profileImage.type || 'image/jpeg',
+        } as any);
       }
 
-      const response = await register(form).request;
-      const loginResponse = await login({
-        email: formData.email,
+      /* register → then immediate login */
+      await register(form).request;
+      const loginRes = await login({
+        email:    formData.email,
         password: formData.password,
       }).request;
-      saveTokens(loginResponse.data);
-      navigation.navigate("Home");
-    } catch (error) {
-      console.error("Error during registration:", error);
+
+      saveTokens(loginRes.data);
+      navigation.navigate('Home');
+    } catch (err: any) {
+      /* show server-side validation or generic failure */
+      const msg =
+        err?.response?.data?.message ||
+        err?.response?.data?.errors?.join('\n') ||
+        'Registration failed – please try again.';
+      console.error('[signup] error:', msg);
+      setServerError(msg);
+      Alert.alert('Sign-up error', msg);          // שגיאה אינדיקטיבית
+    } finally {
+      setLoading(false);
     }
   };
 
+  /* ────────── UI ───────── */
   return (
     <SafeAreaView style={styles.container}>
       <StatusBar barStyle="dark-content" />
@@ -221,13 +241,13 @@ export const SignUp = ({ navigation }: { navigation: NavigationProp<any> }) => {
   );
 };
 
+/* --------------- collapsible section helper (unchanged) --------------- */
 type CollapsibleSectionProps = {
   title: string;
   open: boolean;
   onPress: () => void;
   children: React.ReactNode;
 };
-
 const CollapsibleSection: React.FC<CollapsibleSectionProps> = ({
   title,
   open,
@@ -237,11 +257,13 @@ const CollapsibleSection: React.FC<CollapsibleSectionProps> = ({
   <View style={styles.section}>
     <TouchableOpacity style={styles.sectionHeader} onPress={onPress} activeOpacity={0.7}>
       <Text style={styles.sectionTitle}>{title}</Text>
-      <Text style={styles.sectionArrow}>{open ? "▼" : "▲"}</Text>
+      <Text style={styles.sectionArrow}>{open ? '▼' : '▲'}</Text>
     </TouchableOpacity>
     {open && <View style={styles.sectionContent}>{children}</View>}
   </View>
 );
+
+
 
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: "#e4f0fd" },
