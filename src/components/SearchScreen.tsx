@@ -17,8 +17,8 @@ const SearchScreen = ({ navigation }) => {
   const [selectedLimitation, setSelectedLimitation] = useState("");
   const [selectedDifficulty, setSelectedDifficulty] = useState("");
   const [priceRange, setPriceRange] = useState([0, 500]);
-  const [filtersExpanded, setFiltersExpanded] = useState(true);
-  const [fridgeExpanded, setFridgeExpanded] = useState(false);
+  const [fridgeExpanded, setFridgeExpanded] = useState(true);
+  const [filtersExpanded, setFiltersExpanded] = useState(false);
 
   // Results
   const [loading, setLoading] = useState(false);
