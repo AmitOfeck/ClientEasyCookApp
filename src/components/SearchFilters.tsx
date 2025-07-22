@@ -1,6 +1,5 @@
-// components/SearchFilters.js
-import React, { useState } from "react";
-import { View, Text, TouchableOpacity, StyleSheet, Platform, Animated } from "react-native";
+import React from "react";
+import { View, Text, TouchableOpacity, StyleSheet } from "react-native";
 import MultiSlider from "@ptomasroos/react-native-multi-slider";
 import Icon from "react-native-vector-icons/MaterialCommunityIcons";
 
@@ -20,9 +19,25 @@ const LEVELS = [
   { label: "Medium", value: "MEDIUM", emoji: "🟠" },
   { label: "Hard", value: "HARD", emoji: "🔴" },
 ];
+
 const MIN_PRICE = 0, MAX_PRICE = 500;
 
-const SearchFilters = ({
+// ------------- PROPS TYPES -------------
+interface Props {
+  expanded: boolean;
+  setExpanded: (x: boolean | ((prev: boolean) => boolean)) => void;
+  selectedCuisine: string;
+  setSelectedCuisine: (x: string) => void;
+  selectedLimitation: string;
+  setSelectedLimitation: (x: string) => void;
+  selectedDifficulty: string;
+  setSelectedDifficulty: (x: string) => void;
+  priceRange: number[];
+  setPriceRange: (x: number[]) => void;
+}
+
+// ----------- COMPONENT -------------
+const SearchFilters: React.FC<Props> = ({
   expanded,
   setExpanded,
   selectedCuisine,
@@ -33,11 +48,9 @@ const SearchFilters = ({
   setSelectedDifficulty,
   priceRange,
   setPriceRange,
-  onSearch,
 }) => {
   return (
     <View style={styles.card}>
-      {/* Header with toggle */}
       <TouchableOpacity
         style={styles.cardHeaderRow}
         onPress={() => setExpanded((x) => !x)}
@@ -154,10 +167,7 @@ const SearchFilters = ({
               </TouchableOpacity>
             ))}
           </View>
-          {/* חיפוש */}
-          <TouchableOpacity style={styles.searchButton} onPress={onSearch}>
-            <Text style={styles.searchButtonText}>Search</Text>
-          </TouchableOpacity>
+          {/* אין כפתור search כאן! */}
         </View>
       )}
     </View>
@@ -281,31 +291,6 @@ const styles = StyleSheet.create({
   },
   gridMiniButtonTextSelected: {
     color: "#e54349",
-  },
-  searchButton: {
-    backgroundColor: "#e8f2ff",
-    borderRadius: 19,
-    height: 40,
-    justifyContent: "center",
-    alignItems: "center",
-    borderWidth: 2,
-    borderColor: "#2186eb",
-    marginTop: 12,
-    marginBottom: 6,
-    width: "93%",
-    alignSelf: "center",
-    shadowColor: "#2563eb22",
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.06,
-    shadowRadius: 6,
-    elevation: 2,
-  },
-  searchButtonText: {
-    color: "#2186eb",
-    fontSize: 15.5,
-    fontWeight: "700",
-    letterSpacing: 0.11,
-    textAlign: "center",
   },
 });
 

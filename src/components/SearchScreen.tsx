@@ -1,6 +1,16 @@
-// screens/SearchScreen.js
 import React, { useState, useRef, useEffect } from "react";
-import { View, Text, ScrollView, StyleSheet, Platform, Animated, Easing, Dimensions } from "react-native";
+import {
+  View,
+  Text,
+  ScrollView,
+  StyleSheet,
+  Platform,
+  Animated,
+  Easing,
+  Dimensions,
+  TouchableOpacity,
+  Alert
+} from "react-native";
 import Icon from "react-native-vector-icons/MaterialCommunityIcons";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { searchDish } from "../services/search_service";
@@ -8,25 +18,26 @@ import { addDishesToShoppingList } from "../services/shopping_list_service";
 import { DishCard } from "./DishCard";
 import FridgeScanner from "../components/FridgeScanner";
 import SearchFilters from "../components/SearchFilters";
+import { IDish } from "../services/intefaces/dish"; 
 
 const { width } = Dimensions.get("window");
 
-const SearchScreen = ({ navigation }) => {
+const SearchScreen: React.FC<{ navigation: any }> = ({ navigation }) => {
   // Filters state
-  const [selectedCuisine, setSelectedCuisine] = useState("");
-  const [selectedLimitation, setSelectedLimitation] = useState("");
-  const [selectedDifficulty, setSelectedDifficulty] = useState("");
-  const [priceRange, setPriceRange] = useState([0, 500]);
-  const [fridgeExpanded, setFridgeExpanded] = useState(true);
-  const [filtersExpanded, setFiltersExpanded] = useState(false);
+  const [selectedCuisine, setSelectedCuisine] = useState<string>("");
+  const [selectedLimitation, setSelectedLimitation] = useState<string>("");
+  const [selectedDifficulty, setSelectedDifficulty] = useState<string>("");
+  const [priceRange, setPriceRange] = useState<number[]>([0, 500]);
+  const [fridgeExpanded, setFridgeExpanded] = useState<boolean>(true);
+  const [filtersExpanded, setFiltersExpanded] = useState<boolean>(false);
 
   // Results
-  const [loading, setLoading] = useState(false);
-  const [results, setResults] = useState([]);
+  const [loading, setLoading] = useState<boolean>(false);
+  const [results, setResults] = useState<IDish[]>([]);
 
   // Animation
   const spinAnim = useRef(new Animated.Value(0)).current;
-  const loopRef = useRef(null);
+  const loopRef = useRef<Animated.CompositeAnimation | null>(null);
 
   useEffect(() => {
     if (loading) {
@@ -41,12 +52,12 @@ const SearchScreen = ({ navigation }) => {
       loopRef.current.start();
     } else {
       if (loopRef.current) {
-        loopRef.current.stop();
+        loopRef.current.stop?.();
         loopRef.current = null;
       }
       spinAnim.setValue(0);
     }
-  }, [loading]);
+  }, [loading, spinAnim]);
 
   const spin = spinAnim.interpolate({
     inputRange: [0, 1],
@@ -68,24 +79,24 @@ const SearchScreen = ({ navigation }) => {
       setResults(data);
     } catch (error) {
       console.error("Search failed:", error);
-      alert("Failed to fetch search results.");
+      Alert.alert("Error", "Failed to fetch search results.");
     } finally {
       setLoading(false);
     }
   };
 
-  const handleAddToShoppingList = async (dishId) => {
+  const handleAddToShoppingList = async (dishId: string) => {
     try {
       const token = await AsyncStorage.getItem("accessToken");
       if (!token) {
-        alert("Authentication token missing.");
+        Alert.alert("Error", "Authentication token missing.");
         return;
       }
       const { request } = addDishesToShoppingList([dishId], token);
       await request;
-      alert("Dish added to your shopping list!");
+      Alert.alert("Success", "Dish added to your shopping list!");
     } catch (err) {
-      alert("Could not add dish to shopping list.");
+      Alert.alert("Error", "Could not add dish to shopping list.");
     }
   };
 
@@ -117,8 +128,11 @@ const SearchScreen = ({ navigation }) => {
         setSelectedDifficulty={setSelectedDifficulty}
         priceRange={priceRange}
         setPriceRange={setPriceRange}
-        onSearch={handleSearch}
       />
+
+      <TouchableOpacity style={styles.searchButton} onPress={handleSearch}>
+        <Text style={styles.searchButtonText}>Search</Text>
+      </TouchableOpacity>
 
       {/* --- Loading spinner --- */}
       {loading && (
@@ -190,7 +204,7 @@ const styles = StyleSheet.create({
     elevation: 5,
   },
   headerTitle: {
-   fontSize: 17.2,
+    fontSize: 17.2,
     fontWeight: "700",
     color: "#2563eb",
     marginBottom: 2,
@@ -202,6 +216,31 @@ const styles = StyleSheet.create({
     opacity: 0.8,
     marginLeft: 1,
     marginTop: 1,
+  },
+  searchButton: {
+    backgroundColor: "#e8f2ff",
+    borderRadius: 19,
+    height: 40,
+    justifyContent: "center",
+    alignItems: "center",
+    borderWidth: 2,
+    borderColor: "#2186eb",
+    marginTop: 14,
+    marginBottom: 7,
+    width: "93%",
+    alignSelf: "center",
+    shadowColor: "#2563eb22",
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.06,
+    shadowRadius: 6,
+    elevation: 2,
+  },
+  searchButtonText: {
+    color: "#2186eb",
+    fontSize: 15.5,
+    fontWeight: "700",
+    letterSpacing: 0.11,
+    textAlign: "center",
   },
 });
 
