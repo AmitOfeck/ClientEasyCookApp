@@ -11,8 +11,8 @@ import {
   Alert,
   TextInput,
   Modal,
-  SafeAreaView,
   TouchableWithoutFeedback,
+  SafeAreaView,
 } from "react-native";
 import Icon from "react-native-vector-icons/MaterialCommunityIcons";
 import { launchImageLibrary, Asset } from "react-native-image-picker";
@@ -21,10 +21,12 @@ import apiClient from "../services/api-client";
 type FridgeItem = { name: string; unit: string; quantity: number };
 const ALLOWED_UNITS = ["gram", "kg", "ml", "liter"] as const;
 
-const FridgeScanner: React.FC<{ expanded: boolean; setExpanded: (val: boolean) => void }> = ({
-  expanded,
-  setExpanded,
-}) => {
+interface Props {
+  expanded: boolean;
+  setExpanded: (val: boolean) => void;
+}
+
+const FridgeScanner: React.FC<Props> = ({ expanded, setExpanded }) => {
   const [loading, setLoading] = useState(false);
   const [scanning, setScanning] = useState(false);
   const [selectedImages, setSelectedImages] = useState<Asset[]>([]);
@@ -72,13 +74,13 @@ const FridgeScanner: React.FC<{ expanded: boolean; setExpanded: (val: boolean) =
     try {
       setScanning(true);
       const formData = new FormData();
-      images.forEach((img, i) => {
+      images.forEach((img, i) =>
         formData.append("images", {
           uri: img.uri!,
           name: img.fileName || `fridge-${i}.jpg`,
           type: img.type || "image/jpeg",
-        } as any);
-      });
+        } as any)
+      );
       const res = await apiClient.post("/fridge/ai-file", formData, {
         headers: { "Content-Type": "multipart/form-data" },
       });
@@ -106,9 +108,7 @@ const FridgeScanner: React.FC<{ expanded: boolean; setExpanded: (val: boolean) =
       };
       const res = await apiClient.post("/fridge/item", payload);
       setItems(res.data.items || []);
-      setEditName("");
-      setEditQuantity("");
-      setEditUnit("gram");
+      setEditName(""); setEditQuantity(""); setEditUnit("gram");
     } catch {
       Alert.alert("Error", "Could not add item");
     } finally {
@@ -117,11 +117,11 @@ const FridgeScanner: React.FC<{ expanded: boolean; setExpanded: (val: boolean) =
   };
 
   const openEdit = (idx: number) => {
-    const item = items[idx];
+    const it = items[idx];
     setEditingIndex(idx);
-    setEditName(item.name);
-    setEditQuantity(String(item.quantity));
-    setEditUnit(item.unit);
+    setEditName(it.name);
+    setEditQuantity(String(it.quantity));
+    setEditUnit(it.unit);
     setModalVisible(true);
   };
 
@@ -133,11 +133,7 @@ const FridgeScanner: React.FC<{ expanded: boolean; setExpanded: (val: boolean) =
       const payload = {
         originalName: original.name,
         originalUnit: original.unit,
-        item: {
-          name: editName.trim(),
-          unit: editUnit,
-          quantity: Number(editQuantity),
-        },
+        item: { name: editName.trim(), unit: editUnit, quantity: Number(editQuantity) },
       };
       const res = await apiClient.put("/fridge/item", payload);
       setItems(res.data.items || []);
@@ -205,48 +201,50 @@ const FridgeScanner: React.FC<{ expanded: boolean; setExpanded: (val: boolean) =
   const closeModal = () => {
     setModalVisible(false);
     setEditingIndex(null);
-    setEditName("");
-    setEditQuantity("");
-    setEditUnit("gram");
+    setEditName(""); setEditQuantity(""); setEditUnit("gram");
   };
 
   return (
     <View style={styles.card}>
       {/* Header */}
       <TouchableOpacity
-        style={styles.headerRow}
-        onPress={() => setExpanded(!expanded)}
+        style={styles.cardHeaderRow}
+        onPress={() => setExpanded(val => !val)}
         activeOpacity={0.8}
       >
-        <Text style={styles.headerText}>Scan Your Fridge</Text>
-        <Icon name={expanded ? "chevron-up" : "chevron-down"} size={27} color="#2563eb" />
+        <Text style={styles.cardHeaderText}>Scan Your Fridge</Text>
+        <Icon
+          name={expanded ? "chevron-up" : "chevron-down"}
+          size={24}
+          color="#2563eb"
+        />
       </TouchableOpacity>
 
       {expanded && (
         <>
-          {/* AI Scan */}
+          {/* Scan Button */}
           <TouchableOpacity
             style={styles.scanButton}
             onPress={handleSelectImages}
-            activeOpacity={0.8}
             disabled={scanning || loading}
           >
-            <Icon name="camera-image" size={22} color="#2563eb" />
+            <Icon name="camera-image" size={20} color="#2563eb" />
             <Text style={styles.scanButtonText}>Upload / Take Photos</Text>
           </TouchableOpacity>
+
+          {/* Thumbnails */}
           <FlatList
             data={selectedImages}
             horizontal
-            showsHorizontalScrollIndicator={false}
-            keyExtractor={(_, i) => i.toString()}
+            keyExtractor={(_, i) => String(i)}
             renderItem={({ item }) =>
-              item.uri && (
-                <Image source={{ uri: item.uri }} style={styles.thumb} />
-              )
+              item.uri && <Image source={{ uri: item.uri }} style={styles.thumb} />
             }
-            style={{ minHeight: 56, marginVertical: 8 }}
+            showsHorizontalScrollIndicator={false}
+            style={{ marginVertical: 8 }}
           />
 
+          {/* Spinner */}
           {(loading || scanning) && (
             <View style={styles.spinnerRow}>
               <ActivityIndicator size="small" color="#2563eb" />
@@ -256,22 +254,25 @@ const FridgeScanner: React.FC<{ expanded: boolean; setExpanded: (val: boolean) =
             </View>
           )}
 
+          {/* List Header */}
           {!loading && !scanning && (
             <>
               <View style={styles.listHeader}>
                 <Text style={styles.listTitle}>Your Fridge Items</Text>
                 <TouchableOpacity style={styles.clearBtn} onPress={handleClearAll}>
-                  <Icon name="delete-outline" size={20} color="#e54349" />
+                  <Icon name="delete-outline" size={18} color="#e54349" />
                   <Text style={styles.clearText}>Clear All</Text>
                 </TouchableOpacity>
               </View>
 
+              {/* Empty State */}
               {items.length === 0 && (
                 <Text style={styles.emptyText}>
-                  No items yet. Scan your fridge or add manually!
+                  No items yet. Scan or add manually!
                 </Text>
               )}
 
+              {/* Items */}
               {items.map((item, idx) => (
                 <View key={idx} style={styles.itemCard}>
                   <View style={styles.info}>
@@ -280,14 +281,17 @@ const FridgeScanner: React.FC<{ expanded: boolean; setExpanded: (val: boolean) =
                       {item.quantity} {item.unit}
                     </Text>
                   </View>
-                  <TouchableOpacity onPress={() => openEdit(idx)} style={styles.iconBtn}>
-                    <Icon name="pencil" size={20} color="#2563eb" />
+                  <TouchableOpacity
+                    onPress={() => openEdit(idx)}
+                    style={styles.iconBtn}
+                  >
+                    <Icon name="pencil" size={18} color="#2563eb" />
                   </TouchableOpacity>
                   <TouchableOpacity
                     onPress={() => handleDeleteItem(item)}
                     style={[styles.iconBtn, styles.deleteBtn]}
                   >
-                    <Icon name="delete" size={20} color="#e54349" />
+                    <Icon name="delete" size={18} color="#e54349" />
                   </TouchableOpacity>
                 </View>
               ))}
@@ -308,7 +312,7 @@ const FridgeScanner: React.FC<{ expanded: boolean; setExpanded: (val: boolean) =
                   style={[styles.input, styles.qtyInput]}
                 />
                 <View style={styles.unitsRow}>
-                  {ALLOWED_UNITS.map((u) => (
+                  {ALLOWED_UNITS.map(u => (
                     <TouchableOpacity
                       key={u}
                       style={[
@@ -329,7 +333,7 @@ const FridgeScanner: React.FC<{ expanded: boolean; setExpanded: (val: boolean) =
                   ))}
                 </View>
                 <TouchableOpacity onPress={handleAddItem} style={styles.addBtn}>
-                  <Icon name="plus" size={20} color="#fff" />
+                  <Icon name="plus" size={18} color="#fff" />
                 </TouchableOpacity>
               </View>
             </>
@@ -362,7 +366,7 @@ const FridgeScanner: React.FC<{ expanded: boolean; setExpanded: (val: boolean) =
                   style={[styles.modalInput, styles.qtyInput]}
                 />
                 <View style={styles.unitsRow}>
-                  {ALLOWED_UNITS.map((u) => (
+                  {ALLOWED_UNITS.map(u => (
                     <TouchableOpacity
                       key={u}
                       style={[
@@ -401,54 +405,53 @@ const FridgeScanner: React.FC<{ expanded: boolean; setExpanded: (val: boolean) =
 
 const styles = StyleSheet.create({
   card: {
-    width: "98%",
-    maxWidth: 450,
-    backgroundColor: "#fff",
-    borderRadius: 28,
-    padding: 20,
-    marginVertical: 10,
+    width: "95%",
+    maxWidth: 440,
+    backgroundColor: "#f7faff",
+    borderRadius: 23,
+    paddingVertical: 12,
+    paddingHorizontal: 16,
+    marginVertical: 8,
     shadowColor: "#2563eb22",
-    shadowOffset: { width: 0, height: 6 },
-    shadowOpacity: 0.14,
-    shadowRadius: 18,
-    elevation: 8,
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.11,
+    shadowRadius: 15,
+    elevation: 7,
     alignSelf: "center",
-    borderWidth: 1,
-    borderColor: "#eaf3ff",
   },
-  headerRow: {
+  cardHeaderRow: {
     flexDirection: "row",
-    justifyContent: "space-between",
     alignItems: "center",
-    minHeight: 48,
-    marginBottom: 8,
+    justifyContent: "space-between",
+    minHeight: 44,
   },
-  headerText: {
-    fontSize: 20,
+  cardHeaderText: {
+    fontSize: 18,
     color: "#2563eb",
-    fontWeight: "800",
+    fontWeight: "700",
   },
   scanButton: {
     flexDirection: "row",
     alignItems: "center",
-    backgroundColor: "#edf3ff",
+    backgroundColor: "#eaf3ff",
     borderRadius: 15,
-    padding: 10,
+    paddingVertical: 10,
+    paddingHorizontal: 14,
     marginVertical: 10,
-    borderWidth: 1.5,
+    borderWidth: 1,
     borderColor: "#dbeafe",
   },
   scanButtonText: {
     marginLeft: 8,
-    fontSize: 16,
-    fontWeight: "800",
+    fontSize: 15,
+    fontWeight: "700",
     color: "#2563eb",
   },
   thumb: {
     width: 55,
     height: 55,
     borderRadius: 12,
-    marginHorizontal: 4,
+    marginHorizontal: 3,
     borderWidth: 1,
     borderColor: "#e0eefd",
   },
@@ -464,23 +467,24 @@ const styles = StyleSheet.create({
   },
   listHeader: {
     flexDirection: "row",
-    justifyContent: "space-between",
     alignItems: "center",
+    justifyContent: "space-between",
     marginVertical: 10,
   },
   listTitle: {
-    fontSize: 17,
+    fontSize: 16,
     fontWeight: "700",
     color: "#2563eb",
   },
   clearBtn: {
     flexDirection: "row",
     alignItems: "center",
-    padding: 6,
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    backgroundColor: "#fff0f0",
     borderRadius: 12,
     borderWidth: 1,
     borderColor: "#f4cccc",
-    backgroundColor: "#fff0f0",
   },
   clearText: {
     marginLeft: 4,
@@ -488,6 +492,7 @@ const styles = StyleSheet.create({
     fontWeight: "700",
   },
   emptyText: {
+    textAlign: "center",
     fontSize: 14,
     color: "#6c7792",
     marginVertical: 6,
@@ -495,15 +500,20 @@ const styles = StyleSheet.create({
   itemCard: {
     flexDirection: "row",
     alignItems: "center",
-    backgroundColor: "#f7faff",
+    backgroundColor: "#fff",
     borderRadius: 17,
-    padding: 14,
+    paddingVertical: 12,
+    paddingHorizontal: 14,
     marginVertical: 6,
+    shadowColor: "#2563eb11",
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.08,
+    shadowRadius: 6,
     elevation: 2,
   },
   info: { flex: 1 },
   name: {
-    fontSize: 16,
+    fontSize: 15,
     fontWeight: "600",
     color: "#2c3e50",
     textTransform: "capitalize",
@@ -517,11 +527,11 @@ const styles = StyleSheet.create({
   },
   iconBtn: {
     marginLeft: 8,
-    padding: 8,
-    borderRadius: 12,
+    padding: 6,
+    borderRadius: 10,
     backgroundColor: "#edf3ff",
     borderWidth: 1,
-    borderColor: "#e4f0fd",
+    borderColor: "#dbeafe",
   },
   deleteBtn: {
     backgroundColor: "#fff0f0",
@@ -530,11 +540,12 @@ const styles = StyleSheet.create({
   addRow: {
     flexDirection: "row",
     alignItems: "center",
-    backgroundColor: "#f5faff",
-    padding: 10,
+    backgroundColor: "#f7faff",
     borderRadius: 15,
     borderWidth: 1,
     borderColor: "#e0eefd",
+    paddingVertical: 10,
+    paddingHorizontal: 8,
     marginTop: 12,
   },
   input: {
@@ -543,7 +554,8 @@ const styles = StyleSheet.create({
     borderRadius: 8,
     borderWidth: 1,
     borderColor: "#bfdcff",
-    padding: 8,
+    paddingHorizontal: 10,
+    paddingVertical: 8,
     marginHorizontal: 4,
     fontWeight: "700",
   },
@@ -580,14 +592,14 @@ const styles = StyleSheet.create({
     elevation: 2,
   },
 
-  // Modal styles
+  // Modal
   backdrop: {
     flex: 1,
-    backgroundColor: "#00000066",
+    backgroundColor: "#00000040",
   },
   modalContainer: {
     position: "absolute",
-    top: "25%",
+    top: "30%",
     left: "5%",
     right: "5%",
   },
@@ -599,21 +611,22 @@ const styles = StyleSheet.create({
   },
   modalTitle: {
     fontSize: 18,
-    fontWeight: "800",
-    marginBottom: 12,
+    fontWeight: "700",
     color: "#2563eb",
     textAlign: "center",
+    marginBottom: 12,
   },
   modalInput: {
     backgroundColor: "#f0f4ff",
     borderRadius: 10,
-    padding: 10,
-    fontWeight: "700",
+    paddingHorizontal: 12,
+    paddingVertical: 8,
     marginVertical: 6,
+    fontWeight: "700",
   },
   modalActions: {
     flexDirection: "row",
-    justifyContent: "space-around",
+    justifyContent: "space-between",
     marginTop: 16,
   },
   saveBtn: {
