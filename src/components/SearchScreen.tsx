@@ -9,7 +9,7 @@ import {
   Easing,
   Dimensions,
   TouchableOpacity,
-  Alert
+  Alert,
 } from "react-native";
 import Icon from "react-native-vector-icons/MaterialCommunityIcons";
 import AsyncStorage from "@react-native-async-storage/async-storage";
@@ -18,11 +18,16 @@ import { addDishesToShoppingList } from "../services/shopping_list_service";
 import { DishCard } from "./DishCard";
 import FridgeScanner from "../components/FridgeScanner";
 import SearchFilters from "../components/SearchFilters";
-import { IDish } from "../services/intefaces/dish"; 
+import SearchPrompt from "../components/SearchPrompt";
+import { IDish } from "../services/intefaces/dish";
 
 const { width } = Dimensions.get("window");
 
 const SearchScreen: React.FC<{ navigation: any }> = ({ navigation }) => {
+  // Prompt state
+  const [promptExpanded, setPromptExpanded] = useState(false);
+  const [prompt, setPrompt] = useState("");
+
   // Filters state
   const [selectedCuisine, setSelectedCuisine] = useState<string>("");
   const [selectedLimitation, setSelectedLimitation] = useState<string>("");
@@ -35,7 +40,7 @@ const SearchScreen: React.FC<{ navigation: any }> = ({ navigation }) => {
   const [loading, setLoading] = useState<boolean>(false);
   const [results, setResults] = useState<IDish[]>([]);
 
-  // Animation
+  // Animation for spinner
   const spinAnim = useRef(new Animated.Value(0)).current;
   const loopRef = useRef<Animated.CompositeAnimation | null>(null);
 
@@ -51,10 +56,7 @@ const SearchScreen: React.FC<{ navigation: any }> = ({ navigation }) => {
       );
       loopRef.current.start();
     } else {
-      if (loopRef.current) {
-        loopRef.current.stop?.();
-        loopRef.current = null;
-      }
+      loopRef.current?.stop();
       spinAnim.setValue(0);
     }
   }, [loading, spinAnim]);
@@ -64,14 +66,15 @@ const SearchScreen: React.FC<{ navigation: any }> = ({ navigation }) => {
     outputRange: ["0deg", "360deg"],
   });
 
-  // --- Search Logic ---
+  // Search logic
   const handleSearch = async () => {
     setLoading(true);
     try {
       const { request } = searchDish({
-        cuisine: selectedCuisine,
-        limitation: selectedLimitation,
-        level: selectedDifficulty,
+        prompt: prompt.trim() || undefined,
+        cuisine: selectedCuisine || undefined,
+        limitation: selectedLimitation || undefined,
+        level: selectedDifficulty || undefined,
         priceMin: priceRange[0],
         priceMax: priceRange[1],
       });
@@ -95,28 +98,43 @@ const SearchScreen: React.FC<{ navigation: any }> = ({ navigation }) => {
       const { request } = addDishesToShoppingList([dishId], token);
       await request;
       Alert.alert("Success", "Dish added to your shopping list!");
-    } catch (err) {
+    } catch {
       Alert.alert("Error", "Could not add dish to shopping list.");
     }
   };
 
   return (
     <ScrollView contentContainerStyle={styles.scrollView}>
-      {/* --- Main Title --- */}
+      {/* Main Title */}
       <View style={styles.headerBox}>
         <View style={styles.headerIconBox}>
           <Icon name="magnify" size={30} color="#fff" />
         </View>
         <View style={{ flex: 1, paddingLeft: 10 }}>
-          <Text style={styles.headerTitle}>What would you like to eat today?</Text>
-          <Text style={styles.headerSubtitle}>Discover amazing dishes tailored for you</Text>
+          <Text style={styles.headerTitle}>
+            What would you like to eat today?
+          </Text>
+          <Text style={styles.headerSubtitle}>
+            Discover amazing dishes tailored for you
+          </Text>
         </View>
       </View>
 
-      {/* --- Fridge Scanner --- */}
-      <FridgeScanner expanded={fridgeExpanded} setExpanded={setFridgeExpanded} />
+      {/* Fridge Scanner */}
+      <FridgeScanner
+        expanded={fridgeExpanded}
+        setExpanded={setFridgeExpanded}
+      />
 
-      {/* --- Search Filters --- */}
+      {/* Search Prompt */}
+      <SearchPrompt
+        expanded={promptExpanded}
+        setExpanded={setPromptExpanded}
+        prompt={prompt}
+        setPrompt={setPrompt}
+      />
+
+      {/* Search Filters */}
       <SearchFilters
         expanded={filtersExpanded}
         setExpanded={setFiltersExpanded}
@@ -130,34 +148,46 @@ const SearchScreen: React.FC<{ navigation: any }> = ({ navigation }) => {
         setPriceRange={setPriceRange}
       />
 
+      {/* Search Button */}
       <TouchableOpacity style={styles.searchButton} onPress={handleSearch}>
         <Text style={styles.searchButtonText}>Search</Text>
       </TouchableOpacity>
 
-      {/* --- Loading spinner --- */}
+      {/* Loading Spinner */}
       {loading && (
         <View style={{ alignItems: "center", marginTop: 18 }}>
           <Animated.View style={{ transform: [{ rotate: spin }] }}>
             <Text style={{ fontSize: 48 }}>🍽️</Text>
           </Animated.View>
-          <Text style={{
-            marginTop: 12,
-            color: "#2563eb",
-            fontWeight: "700",
-            fontSize: 16,
-          }}>
+          <Text
+            style={{
+              marginTop: 12,
+              color: "#2563eb",
+              fontWeight: "700",
+              fontSize: 16,
+            }}
+          >
             Looking for delicious dishes...
           </Text>
         </View>
       )}
 
-      {/* --- Results --- */}
-      <View style={{ marginTop: 18, width: "100%", alignItems: "center", paddingBottom: 70 }}>
+      {/* Results */}
+      <View
+        style={{
+          marginTop: 18,
+          width: "100%",
+          alignItems: "center",
+          paddingBottom: 70,
+        }}
+      >
         {results.map((dish) => (
           <DishCard
             key={dish._id}
             dish={dish}
-            onInfoPress={() => navigation.navigate("DishDetail", { dishId: dish._id })}
+            onInfoPress={() =>
+              navigation.navigate("DishDetail", { dishId: dish._id })
+            }
             onAddPress={() => handleAddToShoppingList(dish._id)}
           />
         ))}
