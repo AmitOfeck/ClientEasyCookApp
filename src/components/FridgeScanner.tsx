@@ -1,11 +1,24 @@
+// FridgeScanner.tsx
 import React, { useState, useEffect } from "react";
-import { View, Text, TouchableOpacity, StyleSheet, ActivityIndicator, FlatList, Image, Alert, TextInput,} from "react-native";
+import {
+  View,
+  Text,
+  TouchableOpacity,
+  StyleSheet,
+  ActivityIndicator,
+  FlatList,
+  Image,
+  Alert,
+  TextInput,
+  Modal,
+  SafeAreaView,
+  TouchableWithoutFeedback,
+} from "react-native";
 import Icon from "react-native-vector-icons/MaterialCommunityIcons";
 import { launchImageLibrary, Asset } from "react-native-image-picker";
 import apiClient from "../services/api-client";
 
 type FridgeItem = { name: string; unit: string; quantity: number };
-
 const ALLOWED_UNITS = ["gram", "kg", "ml", "liter"] as const;
 
 const FridgeScanner: React.FC<{ expanded: boolean; setExpanded: (val: boolean) => void }> = ({
@@ -16,6 +29,7 @@ const FridgeScanner: React.FC<{ expanded: boolean; setExpanded: (val: boolean) =
   const [scanning, setScanning] = useState(false);
   const [selectedImages, setSelectedImages] = useState<Asset[]>([]);
   const [items, setItems] = useState<FridgeItem[]>([]);
+  const [modalVisible, setModalVisible] = useState(false);
   const [editingIndex, setEditingIndex] = useState<number | null>(null);
   const [editName, setEditName] = useState("");
   const [editQuantity, setEditQuantity] = useState("");
@@ -26,7 +40,7 @@ const FridgeScanner: React.FC<{ expanded: boolean; setExpanded: (val: boolean) =
       setLoading(true);
       const res = await apiClient.get("/fridge");
       setItems(res.data.items || []);
-    } catch (e) {
+    } catch {
       Alert.alert("Error", "Failed to load fridge items");
     } finally {
       setLoading(false);
@@ -37,7 +51,7 @@ const FridgeScanner: React.FC<{ expanded: boolean; setExpanded: (val: boolean) =
     if (expanded) fetchFridge();
   }, [expanded]);
 
-  const handleSelectImages = async () => {
+  const handleSelectImages = () => {
     launchImageLibrary(
       { mediaType: "photo", selectionLimit: 3 },
       async (response) => {
@@ -65,14 +79,13 @@ const FridgeScanner: React.FC<{ expanded: boolean; setExpanded: (val: boolean) =
           type: img.type || "image/jpeg",
         } as any);
       });
-
       const res = await apiClient.post("/fridge/ai-file", formData, {
         headers: { "Content-Type": "multipart/form-data" },
       });
       setItems(res.data?.items || []);
       setSelectedImages([]);
       Alert.alert("Success", "Fridge analyzed successfully!");
-    } catch (e: any) {
+    } catch {
       Alert.alert("Error", "Failed to scan fridge (AI).");
     } finally {
       setScanning(false);
@@ -96,7 +109,7 @@ const FridgeScanner: React.FC<{ expanded: boolean; setExpanded: (val: boolean) =
       setEditName("");
       setEditQuantity("");
       setEditUnit("gram");
-    } catch (e) {
+    } catch {
       Alert.alert("Error", "Could not add item");
     } finally {
       setLoading(false);
@@ -104,10 +117,12 @@ const FridgeScanner: React.FC<{ expanded: boolean; setExpanded: (val: boolean) =
   };
 
   const openEdit = (idx: number) => {
+    const item = items[idx];
     setEditingIndex(idx);
-    setEditName(items[idx].name);
-    setEditQuantity(String(items[idx].quantity));
-    setEditUnit(items[idx].unit);
+    setEditName(item.name);
+    setEditQuantity(String(item.quantity));
+    setEditUnit(item.unit);
+    setModalVisible(true);
   };
 
   const handleSaveEdit = async () => {
@@ -126,18 +141,15 @@ const FridgeScanner: React.FC<{ expanded: boolean; setExpanded: (val: boolean) =
       };
       const res = await apiClient.put("/fridge/item", payload);
       setItems(res.data.items || []);
-      setEditingIndex(null);
-      setEditName("");
-      setEditQuantity("");
-      setEditUnit("gram");
-    } catch (e) {
+      closeModal();
+    } catch {
       Alert.alert("Error", "Could not update item");
     } finally {
       setLoading(false);
     }
   };
 
-  const handleDeleteItem = async (item: FridgeItem) => {
+  const handleDeleteItem = (item: FridgeItem) => {
     Alert.alert(
       "Delete",
       `Remove ${item.name}?`,
@@ -153,7 +165,7 @@ const FridgeScanner: React.FC<{ expanded: boolean; setExpanded: (val: boolean) =
                 data: { name: item.name, unit: item.unit },
               });
               setItems(res.data.items || []);
-            } catch (e: any) {
+            } catch {
               Alert.alert("Error", "Could not delete item");
             } finally {
               setLoading(false);
@@ -165,7 +177,7 @@ const FridgeScanner: React.FC<{ expanded: boolean; setExpanded: (val: boolean) =
     );
   };
 
-  const handleClearAll = async () => {
+  const handleClearAll = () => {
     Alert.alert(
       "Clear Fridge",
       "Are you sure you want to remove all items?",
@@ -179,7 +191,7 @@ const FridgeScanner: React.FC<{ expanded: boolean; setExpanded: (val: boolean) =
               setLoading(true);
               const res = await apiClient.put("/fridge/clear");
               setItems(res.data.items || []);
-            } catch (e) {
+            } catch {
               Alert.alert("Error", "Could not clear fridge");
             } finally {
               setLoading(false);
@@ -190,188 +202,197 @@ const FridgeScanner: React.FC<{ expanded: boolean; setExpanded: (val: boolean) =
     );
   };
 
+  const closeModal = () => {
+    setModalVisible(false);
+    setEditingIndex(null);
+    setEditName("");
+    setEditQuantity("");
+    setEditUnit("gram");
+  };
 
   return (
     <View style={styles.card}>
-      {/* Header with toggle */}
+      {/* Header */}
       <TouchableOpacity
-        style={styles.cardHeaderRow}
+        style={styles.headerRow}
         onPress={() => setExpanded(!expanded)}
         activeOpacity={0.8}
       >
-        <Text style={styles.cardHeaderText}>Scan Your Fridge</Text>
+        <Text style={styles.headerText}>Scan Your Fridge</Text>
         <Icon name={expanded ? "chevron-up" : "chevron-down"} size={27} color="#2563eb" />
       </TouchableOpacity>
 
       {expanded && (
         <>
-          {/* --- AI Scan Button --- */}
+          {/* AI Scan */}
           <TouchableOpacity
-            style={styles.selectButton}
+            style={styles.scanButton}
             onPress={handleSelectImages}
-            activeOpacity={0.82}
+            activeOpacity={0.8}
             disabled={scanning || loading}
           >
             <Icon name="camera-image" size={22} color="#2563eb" />
-            <Text style={styles.selectButtonText}>Upload/Take Photos</Text>
+            <Text style={styles.scanButtonText}>Upload / Take Photos</Text>
           </TouchableOpacity>
-          {/* --- Thumbnails (selected images) --- */}
           <FlatList
             data={selectedImages}
             horizontal
             showsHorizontalScrollIndicator={false}
-            keyExtractor={(_, idx) => idx + ""}
+            keyExtractor={(_, i) => i.toString()}
             renderItem={({ item }) =>
-              item.uri ? (
-                <Image
-                  source={{ uri: item.uri }}
-                  style={styles.imageThumb}
-                  resizeMode="cover"
-                />
-              ) : null
+              item.uri && (
+                <Image source={{ uri: item.uri }} style={styles.thumb} />
+              )
             }
-            contentContainerStyle={{ marginVertical: 9 }}
-            style={{ minHeight: 56 }}
+            style={{ minHeight: 56, marginVertical: 8 }}
           />
 
-          {/* --- Loading spinner --- */}
           {(loading || scanning) && (
-            <View style={{ alignItems: "center", marginTop: 7 }}>
+            <View style={styles.spinnerRow}>
               <ActivityIndicator size="small" color="#2563eb" />
-              <Text style={{ color: "#2563eb", fontWeight: "bold" }}>
+              <Text style={styles.spinnerText}>
                 {scanning ? "Detecting items..." : "Working..."}
               </Text>
             </View>
           )}
 
-          {/* --- Items List --- */}
           {!loading && !scanning && (
             <>
-              <View style={styles.editWrap}>
-                <Text style={styles.detectedTitle}>Detected/Your Fridge:</Text>
-                <TouchableOpacity style={styles.clearAllBtn} onPress={handleClearAll}>
-                  <Icon name="delete-outline" color="#e54349" size={19} />
-                  <Text style={styles.clearAllText}>Clear All</Text>
+              <View style={styles.listHeader}>
+                <Text style={styles.listTitle}>Your Fridge Items</Text>
+                <TouchableOpacity style={styles.clearBtn} onPress={handleClearAll}>
+                  <Icon name="delete-outline" size={20} color="#e54349" />
+                  <Text style={styles.clearText}>Clear All</Text>
                 </TouchableOpacity>
               </View>
+
               {items.length === 0 && (
-                <Text style={{ color: "#6c7792", fontSize: 14, marginVertical: 6 }}>
+                <Text style={styles.emptyText}>
                   No items yet. Scan your fridge or add manually!
                 </Text>
               )}
-              {items.map((item, idx) =>
-                editingIndex === idx ? (
-                  <View style={styles.editRow} key={idx}>
-                    <TextInput
-                      value={editName}
-                      onChangeText={setEditName}
-                      style={styles.input}
-                      placeholder="Name"
-                    />
-                    <TextInput
-                      value={editQuantity}
-                      onChangeText={setEditQuantity}
-                      style={styles.inputSmall}
-                      placeholder="Qty"
-                      keyboardType="numeric"
-                    />
-                    <View style={styles.unitWrap}>
-                      {ALLOWED_UNITS.map((unit) => (
-                        <TouchableOpacity
-                          key={unit}
-                          style={[
-                            styles.unitBtn,
-                            editUnit === unit && styles.unitBtnSelected,
-                          ]}
-                          onPress={() => setEditUnit(unit)}
-                        >
-                          <Text
-                            style={[
-                              styles.unitBtnText,
-                              editUnit === unit && styles.unitBtnTextSelected,
-                            ]}
-                          >
-                            {unit}
-                          </Text>
-                        </TouchableOpacity>
-                      ))}
-                    </View>
-                    <TouchableOpacity onPress={handleSaveEdit} style={styles.saveBtn}>
-                      <Text style={styles.saveBtnText}>Save</Text>
-                    </TouchableOpacity>
-                    <TouchableOpacity
-                      onPress={() => setEditingIndex(null)}
-                      style={styles.cancelBtn}
-                    >
-                      <Icon name="close" color="#e54349" size={20} />
-                    </TouchableOpacity>
-                  </View>
-                ) : (
-                  <View style={styles.itemRow} key={idx}>
-                    <View style={{ flex: 1 }}>
-                      <Text style={styles.itemName}>{item.name}</Text>
-                      <Text style={styles.itemDetail}>
-                        {item.quantity} {item.unit}
-                      </Text>
-                    </View>
-                    <TouchableOpacity
-                      style={styles.editIcon}
-                      onPress={() => openEdit(idx)}
-                    >
-                      <Icon name="pencil" size={19} color="#2563eb" />
-                    </TouchableOpacity>
-                    <TouchableOpacity
-                      style={styles.deleteIcon}
-                      onPress={() => handleDeleteItem(item)}
-                    >
-                      <Icon name="delete" size={19} color="#e54349" />
-                    </TouchableOpacity>
-                  </View>
-                )
-              )}
 
-              {/* --- Add Manually --- */}
+              {items.map((item, idx) => (
+                <View key={idx} style={styles.itemCard}>
+                  <View style={styles.info}>
+                    <Text style={styles.name}>{item.name}</Text>
+                    <Text style={styles.detail}>
+                      {item.quantity} {item.unit}
+                    </Text>
+                  </View>
+                  <TouchableOpacity onPress={() => openEdit(idx)} style={styles.iconBtn}>
+                    <Icon name="pencil" size={20} color="#2563eb" />
+                  </TouchableOpacity>
+                  <TouchableOpacity
+                    onPress={() => handleDeleteItem(item)}
+                    style={[styles.iconBtn, styles.deleteBtn]}
+                  >
+                    <Icon name="delete" size={20} color="#e54349" />
+                  </TouchableOpacity>
+                </View>
+              ))}
+
+              {/* Manual Add */}
               <View style={styles.addRow}>
                 <TextInput
                   value={editName}
                   onChangeText={setEditName}
-                  style={styles.input}
                   placeholder="Name"
+                  style={styles.input}
                 />
                 <TextInput
                   value={editQuantity}
                   onChangeText={setEditQuantity}
-                  style={styles.inputSmall}
                   placeholder="Qty"
                   keyboardType="numeric"
+                  style={[styles.input, styles.qtyInput]}
                 />
-                <View style={styles.unitWrap}>
-                  {ALLOWED_UNITS.map((unit) => (
+                <View style={styles.unitsRow}>
+                  {ALLOWED_UNITS.map((u) => (
                     <TouchableOpacity
-                      key={unit}
+                      key={u}
                       style={[
                         styles.unitBtn,
-                        editUnit === unit && styles.unitBtnSelected,
+                        editUnit === u && styles.unitBtnActive,
                       ]}
-                      onPress={() => setEditUnit(unit)}
+                      onPress={() => setEditUnit(u)}
                     >
                       <Text
                         style={[
-                          styles.unitBtnText,
-                          editUnit === unit && styles.unitBtnTextSelected,
+                          styles.unitText,
+                          editUnit === u && styles.unitTextActive,
                         ]}
                       >
-                        {unit}
+                        {u}
                       </Text>
                     </TouchableOpacity>
                   ))}
                 </View>
                 <TouchableOpacity onPress={handleAddItem} style={styles.addBtn}>
-                  <Icon name="plus" color="#fff" size={19} />
+                  <Icon name="plus" size={20} color="#fff" />
                 </TouchableOpacity>
               </View>
             </>
           )}
+
+          {/* Edit Modal */}
+          <Modal
+            visible={modalVisible}
+            transparent
+            animationType="fade"
+            onRequestClose={closeModal}
+          >
+            <TouchableWithoutFeedback onPress={closeModal}>
+              <View style={styles.backdrop} />
+            </TouchableWithoutFeedback>
+            <SafeAreaView style={styles.modalContainer}>
+              <View style={styles.modalContent}>
+                <Text style={styles.modalTitle}>Edit Item</Text>
+                <TextInput
+                  value={editName}
+                  onChangeText={setEditName}
+                  placeholder="Name"
+                  style={styles.modalInput}
+                />
+                <TextInput
+                  value={editQuantity}
+                  onChangeText={setEditQuantity}
+                  placeholder="Qty"
+                  keyboardType="numeric"
+                  style={[styles.modalInput, styles.qtyInput]}
+                />
+                <View style={styles.unitsRow}>
+                  {ALLOWED_UNITS.map((u) => (
+                    <TouchableOpacity
+                      key={u}
+                      style={[
+                        styles.unitBtn,
+                        editUnit === u && styles.unitBtnActive,
+                      ]}
+                      onPress={() => setEditUnit(u)}
+                    >
+                      <Text
+                        style={[
+                          styles.unitText,
+                          editUnit === u && styles.unitTextActive,
+                        ]}
+                      >
+                        {u}
+                      </Text>
+                    </TouchableOpacity>
+                  ))}
+                </View>
+                <View style={styles.modalActions}>
+                  <TouchableOpacity onPress={handleSaveEdit} style={styles.saveBtn}>
+                    <Text style={styles.saveText}>Save</Text>
+                  </TouchableOpacity>
+                  <TouchableOpacity onPress={closeModal} style={styles.cancelBtn}>
+                    <Text style={styles.cancelText}>Cancel</Text>
+                  </TouchableOpacity>
+                </View>
+              </View>
+            </SafeAreaView>
+          </Modal>
         </>
       )}
     </View>
@@ -380,216 +401,242 @@ const FridgeScanner: React.FC<{ expanded: boolean; setExpanded: (val: boolean) =
 
 const styles = StyleSheet.create({
   card: {
-    width: "95%",
-    maxWidth: 440,
-    backgroundColor: "#f7faff",
-    borderRadius: 23,
-    paddingVertical: 9,
-    paddingHorizontal: 17,
-    marginVertical: 8,
+    width: "98%",
+    maxWidth: 450,
+    backgroundColor: "#fff",
+    borderRadius: 28,
+    padding: 20,
+    marginVertical: 10,
     shadowColor: "#2563eb22",
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.11,
-    shadowRadius: 15,
-    elevation: 7,
+    shadowOffset: { width: 0, height: 6 },
+    shadowOpacity: 0.14,
+    shadowRadius: 18,
+    elevation: 8,
     alignSelf: "center",
-  },
-  cardHeaderRow: {
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "space-between",
-    minHeight: 44,
-    marginBottom: 2,
-  },
-  cardHeaderText: {
-    fontSize: 18,
-    color: "#2563eb",
-    fontWeight: "bold",
-    marginLeft: 3,
-  },
-  selectButton: {
-    flexDirection: "row",
-    alignItems: "center",
-    backgroundColor: "#eaf3ff",
-    borderRadius: 13,
-    paddingVertical: 9,
-    paddingHorizontal: 19,
-    marginVertical: 8,
-    alignSelf: "flex-start",
     borderWidth: 1,
-    borderColor: "#d2e6fd",
-    shadowColor: "#2563eb18",
-    shadowOpacity: 0.07,
-    shadowRadius: 4,
-    elevation: 1,
+    borderColor: "#eaf3ff",
   },
-  selectButtonText: {
+  headerRow: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+    minHeight: 48,
+    marginBottom: 8,
+  },
+  headerText: {
+    fontSize: 20,
     color: "#2563eb",
-    fontWeight: "700",
-    marginLeft: 7,
-    fontSize: 15.1,
+    fontWeight: "800",
   },
-  imageThumb: {
-    width: 48,
-    height: 48,
-    borderRadius: 9,
-    marginHorizontal: 3,
+  scanButton: {
+    flexDirection: "row",
+    alignItems: "center",
+    backgroundColor: "#edf3ff",
+    borderRadius: 15,
+    padding: 10,
+    marginVertical: 10,
+    borderWidth: 1.5,
+    borderColor: "#dbeafe",
+  },
+  scanButtonText: {
+    marginLeft: 8,
+    fontSize: 16,
+    fontWeight: "800",
+    color: "#2563eb",
+  },
+  thumb: {
+    width: 55,
+    height: 55,
+    borderRadius: 12,
+    marginHorizontal: 4,
     borderWidth: 1,
     borderColor: "#e0eefd",
-    backgroundColor: "#eaf3ff",
   },
-  detectedTitle: {
-    color: "#2563eb",
-    fontWeight: "600",
-    marginTop: 5,
-    marginBottom: 1,
-    fontSize: 14.5,
-  },
-  itemRow: {
+  spinnerRow: {
     flexDirection: "row",
     alignItems: "center",
-    marginVertical: 2,
+    marginVertical: 8,
+  },
+  spinnerText: {
+    marginLeft: 6,
+    color: "#2563eb",
+    fontWeight: "700",
+  },
+  listHeader: {
+    flexDirection: "row",
     justifyContent: "space-between",
-    paddingVertical: 5,
-    borderBottomWidth: 1,
+    alignItems: "center",
+    marginVertical: 10,
+  },
+  listTitle: {
+    fontSize: 17,
+    fontWeight: "700",
+    color: "#2563eb",
+  },
+  clearBtn: {
+    flexDirection: "row",
+    alignItems: "center",
+    padding: 6,
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: "#f4cccc",
+    backgroundColor: "#fff0f0",
+  },
+  clearText: {
+    marginLeft: 4,
+    color: "#e54349",
+    fontWeight: "700",
+  },
+  emptyText: {
+    fontSize: 14,
+    color: "#6c7792",
+    marginVertical: 6,
+  },
+  itemCard: {
+    flexDirection: "row",
+    alignItems: "center",
+    backgroundColor: "#f7faff",
+    borderRadius: 17,
+    padding: 14,
+    marginVertical: 6,
+    elevation: 2,
+  },
+  info: { flex: 1 },
+  name: {
+    fontSize: 16,
+    fontWeight: "600",
+    color: "#2c3e50",
+    textTransform: "capitalize",
+  },
+  detail: {
+    marginTop: 2,
+    fontSize: 13,
+    fontWeight: "500",
+    color: "#4b6584",
+    opacity: 0.7,
+  },
+  iconBtn: {
+    marginLeft: 8,
+    padding: 8,
+    borderRadius: 12,
+    backgroundColor: "#edf3ff",
+    borderWidth: 1,
     borderColor: "#e4f0fd",
   },
-  itemName: {
-    color: "#374151",
-    fontWeight: "500",
-    fontSize: 13.9,
-    flex: 1,
-  },
-  itemDetail: {
-    color: "#839ab6",
-    fontSize: 13,
-    fontWeight: "600",
-    marginLeft: 7,
-    minWidth: 52,
-    textAlign: "right",
-  },
-  editIcon: {
-    marginLeft: 5,
-    padding: 2,
-  },
-  deleteIcon: {
-    marginLeft: 3,
-    padding: 2,
+  deleteBtn: {
+    backgroundColor: "#fff0f0",
+    borderColor: "#f4cccc",
   },
   addRow: {
     flexDirection: "row",
     alignItems: "center",
-    marginTop: 11,
-    paddingVertical: 7,
-    gap: 5,
-  },
-  editRow: {
-    flexDirection: "row",
-    alignItems: "center",
-    marginTop: 3,
-    marginBottom: 1,
-    gap: 4,
-    paddingVertical: 6,
-    borderBottomWidth: 1,
-    borderColor: "#e4f0fd",
-  },
-  editWrap: {
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "space-between",
-    marginVertical: 7,
-    marginBottom: 0,
-  },
-  clearAllBtn: {
-    flexDirection: "row",
-    alignItems: "center",
-    backgroundColor: "#fff",
+    backgroundColor: "#f5faff",
+    padding: 10,
+    borderRadius: 15,
     borderWidth: 1,
-    borderColor: "#e8b2b4",
-    borderRadius: 10,
-    paddingVertical: 4,
-    paddingHorizontal: 10,
-  },
-  clearAllText: {
-    color: "#e54349",
-    fontWeight: "700",
-    fontSize: 13.2,
-    marginLeft: 4,
+    borderColor: "#e0eefd",
+    marginTop: 12,
   },
   input: {
-    borderWidth: 1,
-    borderColor: "#c5dbfc",
-    borderRadius: 9,
-    padding: 6,
-    fontSize: 14,
-    marginHorizontal: 4,
-    minWidth: 78,
-    textAlign: "left",
     backgroundColor: "#fff",
-  },
-  inputSmall: {
+    flex: 1,
+    borderRadius: 8,
     borderWidth: 1,
-    borderColor: "#c5dbfc",
-    borderRadius: 9,
-    padding: 6,
-    fontSize: 14,
+    borderColor: "#bfdcff",
+    padding: 8,
     marginHorizontal: 4,
-    width: 50,
-    textAlign: "center",
-    backgroundColor: "#fff",
+    fontWeight: "700",
   },
-  unitWrap: {
+  qtyInput: { width: 50, textAlign: "center" },
+  unitsRow: {
     flexDirection: "row",
-    alignItems: "center",
-    gap: 3,
-    marginLeft: 3,
+    marginHorizontal: 4,
   },
   unitBtn: {
     borderWidth: 1,
     borderColor: "#2563eb",
-    borderRadius: 9,
-    paddingHorizontal: 7,
-    paddingVertical: 4,
-    marginHorizontal: 1,
-    backgroundColor: "#eaf3ff",
-  },
-  unitBtnSelected: {
-    backgroundColor: "#2563eb",
-  },
-  unitBtnText: {
-    color: "#2563eb",
-    fontSize: 13.2,
-    fontWeight: "600",
-  },
-  unitBtnTextSelected: {
-    color: "#fff",
-    fontWeight: "bold",
-  },
-  saveBtn: {
-    marginLeft: 8,
-    backgroundColor: "#2563eb",
-    paddingHorizontal: 11,
-    paddingVertical: 7,
-    borderRadius: 10,
-  },
-  saveBtnText: {
-    color: "#fff",
-    fontWeight: "700",
-    fontSize: 14.2,
-  },
-  cancelBtn: {
-    marginLeft: 2,
-    backgroundColor: "#fff",
-    padding: 5,
     borderRadius: 8,
-    borderWidth: 1,
-    borderColor: "#e54349",
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    marginHorizontal: 2,
+    backgroundColor: "#f7faff",
+  },
+  unitBtnActive: {
+    backgroundColor: "#2563eb",
+  },
+  unitText: {
+    fontSize: 13,
+    fontWeight: "700",
+    color: "#2563eb",
+  },
+  unitTextActive: {
+    color: "#fff",
   },
   addBtn: {
+    marginLeft: 6,
     backgroundColor: "#2563eb",
-    borderRadius: 9,
-    padding: 8,
-    marginLeft: 8,
+    padding: 10,
+    borderRadius: 12,
+    elevation: 2,
+  },
+
+  // Modal styles
+  backdrop: {
+    flex: 1,
+    backgroundColor: "#00000066",
+  },
+  modalContainer: {
+    position: "absolute",
+    top: "25%",
+    left: "5%",
+    right: "5%",
+  },
+  modalContent: {
+    backgroundColor: "#fff",
+    borderRadius: 20,
+    padding: 20,
+    elevation: 10,
+  },
+  modalTitle: {
+    fontSize: 18,
+    fontWeight: "800",
+    marginBottom: 12,
+    color: "#2563eb",
+    textAlign: "center",
+  },
+  modalInput: {
+    backgroundColor: "#f0f4ff",
+    borderRadius: 10,
+    padding: 10,
+    fontWeight: "700",
+    marginVertical: 6,
+  },
+  modalActions: {
+    flexDirection: "row",
+    justifyContent: "space-around",
+    marginTop: 16,
+  },
+  saveBtn: {
+    backgroundColor: "#2563eb",
+    paddingVertical: 10,
+    paddingHorizontal: 20,
+    borderRadius: 12,
+  },
+  saveText: {
+    color: "#fff",
+    fontWeight: "700",
+  },
+  cancelBtn: {
+    backgroundColor: "#fff",
+    borderWidth: 1,
+    borderColor: "#e54349",
+    paddingVertical: 10,
+    paddingHorizontal: 20,
+    borderRadius: 12,
+  },
+  cancelText: {
+    color: "#e54349",
+    fontWeight: "700",
   },
 });
 
