@@ -13,6 +13,8 @@ import {
   Modal,
   TouchableWithoutFeedback,
   SafeAreaView,
+  Dimensions,
+  Platform,
 } from "react-native";
 import Icon from "react-native-vector-icons/MaterialCommunityIcons";
 import { launchImageLibrary, Asset } from "react-native-image-picker";
@@ -20,6 +22,7 @@ import apiClient from "../services/api-client";
 
 type FridgeItem = { name: string; unit: string; quantity: number };
 const ALLOWED_UNITS = ["gram", "kg", "ml", "liter"] as const;
+const SCREEN_WIDTH = Dimensions.get("window").width;
 
 interface Props {
   expanded: boolean;
@@ -37,6 +40,10 @@ const FridgeScanner: React.FC<Props> = ({ expanded, setExpanded }) => {
   const [editQuantity, setEditQuantity] = useState("");
   const [editUnit, setEditUnit] = useState<FridgeItem["unit"]>("gram");
 
+  useEffect(() => {
+    if (expanded) fetchFridge();
+  }, [expanded]);
+
   const fetchFridge = async () => {
     try {
       setLoading(true);
@@ -48,10 +55,6 @@ const FridgeScanner: React.FC<Props> = ({ expanded, setExpanded }) => {
       setLoading(false);
     }
   };
-
-  useEffect(() => {
-    if (expanded) fetchFridge();
-  }, [expanded]);
 
   const handleSelectImages = () => {
     launchImageLibrary(
@@ -84,9 +87,8 @@ const FridgeScanner: React.FC<Props> = ({ expanded, setExpanded }) => {
       const res = await apiClient.post("/fridge/ai-file", formData, {
         headers: { "Content-Type": "multipart/form-data" },
       });
-      setItems(res.data?.items || []);
+      setItems(res.data.items || []);
       setSelectedImages([]);
-      Alert.alert("Success", "Fridge analyzed successfully!");
     } catch {
       Alert.alert("Error", "Failed to scan fridge (AI).");
     } finally {
@@ -108,7 +110,9 @@ const FridgeScanner: React.FC<Props> = ({ expanded, setExpanded }) => {
       };
       const res = await apiClient.post("/fridge/item", payload);
       setItems(res.data.items || []);
-      setEditName(""); setEditQuantity(""); setEditUnit("gram");
+      setEditName("");
+      setEditQuantity("");
+      setEditUnit("gram");
     } catch {
       Alert.alert("Error", "Could not add item");
     } finally {
@@ -133,7 +137,11 @@ const FridgeScanner: React.FC<Props> = ({ expanded, setExpanded }) => {
       const payload = {
         originalName: original.name,
         originalUnit: original.unit,
-        item: { name: editName.trim(), unit: editUnit, quantity: Number(editQuantity) },
+        item: {
+          name: editName.trim(),
+          unit: editUnit,
+          quantity: Number(editQuantity),
+        },
       };
       const res = await apiClient.put("/fridge/item", payload);
       setItems(res.data.items || []);
@@ -147,8 +155,8 @@ const FridgeScanner: React.FC<Props> = ({ expanded, setExpanded }) => {
 
   const handleDeleteItem = (item: FridgeItem) => {
     Alert.alert(
-      "Delete",
-      `Remove ${item.name}?`,
+      "Delete Item",
+      `Remove "${item.name}"?`,
       [
         { text: "Cancel", style: "cancel" },
         {
@@ -175,12 +183,12 @@ const FridgeScanner: React.FC<Props> = ({ expanded, setExpanded }) => {
 
   const handleClearAll = () => {
     Alert.alert(
-      "Clear Fridge",
-      "Are you sure you want to remove all items?",
+      "Clear All Items",
+      "This will remove every item in your fridge. Continue?",
       [
         { text: "Cancel", style: "cancel" },
         {
-          text: "Clear",
+          text: "Yes, clear",
           style: "destructive",
           onPress: async () => {
             try {
@@ -201,7 +209,9 @@ const FridgeScanner: React.FC<Props> = ({ expanded, setExpanded }) => {
   const closeModal = () => {
     setModalVisible(false);
     setEditingIndex(null);
-    setEditName(""); setEditQuantity(""); setEditUnit("gram");
+    setEditName("");
+    setEditQuantity("");
+    setEditUnit("gram");
   };
 
   return (
@@ -209,13 +219,13 @@ const FridgeScanner: React.FC<Props> = ({ expanded, setExpanded }) => {
       {/* Header */}
       <TouchableOpacity
         style={styles.cardHeaderRow}
-        onPress={() => setExpanded(val => !val)}
+        onPress={() => setExpanded(!expanded)}
         activeOpacity={0.8}
       >
         <Text style={styles.cardHeaderText}>Scan Your Fridge</Text>
         <Icon
           name={expanded ? "chevron-up" : "chevron-down"}
-          size={24}
+          size={27}
           color="#2563eb"
         />
       </TouchableOpacity>
@@ -224,25 +234,30 @@ const FridgeScanner: React.FC<Props> = ({ expanded, setExpanded }) => {
         <>
           {/* Scan Button */}
           <TouchableOpacity
-            style={styles.scanButton}
+            style={styles.selectButton}
             onPress={handleSelectImages}
             disabled={scanning || loading}
+            activeOpacity={0.85}
           >
             <Icon name="camera-image" size={20} color="#2563eb" />
-            <Text style={styles.scanButtonText}>Upload / Take Photos</Text>
+            <Text style={styles.selectButtonText}>Upload / Take Photos</Text>
           </TouchableOpacity>
 
           {/* Thumbnails */}
-          <FlatList
-            data={selectedImages}
-            horizontal
-            keyExtractor={(_, i) => String(i)}
-            renderItem={({ item }) =>
-              item.uri && <Image source={{ uri: item.uri }} style={styles.thumb} />
-            }
-            showsHorizontalScrollIndicator={false}
-            style={{ marginVertical: 8 }}
-          />
+          {selectedImages.length > 0 && (
+            <FlatList
+              data={selectedImages}
+              horizontal
+              keyExtractor={(_, i) => String(i)}
+              renderItem={({ item }) =>
+                item.uri ? (
+                  <Image source={{ uri: item.uri }} style={styles.imageThumb} />
+                ) : null
+              }
+              showsHorizontalScrollIndicator={false}
+              style={{ marginVertical: 8 }}
+            />
+          )}
 
           {/* Spinner */}
           {(loading || scanning) && (
@@ -254,14 +269,14 @@ const FridgeScanner: React.FC<Props> = ({ expanded, setExpanded }) => {
             </View>
           )}
 
-          {/* List Header */}
           {!loading && !scanning && (
             <>
+              {/* Your Items Header */}
               <View style={styles.listHeader}>
                 <Text style={styles.listTitle}>Your Fridge Items</Text>
-                <TouchableOpacity style={styles.clearBtn} onPress={handleClearAll}>
+                <TouchableOpacity style={styles.clearAllBtn} onPress={handleClearAll}>
                   <Icon name="delete-outline" size={18} color="#e54349" />
-                  <Text style={styles.clearText}>Clear All</Text>
+                  <Text style={styles.clearAllText}>Clear All</Text>
                 </TouchableOpacity>
               </View>
 
@@ -274,35 +289,33 @@ const FridgeScanner: React.FC<Props> = ({ expanded, setExpanded }) => {
 
               {/* Items */}
               {items.map((item, idx) => (
-                <View key={idx} style={styles.itemCard}>
-                  <View style={styles.info}>
-                    <Text style={styles.name}>{item.name}</Text>
-                    <Text style={styles.detail}>
+                <View key={idx} style={styles.itemRow}>
+                  <View style={styles.itemInfo}>
+                    <Text style={styles.itemName}>{item.name}</Text>
+                    <Text style={styles.itemQty}>
                       {item.quantity} {item.unit}
                     </Text>
                   </View>
-                  <TouchableOpacity
-                    onPress={() => openEdit(idx)}
-                    style={styles.iconBtn}
-                  >
-                    <Icon name="pencil" size={18} color="#2563eb" />
+                  <TouchableOpacity onPress={() => openEdit(idx)} style={styles.iconBtn}>
+                    <Icon name="pencil-outline" size={18} color="#2563eb" />
                   </TouchableOpacity>
                   <TouchableOpacity
                     onPress={() => handleDeleteItem(item)}
-                    style={[styles.iconBtn, styles.deleteBtn]}
+                    style={[styles.iconBtn, styles.iconDelete]}
                   >
-                    <Icon name="delete" size={18} color="#e54349" />
+                    <Icon name="trash-can-outline" size={18} color="#e54349" />
                   </TouchableOpacity>
                 </View>
               ))}
 
-              {/* Manual Add */}
+              {/* Manual Add Row */}
               <View style={styles.addRow}>
                 <TextInput
                   value={editName}
                   onChangeText={setEditName}
                   placeholder="Name"
                   style={styles.input}
+                  placeholderTextColor="#415c78"
                 />
                 <TextInput
                   value={editQuantity}
@@ -310,21 +323,23 @@ const FridgeScanner: React.FC<Props> = ({ expanded, setExpanded }) => {
                   placeholder="Qty"
                   keyboardType="numeric"
                   style={[styles.input, styles.qtyInput]}
+                  placeholderTextColor="#415c78"
                 />
                 <View style={styles.unitsRow}>
-                  {ALLOWED_UNITS.map(u => (
+                  {ALLOWED_UNITS.map((u) => (
                     <TouchableOpacity
                       key={u}
                       style={[
                         styles.unitBtn,
-                        editUnit === u && styles.unitBtnActive,
+                        editUnit === u && styles.unitBtnSelected,
                       ]}
                       onPress={() => setEditUnit(u)}
+                      activeOpacity={0.85}
                     >
                       <Text
                         style={[
-                          styles.unitText,
-                          editUnit === u && styles.unitTextActive,
+                          styles.unitBtnText,
+                          editUnit === u && styles.unitBtnTextSelected,
                         ]}
                       >
                         {u}
@@ -347,38 +362,43 @@ const FridgeScanner: React.FC<Props> = ({ expanded, setExpanded }) => {
             onRequestClose={closeModal}
           >
             <TouchableWithoutFeedback onPress={closeModal}>
-              <View style={styles.backdrop} />
+              <View style={styles.modalOverlay} />
             </TouchableWithoutFeedback>
             <SafeAreaView style={styles.modalContainer}>
               <View style={styles.modalContent}>
                 <Text style={styles.modalTitle}>Edit Item</Text>
+
                 <TextInput
                   value={editName}
                   onChangeText={setEditName}
                   placeholder="Name"
                   style={styles.modalInput}
+                  placeholderTextColor="#415c78"
                 />
                 <TextInput
                   value={editQuantity}
                   onChangeText={setEditQuantity}
-                  placeholder="Qty"
+                  placeholder="Quantity"
                   keyboardType="numeric"
-                  style={[styles.modalInput, styles.qtyInput]}
+                  style={[styles.modalInput, styles.qtyInputModal]}
+                  placeholderTextColor="#415c78"
                 />
-                <View style={styles.unitsRow}>
-                  {ALLOWED_UNITS.map(u => (
+
+                <View style={styles.unitsRowCentered}>
+                  {ALLOWED_UNITS.map((u) => (
                     <TouchableOpacity
                       key={u}
                       style={[
                         styles.unitBtn,
-                        editUnit === u && styles.unitBtnActive,
+                        editUnit === u && styles.unitBtnSelected,
                       ]}
                       onPress={() => setEditUnit(u)}
+                      activeOpacity={0.85}
                     >
                       <Text
                         style={[
-                          styles.unitText,
-                          editUnit === u && styles.unitTextActive,
+                          styles.unitBtnText,
+                          editUnit === u && styles.unitBtnTextSelected,
                         ]}
                       >
                         {u}
@@ -386,11 +406,12 @@ const FridgeScanner: React.FC<Props> = ({ expanded, setExpanded }) => {
                     </TouchableOpacity>
                   ))}
                 </View>
+
                 <View style={styles.modalActions}>
-                  <TouchableOpacity onPress={handleSaveEdit} style={styles.saveBtn}>
+                  <TouchableOpacity style={styles.saveBtn} onPress={handleSaveEdit}>
                     <Text style={styles.saveText}>Save</Text>
                   </TouchableOpacity>
-                  <TouchableOpacity onPress={closeModal} style={styles.cancelBtn}>
+                  <TouchableOpacity style={styles.cancelBtn} onPress={closeModal}>
                     <Text style={styles.cancelText}>Cancel</Text>
                   </TouchableOpacity>
                 </View>
@@ -409,7 +430,7 @@ const styles = StyleSheet.create({
     maxWidth: 440,
     backgroundColor: "#f7faff",
     borderRadius: 23,
-    paddingVertical: 12,
+    paddingVertical: 10,
     paddingHorizontal: 16,
     marginVertical: 8,
     shadowColor: "#2563eb22",
@@ -428,33 +449,36 @@ const styles = StyleSheet.create({
   cardHeaderText: {
     fontSize: 18,
     color: "#2563eb",
-    fontWeight: "700",
+    fontWeight: "bold",
   },
-  scanButton: {
+
+  selectButton: {
     flexDirection: "row",
     alignItems: "center",
-    backgroundColor: "#eaf3ff",
-    borderRadius: 15,
+    backgroundColor: "#edf3ff",
+    borderRadius: 12,
     paddingVertical: 10,
     paddingHorizontal: 14,
     marginVertical: 10,
     borderWidth: 1,
     borderColor: "#dbeafe",
   },
-  scanButtonText: {
+  selectButtonText: {
     marginLeft: 8,
     fontSize: 15,
-    fontWeight: "700",
+    fontWeight: "600",
     color: "#2563eb",
   },
-  thumb: {
-    width: 55,
-    height: 55,
+
+  imageThumb: {
+    width: 60,
+    height: 60,
     borderRadius: 12,
-    marginHorizontal: 3,
+    marginRight: 6,
     borderWidth: 1,
     borderColor: "#e0eefd",
   },
+
   spinnerRow: {
     flexDirection: "row",
     alignItems: "center",
@@ -463,68 +487,76 @@ const styles = StyleSheet.create({
   spinnerText: {
     marginLeft: 6,
     color: "#2563eb",
-    fontWeight: "700",
+    fontWeight: "600",
   },
+
   listHeader: {
     flexDirection: "row",
-    alignItems: "center",
     justifyContent: "space-between",
-    marginVertical: 10,
+    alignItems: "center",
+    marginTop: 12,
   },
   listTitle: {
     fontSize: 16,
     fontWeight: "700",
     color: "#2563eb",
   },
-  clearBtn: {
+  clearAllBtn: {
     flexDirection: "row",
     alignItems: "center",
+    backgroundColor: "#fff0f0",
     paddingHorizontal: 8,
     paddingVertical: 4,
-    backgroundColor: "#fff0f0",
     borderRadius: 12,
     borderWidth: 1,
     borderColor: "#f4cccc",
   },
-  clearText: {
+  clearAllText: {
     marginLeft: 4,
     color: "#e54349",
     fontWeight: "700",
   },
+
   emptyText: {
     textAlign: "center",
+    color: "#415c78",
     fontSize: 14,
-    color: "#6c7792",
-    marginVertical: 6,
+    fontWeight: "700",
+    opacity: 0.8,
+    marginVertical: 12,
   },
-  itemCard: {
+
+  itemRow: {
     flexDirection: "row",
     alignItems: "center",
     backgroundColor: "#fff",
-    borderRadius: 17,
+    borderRadius: 16,
     paddingVertical: 12,
     paddingHorizontal: 14,
     marginVertical: 6,
-    shadowColor: "#2563eb11",
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.08,
-    shadowRadius: 6,
-    elevation: 2,
+    ...Platform.select({
+      ios: {
+        shadowColor: "#000",
+        shadowOpacity: 0.05,
+        shadowRadius: 6,
+        shadowOffset: { width: 0, height: 3 },
+      },
+      android: { elevation: 2 },
+    }),
   },
-  info: { flex: 1 },
-  name: {
+  itemInfo: { flex: 1 },
+  itemName: {
     fontSize: 15,
     fontWeight: "600",
     color: "#2c3e50",
     textTransform: "capitalize",
   },
-  detail: {
+  itemQty: {
     marginTop: 2,
     fontSize: 13,
-    fontWeight: "500",
-    color: "#4b6584",
-    opacity: 0.7,
+    color: "#415c78",
   },
+
   iconBtn: {
     marginLeft: 8,
     padding: 6,
@@ -533,20 +565,21 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: "#dbeafe",
   },
-  deleteBtn: {
+  iconDelete: {
     backgroundColor: "#fff0f0",
     borderColor: "#f4cccc",
   },
+
   addRow: {
     flexDirection: "row",
     alignItems: "center",
     backgroundColor: "#f7faff",
-    borderRadius: 15,
+    borderRadius: 12,
     borderWidth: 1,
-    borderColor: "#e0eefd",
+    borderColor: "#dbeafe",
     paddingVertical: 10,
     paddingHorizontal: 8,
-    marginTop: 12,
+    marginTop: 14,
   },
   input: {
     backgroundColor: "#fff",
@@ -556,99 +589,129 @@ const styles = StyleSheet.create({
     borderColor: "#bfdcff",
     paddingHorizontal: 10,
     paddingVertical: 8,
-    marginHorizontal: 4,
-    fontWeight: "700",
+    marginRight: 6,
+    fontSize: 14,
+    fontWeight: "600",
+    color: "#2c3e50",
   },
-  qtyInput: { width: 50, textAlign: "center" },
+  qtyInput: {
+    width: 50,
+    textAlign: "center",
+  },
+
   unitsRow: {
     flexDirection: "row",
-    marginHorizontal: 4,
+    marginRight: 6,
+  },
+  unitsRowCentered: {
+    flexDirection: "row",
+    justifyContent: "center",
+    flexWrap: "wrap",
+    marginVertical: 12,
   },
   unitBtn: {
     borderWidth: 1,
     borderColor: "#2563eb",
     borderRadius: 8,
-    paddingHorizontal: 8,
-    paddingVertical: 4,
-    marginHorizontal: 2,
+    paddingVertical: 6,
+    paddingHorizontal: 12,
+    margin: 4,
     backgroundColor: "#f7faff",
   },
-  unitBtnActive: {
+  unitBtnSelected: {
     backgroundColor: "#2563eb",
   },
-  unitText: {
+  unitBtnText: {
     fontSize: 13,
     fontWeight: "700",
     color: "#2563eb",
   },
-  unitTextActive: {
+  unitBtnTextSelected: {
     color: "#fff",
   },
+
   addBtn: {
-    marginLeft: 6,
     backgroundColor: "#2563eb",
     padding: 10,
     borderRadius: 12,
-    elevation: 2,
   },
 
   // Modal
-  backdrop: {
+  modalOverlay: {
     flex: 1,
     backgroundColor: "#00000040",
   },
   modalContainer: {
     position: "absolute",
-    top: "30%",
-    left: "5%",
-    right: "5%",
+    top: "25%",
+    left: SCREEN_WIDTH * 0.05,
+    right: SCREEN_WIDTH * 0.05,
   },
   modalContent: {
     backgroundColor: "#fff",
-    borderRadius: 20,
+    borderRadius: 16,
     padding: 20,
-    elevation: 10,
+    alignItems: "center",
+    ...Platform.select({
+      ios: {
+        shadowColor: "#000",
+        shadowOpacity: 0.1,
+        shadowRadius: 8,
+        shadowOffset: { width: 0, height: 4 },
+      },
+      android: { elevation: 8 },
+    }),
   },
   modalTitle: {
-    fontSize: 18,
+    fontSize: 20,
     fontWeight: "700",
     color: "#2563eb",
-    textAlign: "center",
-    marginBottom: 12,
+    marginBottom: 16,
   },
   modalInput: {
-    backgroundColor: "#f0f4ff",
+    backgroundColor: "#f0f6ff",
     borderRadius: 10,
-    paddingHorizontal: 12,
-    paddingVertical: 8,
-    marginVertical: 6,
-    fontWeight: "700",
+    paddingVertical: 12,
+    paddingHorizontal: 16,
+    width: "100%",
+    marginBottom: 12,
+    fontSize: 15,
+    fontWeight: "600",
+    color: "#2c3e50",
+  },
+  qtyInputModal: {
+    width: 100,
+    textAlign: "center",
+    alignSelf: "center",
   },
   modalActions: {
     flexDirection: "row",
-    justifyContent: "space-between",
-    marginTop: 16,
+    justifyContent: "center",
+    marginTop: 12,
   },
   saveBtn: {
     backgroundColor: "#2563eb",
-    paddingVertical: 10,
-    paddingHorizontal: 20,
+    paddingVertical: 12,
+    paddingHorizontal: 32,
     borderRadius: 12,
   },
   saveText: {
     color: "#fff",
+    fontSize: 16,
     fontWeight: "700",
   },
   cancelBtn: {
     backgroundColor: "#fff",
     borderWidth: 1,
     borderColor: "#e54349",
-    paddingVertical: 10,
-    paddingHorizontal: 20,
+    paddingVertical: 12,
+    paddingHorizontal: 32,
     borderRadius: 12,
+    marginLeft: 16,
   },
   cancelText: {
     color: "#e54349",
+    fontSize: 16,
     fontWeight: "700",
   },
 });
