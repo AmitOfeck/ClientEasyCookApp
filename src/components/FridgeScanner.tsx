@@ -1,4 +1,3 @@
-// FridgeScanner.tsx
 import React, { useState, useEffect } from "react";
 import {
   View,
@@ -17,7 +16,13 @@ import {
   Platform,
 } from "react-native";
 import Icon from "react-native-vector-icons/MaterialCommunityIcons";
-import { launchImageLibrary, Asset } from "react-native-image-picker";
+import {
+  launchImageLibrary,
+  launchCamera,
+  Asset,
+  ImageLibraryOptions,
+  CameraOptions,
+} from "react-native-image-picker";
 import apiClient from "../services/api-client";
 
 type FridgeItem = { name: string; unit: string; quantity: number };
@@ -32,7 +37,6 @@ interface Props {
 const FridgeScanner: React.FC<Props> = ({ expanded, setExpanded }) => {
   const [loading, setLoading] = useState(false);
   const [scanning, setScanning] = useState(false);
-  const [selectedImages, setSelectedImages] = useState<Asset[]>([]);
   const [items, setItems] = useState<FridgeItem[]>([]);
   const [modalVisible, setModalVisible] = useState(false);
   const [editingIndex, setEditingIndex] = useState<number | null>(null);
@@ -56,24 +60,54 @@ const FridgeScanner: React.FC<Props> = ({ expanded, setExpanded }) => {
     }
   };
 
-  const handleSelectImages = () => {
-    launchImageLibrary(
-      { mediaType: "photo", selectionLimit: 3 },
-      async (response) => {
-        if (response.didCancel) return;
-        if (response.errorCode) {
-          Alert.alert("Error", "Could not open image picker");
-          return;
-        }
-        if (!response.assets) return;
-        setSelectedImages(response.assets);
-        await handleScanFridge(response.assets);
-      }
+  // show choice: library or camera
+  const openPickerOptions = () => {
+    Alert.alert(
+      "Add Photos",
+      "Choose images from library or take a new photo",
+      [
+        { text: "Cancel", style: "cancel" },
+        { text: "Library", onPress: selectImages },
+        { text: "Camera", onPress: takePhoto },
+      ]
     );
   };
 
-  const handleScanFridge = async (images: Asset[]) => {
-    if (!images.length) return;
+  const selectImages = () => {
+    const options: ImageLibraryOptions = {
+      mediaType: "photo",
+      selectionLimit: 0,      // 0 = unlimited
+    };
+    launchImageLibrary(options, async (response) => {
+      if (response.didCancel) return;
+      if (response.errorCode) {
+        Alert.alert("Error", "Could not open image picker");
+        return;
+      }
+      if (response.assets?.length) {
+        await scanFridge(response.assets);
+      }
+    });
+  };
+
+  const takePhoto = () => {
+    const options: CameraOptions = {
+      mediaType: "photo",
+      saveToPhotos: true,
+    };
+    launchCamera(options, async (response) => {
+      if (response.didCancel) return;
+      if (response.errorCode) {
+        Alert.alert("Error", "Could not open camera");
+        return;
+      }
+      if (response.assets?.[0]) {
+        await scanFridge(response.assets);
+      }
+    });
+  };
+
+  const scanFridge = async (images: Asset[]) => {
     try {
       setScanning(true);
       const formData = new FormData();
@@ -88,9 +122,8 @@ const FridgeScanner: React.FC<Props> = ({ expanded, setExpanded }) => {
         headers: { "Content-Type": "multipart/form-data" },
       });
       setItems(res.data.items || []);
-      setSelectedImages([]);
     } catch {
-      Alert.alert("Error", "Failed to scan fridge (AI).");
+      Alert.alert("Error", "Failed to scan fridge");
     } finally {
       setScanning(false);
     }
@@ -110,9 +143,7 @@ const FridgeScanner: React.FC<Props> = ({ expanded, setExpanded }) => {
       };
       const res = await apiClient.post("/fridge/item", payload);
       setItems(res.data.items || []);
-      setEditName("");
-      setEditQuantity("");
-      setEditUnit("gram");
+      setEditName(""); setEditQuantity(""); setEditUnit("gram");
     } catch {
       Alert.alert("Error", "Could not add item");
     } finally {
@@ -176,8 +207,7 @@ const FridgeScanner: React.FC<Props> = ({ expanded, setExpanded }) => {
             }
           },
         },
-      ],
-      { cancelable: true }
+      ]
     );
   };
 
@@ -209,9 +239,7 @@ const FridgeScanner: React.FC<Props> = ({ expanded, setExpanded }) => {
   const closeModal = () => {
     setModalVisible(false);
     setEditingIndex(null);
-    setEditName("");
-    setEditQuantity("");
-    setEditUnit("gram");
+    setEditName(""); setEditQuantity(""); setEditUnit("gram");
   };
 
   return (
@@ -232,43 +260,30 @@ const FridgeScanner: React.FC<Props> = ({ expanded, setExpanded }) => {
 
       {expanded && (
         <>
-          {/* Scan Button */}
+          {/* Upload / Camera */}
           <TouchableOpacity
             style={styles.selectButton}
-            onPress={handleSelectImages}
+            onPress={openPickerOptions}
             disabled={scanning || loading}
             activeOpacity={0.85}
           >
-            <Icon name="camera-image" size={20} color="#2563eb" />
-            <Text style={styles.selectButtonText}>Upload / Take Photos</Text>
+            <Icon name="camera-plus" size={20} color="#2563eb" />
+            <Text style={styles.selectButtonText}>
+              Upload Images / Take Photo
+            </Text>
           </TouchableOpacity>
-
-          {/* Thumbnails */}
-          {selectedImages.length > 0 && (
-            <FlatList
-              data={selectedImages}
-              horizontal
-              keyExtractor={(_, i) => String(i)}
-              renderItem={({ item }) =>
-                item.uri ? (
-                  <Image source={{ uri: item.uri }} style={styles.imageThumb} />
-                ) : null
-              }
-              showsHorizontalScrollIndicator={false}
-              style={{ marginVertical: 8 }}
-            />
-          )}
 
           {/* Spinner */}
           {(loading || scanning) && (
             <View style={styles.spinnerRow}>
               <ActivityIndicator size="small" color="#2563eb" />
               <Text style={styles.spinnerText}>
-                {scanning ? "Detecting items..." : "Working..."}
+                {scanning ? "Scanning..." : "Processing..."}
               </Text>
             </View>
           )}
 
+          {/* Items list & manual add */}
           {!loading && !scanning && (
             <>
               {/* Your Items Header */}
@@ -280,33 +295,31 @@ const FridgeScanner: React.FC<Props> = ({ expanded, setExpanded }) => {
                 </TouchableOpacity>
               </View>
 
-              {/* Empty State */}
-              {items.length === 0 && (
+              {items.length === 0 ? (
                 <Text style={styles.emptyText}>
-                  No items yet. Scan or add manually!
+                  No items yet. Add via upload or manually!
                 </Text>
-              )}
-
-              {/* Items */}
-              {items.map((item, idx) => (
-                <View key={idx} style={styles.itemRow}>
-                  <View style={styles.itemInfo}>
-                    <Text style={styles.itemName}>{item.name}</Text>
-                    <Text style={styles.itemQty}>
-                      {item.quantity} {item.unit}
-                    </Text>
+              ) : (
+                items.map((item, idx) => (
+                  <View key={idx} style={styles.itemRow}>
+                    <View style={styles.itemInfo}>
+                      <Text style={styles.itemName}>{item.name}</Text>
+                      <Text style={styles.itemQty}>
+                        {item.quantity} {item.unit}
+                      </Text>
+                    </View>
+                    <TouchableOpacity onPress={() => openEdit(idx)} style={styles.iconBtn}>
+                      <Icon name="pencil-outline" size={18} color="#2563eb" />
+                    </TouchableOpacity>
+                    <TouchableOpacity
+                      onPress={() => handleDeleteItem(item)}
+                      style={[styles.iconBtn, styles.iconDelete]}
+                    >
+                      <Icon name="trash-can-outline" size={18} color="#e54349" />
+                    </TouchableOpacity>
                   </View>
-                  <TouchableOpacity onPress={() => openEdit(idx)} style={styles.iconBtn}>
-                    <Icon name="pencil-outline" size={18} color="#2563eb" />
-                  </TouchableOpacity>
-                  <TouchableOpacity
-                    onPress={() => handleDeleteItem(item)}
-                    style={[styles.iconBtn, styles.iconDelete]}
-                  >
-                    <Icon name="trash-can-outline" size={18} color="#e54349" />
-                  </TouchableOpacity>
-                </View>
-              ))}
+                ))
+              )}
 
               {/* Manual Add Row */}
               <View style={styles.addRow}>
@@ -367,7 +380,6 @@ const FridgeScanner: React.FC<Props> = ({ expanded, setExpanded }) => {
             <SafeAreaView style={styles.modalContainer}>
               <View style={styles.modalContent}>
                 <Text style={styles.modalTitle}>Edit Item</Text>
-
                 <TextInput
                   value={editName}
                   onChangeText={setEditName}
@@ -383,7 +395,6 @@ const FridgeScanner: React.FC<Props> = ({ expanded, setExpanded }) => {
                   style={[styles.modalInput, styles.qtyInputModal]}
                   placeholderTextColor="#415c78"
                 />
-
                 <View style={styles.unitsRowCentered}>
                   {ALLOWED_UNITS.map((u) => (
                     <TouchableOpacity
@@ -406,7 +417,6 @@ const FridgeScanner: React.FC<Props> = ({ expanded, setExpanded }) => {
                     </TouchableOpacity>
                   ))}
                 </View>
-
                 <View style={styles.modalActions}>
                   <TouchableOpacity style={styles.saveBtn} onPress={handleSaveEdit}>
                     <Text style={styles.saveText}>Save</Text>
@@ -455,7 +465,7 @@ const styles = StyleSheet.create({
   selectButton: {
     flexDirection: "row",
     alignItems: "center",
-    backgroundColor: "#edf3ff",
+    backgroundColor: "#eaf3ff",
     borderRadius: 12,
     paddingVertical: 10,
     paddingHorizontal: 14,
@@ -468,15 +478,6 @@ const styles = StyleSheet.create({
     fontSize: 15,
     fontWeight: "600",
     color: "#2563eb",
-  },
-
-  imageThumb: {
-    width: 60,
-    height: 60,
-    borderRadius: 12,
-    marginRight: 6,
-    borderWidth: 1,
-    borderColor: "#e0eefd",
   },
 
   spinnerRow: {
