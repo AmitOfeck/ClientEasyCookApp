@@ -5,8 +5,6 @@ import {
   TouchableOpacity,
   StyleSheet,
   ActivityIndicator,
-  FlatList,
-  Image,
   Alert,
   TextInput,
   Modal,
@@ -32,9 +30,16 @@ const SCREEN_WIDTH = Dimensions.get("window").width;
 interface Props {
   expanded: boolean;
   setExpanded: (val: boolean) => void;
+  useFridgeItems: boolean;
+  setUseFridgeItems: (val: boolean) => void;
 }
 
-const FridgeScanner: React.FC<Props> = ({ expanded, setExpanded }) => {
+const FridgeScanner: React.FC<Props> = ({
+  expanded,
+  setExpanded,
+  useFridgeItems,
+  setUseFridgeItems,
+}) => {
   const [loading, setLoading] = useState(false);
   const [scanning, setScanning] = useState(false);
   const [items, setItems] = useState<FridgeItem[]>([]);
@@ -44,6 +49,7 @@ const FridgeScanner: React.FC<Props> = ({ expanded, setExpanded }) => {
   const [editQuantity, setEditQuantity] = useState("");
   const [editUnit, setEditUnit] = useState<FridgeItem["unit"]>("gram");
 
+  // When expanded, fetch the current fridge items
   useEffect(() => {
     if (expanded) fetchFridge();
   }, [expanded]);
@@ -60,7 +66,7 @@ const FridgeScanner: React.FC<Props> = ({ expanded, setExpanded }) => {
     }
   };
 
-  // show choice: library or camera
+  // Prompt user to choose between library or camera
   const openPickerOptions = () => {
     Alert.alert(
       "Add Photos",
@@ -73,10 +79,11 @@ const FridgeScanner: React.FC<Props> = ({ expanded, setExpanded }) => {
     );
   };
 
+  // Launch image library allowing multiple selection
   const selectImages = () => {
     const options: ImageLibraryOptions = {
       mediaType: "photo",
-      selectionLimit: 0,      // 0 = unlimited
+      selectionLimit: 0, // 0 = unlimited
     };
     launchImageLibrary(options, async (response) => {
       if (response.didCancel) return;
@@ -90,11 +97,9 @@ const FridgeScanner: React.FC<Props> = ({ expanded, setExpanded }) => {
     });
   };
 
+  // Launch camera to take a photo
   const takePhoto = () => {
-    const options: CameraOptions = {
-      mediaType: "photo",
-      saveToPhotos: true,
-    };
+    const options: CameraOptions = { mediaType: "photo", saveToPhotos: true };
     launchCamera(options, async (response) => {
       if (response.didCancel) return;
       if (response.errorCode) {
@@ -107,6 +112,7 @@ const FridgeScanner: React.FC<Props> = ({ expanded, setExpanded }) => {
     });
   };
 
+  // Send images to backend for AI scanning
   const scanFridge = async (images: Asset[]) => {
     try {
       setScanning(true);
@@ -129,6 +135,7 @@ const FridgeScanner: React.FC<Props> = ({ expanded, setExpanded }) => {
     }
   };
 
+  // Add a new manual item
   const handleAddItem = async () => {
     if (!editName.trim() || !editQuantity.trim()) {
       Alert.alert("Please enter a name and quantity");
@@ -143,7 +150,9 @@ const FridgeScanner: React.FC<Props> = ({ expanded, setExpanded }) => {
       };
       const res = await apiClient.post("/fridge/item", payload);
       setItems(res.data.items || []);
-      setEditName(""); setEditQuantity(""); setEditUnit("gram");
+      setEditName("");
+      setEditQuantity("");
+      setEditUnit("gram");
     } catch {
       Alert.alert("Error", "Could not add item");
     } finally {
@@ -151,6 +160,7 @@ const FridgeScanner: React.FC<Props> = ({ expanded, setExpanded }) => {
     }
   };
 
+  // Open modal to edit an existing item
   const openEdit = (idx: number) => {
     const it = items[idx];
     setEditingIndex(idx);
@@ -160,6 +170,7 @@ const FridgeScanner: React.FC<Props> = ({ expanded, setExpanded }) => {
     setModalVisible(true);
   };
 
+  // Save edited item
   const handleSaveEdit = async () => {
     if (editingIndex === null) return;
     try {
@@ -184,6 +195,7 @@ const FridgeScanner: React.FC<Props> = ({ expanded, setExpanded }) => {
     }
   };
 
+  // Delete an item
   const handleDeleteItem = (item: FridgeItem) => {
     Alert.alert(
       "Delete Item",
@@ -207,10 +219,12 @@ const FridgeScanner: React.FC<Props> = ({ expanded, setExpanded }) => {
             }
           },
         },
-      ]
+      ],
+      { cancelable: true }
     );
   };
 
+  // Clear all items
   const handleClearAll = () => {
     Alert.alert(
       "Clear All Items",
@@ -236,10 +250,13 @@ const FridgeScanner: React.FC<Props> = ({ expanded, setExpanded }) => {
     );
   };
 
+  // Close the edit modal and reset state
   const closeModal = () => {
     setModalVisible(false);
     setEditingIndex(null);
-    setEditName(""); setEditQuantity(""); setEditUnit("gram");
+    setEditName("");
+    setEditQuantity("");
+    setEditUnit("gram");
   };
 
   return (
@@ -260,6 +277,26 @@ const FridgeScanner: React.FC<Props> = ({ expanded, setExpanded }) => {
 
       {expanded && (
         <>
+          {/* Toggle: use fridge items or not */}
+          <View style={styles.toggleContainer}>
+            <Text style={styles.toggleLabel}>Use fridge items</Text>
+            <TouchableOpacity
+              style={[
+                styles.toggleSwitch,
+                useFridgeItems ? styles.toggleOn : styles.toggleOff,
+              ]}
+              onPress={() => setUseFridgeItems(!useFridgeItems)}
+              activeOpacity={0.8}
+            >
+              <View
+                style={[
+                  styles.toggleThumb,
+                  useFridgeItems ? styles.thumbOn : styles.thumbOff,
+                ]}
+              />
+            </TouchableOpacity>
+          </View>
+
           {/* Upload / Camera */}
           <TouchableOpacity
             style={styles.selectButton}
@@ -273,7 +310,7 @@ const FridgeScanner: React.FC<Props> = ({ expanded, setExpanded }) => {
             </Text>
           </TouchableOpacity>
 
-          {/* Spinner */}
+          {/* Loading spinner */}
           {(loading || scanning) && (
             <View style={styles.spinnerRow}>
               <ActivityIndicator size="small" color="#2563eb" />
@@ -286,15 +323,19 @@ const FridgeScanner: React.FC<Props> = ({ expanded, setExpanded }) => {
           {/* Items list & manual add */}
           {!loading && !scanning && (
             <>
-              {/* Your Items Header */}
+              {/* List header */}
               <View style={styles.listHeader}>
                 <Text style={styles.listTitle}>Your Fridge Items</Text>
-                <TouchableOpacity style={styles.clearAllBtn} onPress={handleClearAll}>
+                <TouchableOpacity
+                  style={styles.clearAllBtn}
+                  onPress={handleClearAll}
+                >
                   <Icon name="delete-outline" size={18} color="#e54349" />
                   <Text style={styles.clearAllText}>Clear All</Text>
                 </TouchableOpacity>
               </View>
 
+              {/* Empty state */}
               {items.length === 0 ? (
                 <Text style={styles.emptyText}>
                   No items yet. Add via upload or manually!
@@ -308,20 +349,27 @@ const FridgeScanner: React.FC<Props> = ({ expanded, setExpanded }) => {
                         {item.quantity} {item.unit}
                       </Text>
                     </View>
-                    <TouchableOpacity onPress={() => openEdit(idx)} style={styles.iconBtn}>
+                    <TouchableOpacity
+                      onPress={() => openEdit(idx)}
+                      style={styles.iconBtn}
+                    >
                       <Icon name="pencil-outline" size={18} color="#2563eb" />
                     </TouchableOpacity>
                     <TouchableOpacity
                       onPress={() => handleDeleteItem(item)}
                       style={[styles.iconBtn, styles.iconDelete]}
                     >
-                      <Icon name="trash-can-outline" size={18} color="#e54349" />
+                      <Icon
+                        name="trash-can-outline"
+                        size={18}
+                        color="#e54349"
+                      />
                     </TouchableOpacity>
                   </View>
                 ))
               )}
 
-              {/* Manual Add Row */}
+              {/* Manual add row */}
               <View style={styles.addRow}>
                 <TextInput
                   value={editName}
@@ -367,7 +415,7 @@ const FridgeScanner: React.FC<Props> = ({ expanded, setExpanded }) => {
             </>
           )}
 
-          {/* Edit Modal */}
+          {/* Edit modal */}
           <Modal
             visible={modalVisible}
             transparent
@@ -461,6 +509,36 @@ const styles = StyleSheet.create({
     color: "#2563eb",
     fontWeight: "bold",
   },
+
+  // Toggle switch row
+  toggleContainer: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    marginVertical: 10,
+  },
+  toggleLabel: {
+    fontSize: 15,
+    color: "#415c78",
+    fontWeight: "600",
+  },
+  toggleSwitch: {
+    width: 50,
+    height: 28,
+    borderRadius: 14,
+    padding: 2,
+    justifyContent: "center",
+  },
+  toggleOn: { backgroundColor: "#2563eb" },
+  toggleOff: { backgroundColor: "#d1d5db" },
+  toggleThumb: {
+    width: 24,
+    height: 24,
+    borderRadius: 12,
+    backgroundColor: "#fff",
+  },
+  thumbOn: { alignSelf: "flex-end" },
+  thumbOff: { alignSelf: "flex-start" },
 
   selectButton: {
     flexDirection: "row",
@@ -637,7 +715,7 @@ const styles = StyleSheet.create({
     borderRadius: 12,
   },
 
-  // Modal
+  // Edit modal styles
   modalOverlay: {
     flex: 1,
     backgroundColor: "#00000040",

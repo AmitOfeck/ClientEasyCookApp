@@ -15,7 +15,7 @@ import Icon from "react-native-vector-icons/MaterialCommunityIcons";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { searchDish } from "../services/search_service";
 import { addDishesToShoppingList } from "../services/shopping_list_service";
-import { DishCard } from "./DishCard";
+import { DishCard } from "../components/DishCard";
 import FridgeScanner from "../components/FridgeScanner";
 import SearchFilters from "../components/SearchFilters";
 import SearchPrompt from "../components/SearchPrompt";
@@ -27,6 +27,9 @@ const SearchScreen: React.FC<{ navigation: any }> = ({ navigation }) => {
   // Prompt state
   const [promptExpanded, setPromptExpanded] = useState(false);
   const [prompt, setPrompt] = useState("");
+
+  // “Use fridge items” toggle lifted here
+  const [useFridgeItems, setUseFridgeItems] = useState(false);
 
   // Filters state
   const [selectedCuisine, setSelectedCuisine] = useState<string>("");
@@ -40,10 +43,9 @@ const SearchScreen: React.FC<{ navigation: any }> = ({ navigation }) => {
   const [loading, setLoading] = useState<boolean>(false);
   const [results, setResults] = useState<IDish[]>([]);
 
-  // Animation for spinner
+  // Spinner animation
   const spinAnim = useRef(new Animated.Value(0)).current;
   const loopRef = useRef<Animated.CompositeAnimation | null>(null);
-
   useEffect(() => {
     if (loading) {
       loopRef.current = Animated.loop(
@@ -60,13 +62,8 @@ const SearchScreen: React.FC<{ navigation: any }> = ({ navigation }) => {
       spinAnim.setValue(0);
     }
   }, [loading, spinAnim]);
+  const spin = spinAnim.interpolate({ inputRange: [0, 1], outputRange: ["0deg", "360deg"] });
 
-  const spin = spinAnim.interpolate({
-    inputRange: [0, 1],
-    outputRange: ["0deg", "360deg"],
-  });
-
-  // Search logic
   const handleSearch = async () => {
     setLoading(true);
     try {
@@ -77,6 +74,7 @@ const SearchScreen: React.FC<{ navigation: any }> = ({ navigation }) => {
         level: selectedDifficulty || undefined,
         priceMin: priceRange[0],
         priceMax: priceRange[1],
+        useFridge: useFridgeItems,   
       });
       const { data } = await request;
       setResults(data);
@@ -105,7 +103,7 @@ const SearchScreen: React.FC<{ navigation: any }> = ({ navigation }) => {
 
   return (
     <ScrollView contentContainerStyle={styles.scrollView}>
-      {/* Main Title */}
+      {/* Header */}
       <View style={styles.headerBox}>
         <View style={styles.headerIconBox}>
           <Icon name="magnify" size={30} color="#fff" />
@@ -124,6 +122,8 @@ const SearchScreen: React.FC<{ navigation: any }> = ({ navigation }) => {
       <FridgeScanner
         expanded={fridgeExpanded}
         setExpanded={setFridgeExpanded}
+        useFridgeItems={useFridgeItems}
+        setUseFridgeItems={setUseFridgeItems}
       />
 
       {/* Search Prompt */}
@@ -134,7 +134,7 @@ const SearchScreen: React.FC<{ navigation: any }> = ({ navigation }) => {
         setPrompt={setPrompt}
       />
 
-      {/* Search Filters */}
+      {/* Filters */}
       <SearchFilters
         expanded={filtersExpanded}
         setExpanded={setFiltersExpanded}
@@ -159,35 +159,17 @@ const SearchScreen: React.FC<{ navigation: any }> = ({ navigation }) => {
           <Animated.View style={{ transform: [{ rotate: spin }] }}>
             <Text style={{ fontSize: 48 }}>🍽️</Text>
           </Animated.View>
-          <Text
-            style={{
-              marginTop: 12,
-              color: "#2563eb",
-              fontWeight: "700",
-              fontSize: 16,
-            }}
-          >
-            Looking for delicious dishes...
-          </Text>
+          <Text style={styles.loadingText}>Looking for delicious dishes...</Text>
         </View>
       )}
 
       {/* Results */}
-      <View
-        style={{
-          marginTop: 18,
-          width: "100%",
-          alignItems: "center",
-          paddingBottom: 70,
-        }}
-      >
+      <View style={styles.resultsContainer}>
         {results.map((dish) => (
           <DishCard
             key={dish._id}
             dish={dish}
-            onInfoPress={() =>
-              navigation.navigate("DishDetail", { dishId: dish._id })
-            }
+            onInfoPress={() => navigation.navigate("DishDetail", { dishId: dish._id })}
             onAddPress={() => handleAddToShoppingList(dish._id)}
           />
         ))}
@@ -202,18 +184,15 @@ const styles = StyleSheet.create({
     backgroundColor: "#e4f0fd",
     alignItems: "center",
     paddingTop: Platform.OS === "ios" ? 24 : 10,
-    minHeight: 700,
   },
   headerBox: {
     flexDirection: "row",
     alignItems: "center",
     backgroundColor: "#eaf3ff",
     borderRadius: 25,
-    marginTop: 10,
-    marginBottom: 13,
-    padding: 13,
+    marginVertical: 12,
+    padding: 12,
     width: width * 0.93,
-    minHeight: 67,
     shadowColor: "#2563eb66",
     shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.09,
@@ -237,15 +216,12 @@ const styles = StyleSheet.create({
     fontSize: 17.2,
     fontWeight: "700",
     color: "#2563eb",
-    marginBottom: 2,
   },
   headerSubtitle: {
     fontSize: 14,
     color: "#6487b0",
     fontWeight: "500",
     opacity: 0.8,
-    marginLeft: 1,
-    marginTop: 1,
   },
   searchButton: {
     backgroundColor: "#e8f2ff",
@@ -255,10 +231,8 @@ const styles = StyleSheet.create({
     alignItems: "center",
     borderWidth: 2,
     borderColor: "#2186eb",
-    marginTop: 14,
-    marginBottom: 7,
+    marginVertical: 12,
     width: "93%",
-    alignSelf: "center",
     shadowColor: "#2563eb22",
     shadowOffset: { width: 0, height: 1 },
     shadowOpacity: 0.06,
@@ -269,8 +243,18 @@ const styles = StyleSheet.create({
     color: "#2186eb",
     fontSize: 15.5,
     fontWeight: "700",
-    letterSpacing: 0.11,
-    textAlign: "center",
+  },
+  loadingText: {
+    marginTop: 12,
+    color: "#2563eb",
+    fontWeight: "700",
+    fontSize: 16,
+  },
+  resultsContainer: {
+    marginTop: 18,
+    width: "100%",
+    alignItems: "center",
+    paddingBottom: 70,
   },
 });
 
