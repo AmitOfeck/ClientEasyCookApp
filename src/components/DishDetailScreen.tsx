@@ -10,6 +10,7 @@ import {
 } from "../services/dish_service";
 import dishImage from '../assets/dish.png';
 import type { IDish } from "../services/intefaces/dish"; // ודא שמייבא נכון
+import { getFullImageUrl } from "../utils/getFullImageUrl";
 
 // --- Pill (טיפוס פרופס) ---
 type PillProps = {
@@ -96,7 +97,7 @@ const DishDetailScreen: React.FC<{ navigation: any; route: any }> = ({ navigatio
             <ScrollView contentContainerStyle={styles.scrollContent}>
                 {/* תמונה */}
                 <Image
-                    source={dish.imageUrl ? { uri: dish.imageUrl } : dishImage}
+                    source={dish.imageUrl ? { uri: getFullImageUrl(dish.imageUrl) } : dishImage}
                     style={styles.dishImage}
                 />
                 {/* שם מנה */}
