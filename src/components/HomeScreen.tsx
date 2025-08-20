@@ -15,6 +15,7 @@ import { geRecommendedDishes, getDishes, getMadeDishes } from '../services/dish_
 import dishPlaceholder from '../assets/dish.png';
 import Icon from 'react-native-vector-icons/MaterialCommunityIcons';
 import { IDish } from '../services/intefaces/dish';
+import { getFullImageUrl } from '../utils/getFullImageUrl';
 
 type Props = { navigation: NavigationProp<any> };
 
@@ -108,7 +109,7 @@ export default function HomeScreen({ navigation }: Props) {
               onPress={() => navigation.navigate('DishDetail', { dishId: item._id })}
             >
               <Image
-                source={item.imageUrl ? { uri: item.imageUrl } : dishPlaceholder}
+                source={item.imageUrl ? { uri: getFullImageUrl(item.imageUrl) } : dishPlaceholder}
                 style={styles.trendImg}
               />
               <Text numberOfLines={1} style={styles.trendName}>{item.name}</Text>
