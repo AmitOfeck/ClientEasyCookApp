@@ -51,7 +51,7 @@ export default function HomeScreen({ navigation }: Props) {
       const { request: recommendedReq } = geRecommendedDishes();
       dishes = (await recommendedReq).data;
       setRecommended(dishes);
-    
+
     } catch (err) {
       console.error('Home fetch error:', err);
     } finally {
@@ -63,111 +63,123 @@ export default function HomeScreen({ navigation }: Props) {
 
   /* ────────── RENDER ────────── */
   return (
-  <ScrollView contentContainerStyle={styles.container}>
-    {/* ───────── Hero ───────── */}
-    <View style={styles.hero}>
-      <View style={styles.heroLeft}>
-        <Text style={styles.hello}>Hi {name}!</Text>
-        <Text style={styles.subtitle}>Ready to whip up something tasty?</Text>
+    <ScrollView contentContainerStyle={styles.container}>
+      {/* ───────── Hero ───────── */}
+      <View style={styles.hero}>
+        <View style={styles.heroLeft}>
+          <Text style={styles.hello}>Hi {name}!</Text>
+          <Text style={styles.subtitle}>Ready to whip up something tasty?</Text>
 
-        <View style={styles.statRow}>
-          <StatBubble icon="chef-hat" label="Recipes"   value={stats.recipes}   />
-          <StatBubble icon="heart"    label="Favorites" value={stats.favorites} />
+          <View style={styles.statRow}>
+            <StatBubble icon="chef-hat" label="Recipes" value={stats.recipes} />
+            <StatBubble icon="heart" label="Favorites" value={stats.favorites} />
+          </View>
         </View>
+
+        {avatar ? (
+          <Image source={{ uri: avatar }} style={styles.avatar} />
+        ) : (
+          <View style={[styles.avatar, styles.avatarPlaceholder]}>
+            <Icon name="account" size={40} color="#fff" />
+          </View>
+        )}
       </View>
 
-      {avatar ? (
-        <Image source={{ uri: avatar }} style={styles.avatar} />
-      ) : (
-        <View style={[styles.avatar, styles.avatarPlaceholder]}>
-          <Icon name="account" size={40} color="#fff" />
+      {/* ───────── Recommended Dishes ───────── */}
+      <Text style={styles.sectionTitle}>
+        <Icon name="lightbulb-on-outline" size={20} color="#1E3A8A" /> Recommended For You
+      </Text>
+      {loading ? (
+        <View style={{ height: 150, justifyContent: 'center', alignItems: 'center', marginBottom: 30 }}>
+          <ActivityIndicator size="large" color="#1E3A8A" />
         </View>
+      ) : (
+        <FlatList
+          horizontal
+          nestedScrollEnabled
+          data={recommended}
+          keyExtractor={(item) => item._id}
+          showsHorizontalScrollIndicator={false}
+          style={[styles.trendList, { marginBottom: 30 }]}
+          contentContainerStyle={{ paddingRight: 20 }}
+          renderItem={({ item }) => (
+            <TouchableOpacity
+              style={styles.trendCard}
+              onPress={() => navigation.navigate('DishDetail', { dishId: item._id })}
+            >
+              <Image
+                source={item.imageUrl ? { uri: item.imageUrl } : dishPlaceholder}
+                style={styles.trendImg}
+              />
+              <Text numberOfLines={1} style={styles.trendName}>{item.name}</Text>
+            </TouchableOpacity>
+          )}
+        />
       )}
-    </View>
 
-  {/* ───────── Trending ───────── */}
-  <Text style={styles.sectionTitle}>🔥 Trending Now</Text>
-  {loading ? (
-    <ActivityIndicator size="large" color="#1E3A8A" />
-  ) : (
-    <FlatList
-      horizontal
-      data={trending}
-      keyExtractor={(item) => item._id}
-      showsHorizontalScrollIndicator={false}
-      style={styles.trendList}              /*  ← gives the row a height  */
-      contentContainerStyle={{ paddingRight: 20 }}
-      renderItem={({ item }) => (
-        <TouchableOpacity
-          style={styles.trendCard}
-          onPress={() => navigation.navigate('DishDetail', { dishId: item._id })}
-        >
-          <Image
-            source={item.imageUrl ? { uri: item.imageUrl } : dishPlaceholder}
-            style={styles.trendImg}
-          />
-          <Text numberOfLines={1} style={styles.trendName}>{item.name}</Text>
-        </TouchableOpacity>
+      {/* ───────── Trending ───────── */}
+      <Text style={styles.sectionTitle}>🔥 Trending Now</Text>
+      {loading ? (
+        <View style={{ height: 150, justifyContent: 'center', alignItems: 'center', marginBottom: 30 }}>
+          <ActivityIndicator size="large" color="#1E3A8A" />
+        </View>
+      ) : (
+        <FlatList
+          horizontal
+          nestedScrollEnabled
+          data={trending}
+          keyExtractor={(item) => item._id}
+          showsHorizontalScrollIndicator={false}
+          style={[styles.trendList, { marginBottom: 30 }]}
+          contentContainerStyle={{ paddingRight: 20 }}
+          renderItem={({ item }) => (
+            <TouchableOpacity
+              style={styles.trendCard}
+              onPress={() => navigation.navigate('DishDetail', { dishId: item._id })}
+            >
+              <Image
+                source={item.imageUrl ? { uri: item.imageUrl } : dishPlaceholder}
+                style={styles.trendImg}
+              />
+              <Text numberOfLines={1} style={styles.trendName}>{item.name}</Text>
+            </TouchableOpacity>
+          )}
+        />
       )}
-    />
-  )}
 
-  {/* ───────── Made Dishes ───────── */}
-  <Text style={styles.sectionTitle}>🍽️ Make Again</Text>
-  {loading ? (
-    <ActivityIndicator size="large" color="#1E3A8A" />
-  ) : (
-    <FlatList
-      horizontal
-      data={made}
-      keyExtractor={(item) => item._id}
-      showsHorizontalScrollIndicator={false}
-      style={styles.trendList}              /*  ← gives the row a height  */
-      contentContainerStyle={{ paddingRight: 20 }}
-      renderItem={({ item }) => (
-        <TouchableOpacity
-          style={styles.trendCard}
-          onPress={() => navigation.navigate('DishDetail', { dishId: item._id })}
-        >
-          <Image
-            source={item.imageUrl ? { uri: item.imageUrl } : dishPlaceholder}
-            style={styles.trendImg}
-          />
-          <Text numberOfLines={1} style={styles.trendName}>{item.name}</Text>
-        </TouchableOpacity>
+      {/* ───────── Made Dishes ───────── */}
+      <Text style={styles.sectionTitle}>
+        <Icon name="chef-hat" size={20} color="#1E3A8A" /> Make Again
+      </Text>
+      {loading ? (
+        <View style={{ height: 150, justifyContent: 'center', alignItems: 'center', marginBottom: 30 }}>
+          <ActivityIndicator size="large" color="#1E3A8A" />
+        </View>
+      ) : (
+        <FlatList
+          horizontal
+          nestedScrollEnabled
+          data={made}
+          keyExtractor={(item) => item._id}
+          showsHorizontalScrollIndicator={false}
+          style={[styles.trendList, { marginBottom: 30 }]}
+          contentContainerStyle={{ paddingRight: 20 }}
+          renderItem={({ item }) => (
+            <TouchableOpacity
+              style={styles.trendCard}
+              onPress={() => navigation.navigate('DishDetail', { dishId: item._id })}
+            >
+              <Image
+                source={item.imageUrl ? { uri: item.imageUrl } : dishPlaceholder}
+                style={styles.trendImg}
+              />
+              <Text numberOfLines={1} style={styles.trendName}>{item.name}</Text>
+            </TouchableOpacity>
+          )}
+        />
       )}
-    />
-  )}
-
-  {/* ───────── Recommended Dishes ───────── */}
-  <Text style={styles.sectionTitle}>Recommended For You</Text>
-
-  {loading ? (
-    <ActivityIndicator size="large" color="#1E3A8A" />
-  ) : (
-    <FlatList
-      horizontal
-      data={recommended}
-      keyExtractor={(item) => item._id}
-      showsHorizontalScrollIndicator={false}
-      style={styles.trendList}              /*  ← gives the row a height  */
-      contentContainerStyle={{ paddingRight: 20 }}
-      renderItem={({ item }) => (
-        <TouchableOpacity
-          style={styles.trendCard}
-          onPress={() => navigation.navigate('DishDetail', { dishId: item._id })}
-        >
-          <Image
-            source={item.imageUrl ? { uri: item.imageUrl } : dishPlaceholder}
-            style={styles.trendImg}
-          />
-          <Text numberOfLines={1} style={styles.trendName}>{item.name}</Text>
-        </TouchableOpacity>
-      )}
-    />
-  )}
-  </ScrollView>
-);
+    </ScrollView>
+  );
 }
 
 /* small round stat bubble */
@@ -212,7 +224,7 @@ const styles = StyleSheet.create({
   avatar: { width: 72, height: 72, borderRadius: 36, backgroundColor: '#ddd' },
   avatarPlaceholder: { backgroundColor: '#1E3A8A', justifyContent: 'center', alignItems: 'center' },
 
-  /* trending */
+  /* trending / lists */
   trendList: { height: 150 },          // card-height (120) + text & margin
   trendCard: {
     width: 120,
@@ -227,7 +239,7 @@ const styles = StyleSheet.create({
     marginBottom: 6,
   },
   trendName: { fontSize: 13, color: '#333', textAlign: 'center' },
-    catGrid: {
+  catGrid: {
     flexDirection: 'row',
     flexWrap: 'wrap',
     justifyContent: 'space-between',
