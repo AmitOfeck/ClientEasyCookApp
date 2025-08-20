@@ -13,6 +13,7 @@ import { NavigationProp, useFocusEffect } from '@react-navigation/native';
 import { getProfile, updateProfile, IProfile } from '../services/profile_service';
 import ProfileEditModal from './ProfileEditModal';
 import { getFullImageUrl } from '../utils/getFullImageUrl';
+import defaultProfileImage from '../assets/profile.jpg';
 
 export const ProfileScreen = ({ navigation }: { navigation: NavigationProp<any> }) => {
   const [activeTab, setActiveTab]               = useState<'recipe' | 'favorites'>('recipe');
@@ -139,10 +140,13 @@ export const ProfileScreen = ({ navigation }: { navigation: NavigationProp<any> 
     <ScrollView contentContainerStyle={styles.container}>
       {/* top section */}
       <View style={styles.profileContainer}>
-        <Image
-          source={{ uri: getFullImageUrl(profile.profileImage) }}
-          style={styles.avatar}
-        />
+        {profile.profileImage ? (
+          <Image
+            source={{ uri: getFullImageUrl(profile.profileImage)}}
+            style={styles.avatar}
+          /> ) : (
+          <Image source={defaultProfileImage} style={styles.avatar} />
+        )}
         <Text style={styles.name}>{profile.name}</Text>
         <Text style={styles.username}>@{profile.userName}</Text>
         <Text style={styles.bio}>
