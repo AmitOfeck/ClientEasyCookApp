@@ -7,7 +7,7 @@ import {
   ScrollView,
   Alert,
   ActivityIndicator,
-  StyleSheet,          // ← keep the import; styles live elsewhere
+  StyleSheet,
 } from 'react-native';
 import { NavigationProp, useFocusEffect } from '@react-navigation/native';
 import { getProfile, updateProfile, IProfile } from '../services/profile_service';
@@ -16,11 +16,10 @@ import { getFullImageUrl } from '../utils/getFullImageUrl';
 import defaultProfileImage from '../assets/profile.jpg';
 
 export const ProfileScreen = ({ navigation }: { navigation: NavigationProp<any> }) => {
-  const [activeTab, setActiveTab]               = useState<'recipe' | 'favorites'>('recipe');
-  const [profile,   setProfile]                 = useState<IProfile | null>(null);
-  const [loading,   setLoading]                 = useState(true);
+  const [profile, setProfile] = useState<IProfile | null>(null);
+  const [loading, setLoading] = useState(true);
   const [editModalVisible, setEditModalVisible] = useState(false);
-  const [errorMsg,  setErrorMsg]                = useState<string | null>(null);   // ⬅️ tracks fetch-error
+  const [errorMsg, setErrorMsg] = useState<string | null>(null);
 
   /* ───────────  FETCH PROFILE  ─────────── */
   const fetchProfile = async () => {
@@ -53,9 +52,9 @@ export const ProfileScreen = ({ navigation }: { navigation: NavigationProp<any> 
     profileImage?: { uri: string; type: string; fileName: string };
   }) => {
     const formData = new FormData();
-    formData.append('name',     updatedData.name);
+    formData.append('name', updatedData.name);
     formData.append('userName', updatedData.userName);
-    formData.append('email',    updatedData.email);
+    formData.append('email', updatedData.email);
 
     if (updatedData.address) {
       formData.append('address', JSON.stringify(updatedData.address));
@@ -63,8 +62,8 @@ export const ProfileScreen = ({ navigation }: { navigation: NavigationProp<any> 
 
     if (updatedData.profileImage?.uri && !updatedData.profileImage.uri.startsWith('http')) {
       formData.append('profileImage', {
-        uri:  updatedData.profileImage.uri,
-        type: updatedData.profileImage.type  || 'image/jpeg',
+        uri: updatedData.profileImage.uri,
+        type: updatedData.profileImage.type || 'image/jpeg',
         name: updatedData.profileImage.fileName || 'profile.jpg',
       } as any);
     }
@@ -73,14 +72,14 @@ export const ProfileScreen = ({ navigation }: { navigation: NavigationProp<any> 
 
     try {
       await request;
-      await fetchProfile();                       // refresh UI
+      await fetchProfile();
       setEditModalVisible(false);
     } catch (err: any) {
       const serverMsg = err?.response?.data?.message ||
-                        err?.response?.data?.errors?.join('\n') ||
-                        'Could not update your profile.';
+        err?.response?.data?.errors?.join('\n') ||
+        'Could not update your profile.';
       console.error('[profile] update error:', serverMsg);
-      Alert.alert('Update failed', serverMsg);    // שגיאה אינדיקטיבית
+      Alert.alert('Update failed', serverMsg);
       setEditModalVisible(false);
     }
     return () => abort();
@@ -88,20 +87,12 @@ export const ProfileScreen = ({ navigation }: { navigation: NavigationProp<any> 
 
   /* ───────────  RENDER HELPERS  ─────────── */
   const renderCards = () => {
-    const data = activeTab === 'recipe' ? profile?.dishes : profile?.favoriteDishes;
+    if (!profile?.dishes?.length) return null;
 
-    if (!data?.length) {
-      return (
-        <View style={{ alignItems: 'center', marginTop: 20 }}>
-          <Text>No items found.</Text>
-        </View>
-      );
-    }
-
-    return data.map((item, i) => (
+    return profile.dishes.map((item, i) => (
       <View key={i} style={styles.card}>
         <Image source={{ uri: item.imageUrl }} style={styles.cardImage} />
-        <Text style={styles.cardTitle}    numberOfLines={1}>{item.name}</Text>
+        <Text style={styles.cardTitle} numberOfLines={1}>{item.name}</Text>
         <Text style={styles.cardSubtitle} numberOfLines={2}>{item.details}</Text>
       </View>
     ));
@@ -135,16 +126,13 @@ export const ProfileScreen = ({ navigation }: { navigation: NavigationProp<any> 
     );
   }
 
-  /* ───────────  CONTENT  ─────────── */
   return (
-    <ScrollView contentContainerStyle={styles.container}>
+    <ScrollView contentContainerStyle={[styles.container, { flexGrow: 1 }]}>
       {/* top section */}
       <View style={styles.profileContainer}>
         {profile.profileImage ? (
-          <Image
-            source={{ uri: getFullImageUrl(profile.profileImage)}}
-            style={styles.avatar}
-          /> ) : (
+          <Image source={{ uri: getFullImageUrl(profile.profileImage) }} style={styles.avatar} />
+        ) : (
           <Image source={defaultProfileImage} style={styles.avatar} />
         )}
         <Text style={styles.name}>{profile.name}</Text>
@@ -156,29 +144,19 @@ export const ProfileScreen = ({ navigation }: { navigation: NavigationProp<any> 
         <TouchableOpacity style={styles.editButton} onPress={handleEditProfile}>
           <Text style={styles.editButtonText}>Edit Profile</Text>
         </TouchableOpacity>
-
-        <Text style={styles.recipeCount}>{profile.dishes.length} recipes</Text>
       </View>
 
-      {/* tabs */}
-      <View style={styles.tabContainer}>
-        {(['recipe', 'favorites'] as const).map(t => (
-          <TouchableOpacity
-            key={t}
-            style={[styles.tab, activeTab === t && styles.tabActive]}
-            onPress={() => setActiveTab(t)}
-          >
-            <Text
-              style={[styles.tabText, activeTab === t && styles.tabTextActive]}
-            >
-              {t === 'recipe' ? 'Recipes' : 'Favorites'}
-            </Text>
-          </TouchableOpacity>
-        ))}
-      </View>
+      {/* Recipes title */}
+      <Text style={styles.recipesTitle}>Recipes ({profile.dishes.length})</Text>
 
-      {/* list */}
-      <View style={styles.cardWrapper}>{renderCards()}</View>
+      {/* list of recipes */}
+      {profile.dishes.length > 0 ? (
+        <View style={styles.cardWrapper}>{renderCards()}</View>
+      ) : (
+        <View style={styles.noRecipesContainer}>
+          <Text style={styles.noRecipesText}>No recipes found.</Text>
+        </View>
+      )}
 
       {/* modal */}
       <ProfileEditModal
@@ -186,13 +164,11 @@ export const ProfileScreen = ({ navigation }: { navigation: NavigationProp<any> 
         onClose={() => setEditModalVisible(false)}
         onSave={handleSaveProfile}
         initialData={{
-          name:         profile.name,
-          userName:     profile.userName,
-          email:        profile.email,
-          address:      profile.addresses?.[0],
-          profileImage: profile.profileImage
-            ? { uri: getFullImageUrl(profile.profileImage) }
-            : undefined,
+          name: profile.name,
+          userName: profile.userName,
+          email: profile.email,
+          address: profile.addresses?.[0],
+          profileImage: profile.profileImage ? { uri: getFullImageUrl(profile.profileImage) } : undefined,
         }}
       />
     </ScrollView>
@@ -244,28 +220,22 @@ const styles = StyleSheet.create({
     marginTop: 10,
     fontWeight: "500",
   },
-  tabContainer: {
-    flexDirection: "row",
-    justifyContent: "center",
-    marginBottom: 15,
-  },
-  tab: {
-    paddingVertical: 8,
-    paddingHorizontal: 20,
-    marginHorizontal: 5,
-    borderBottomWidth: 2,
-    borderBottomColor: "transparent",
-  },
-  tabActive: {
-    borderBottomColor: "#1E3A8A",
-  },
-  tabText: {
-    fontSize: 14,
-    color: "#8E8E93",
-  },
-  tabTextActive: {
-    color: "#1E3A8A",
+  recipesTitle: {
+    fontSize: 18,
     fontWeight: "bold",
+    marginTop: 20,
+    marginBottom: 10,
+    color: "#000",
+  },
+  noRecipesContainer: {
+    flex: 1,
+    justifyContent: "center",
+    alignItems: "center",
+    marginTop: 20,
+  },
+  noRecipesText: {
+    fontSize: 16,
+    color: "#555",
   },
   cardWrapper: {
     flexDirection: "row",
@@ -293,14 +263,6 @@ const styles = StyleSheet.create({
     fontSize: 12,
     color: "#555",
     marginBottom: 5,
-  },
-  cardMeta: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-  },
-  cardMetaText: {
-    fontSize: 12,
-    color: "#777",
   },
   loaderContainer: {
     flex: 1,
