@@ -91,7 +91,7 @@ export const ProfileScreen = ({ navigation }: { navigation: NavigationProp<any> 
 
     return profile.dishes.map((item, i) => (
       <View key={i} style={styles.card}>
-        <Image source={{ uri: item.imageUrl }} style={styles.cardImage} />
+        <Image source={{ uri: getFullImageUrl(item.imageUrl) }} style={styles.cardImage} />
         <Text style={styles.cardTitle} numberOfLines={1}>{item.name}</Text>
         <Text style={styles.cardSubtitle} numberOfLines={2}>{item.details}</Text>
       </View>

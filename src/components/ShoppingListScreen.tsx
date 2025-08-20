@@ -24,6 +24,7 @@ import {
 } from "../services/shopping_list_service";
 import { StackNavigationProp } from "@react-navigation/stack";
 import { CartStackParamList } from "../navigation/CartStackScreen";
+import { getFullImageUrl } from "../utils/getFullImageUrl";
 
 const { width } = Dimensions.get("window");
 const allowedUnits = ["gram", "kg", "ml", "liter"];
@@ -146,7 +147,7 @@ const ShoppingListScreen: React.FC = () => {
     return (
       <View style={styles.cardRecipe} key={dish.dishId}>
         {d?.imageUrl ? (
-          <Image source={{ uri: d.imageUrl }} style={styles.cardRecipeImg} />
+          <Image source={{ uri: getFullImageUrl(d.imageUrl) }} style={styles.cardRecipeImg} />
         ) : (
           <View style={[styles.cardRecipeImg, { backgroundColor: "#eaf3ff", justifyContent: "center", alignItems: "center" }]}>
             <Icon name="food" size={36} color="#bcd7fa" />
