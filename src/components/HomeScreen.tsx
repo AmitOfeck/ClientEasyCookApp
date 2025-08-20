@@ -21,7 +21,7 @@ type Props = { navigation: NavigationProp<any> };
 export default function HomeScreen({ navigation }: Props) {
   const [name, setName] = useState('👋');
   const [avatar, setAvatar] = useState<string | null>(null);
-  const [stats, setStats] = useState({ recipes: 0, favorites: 0 });
+  const [stats, setStats] = useState({ recipes: 0 });
   const [trending, setTrending] = useState<IDish[]>([]);
   const [made, setMade] = useState<IDish[]>([]);
   const [recommended, setRecommended] = useState<IDish[]>([]);
@@ -35,7 +35,7 @@ export default function HomeScreen({ navigation }: Props) {
       const profile = (await pReq).data;
       setName(profile.name || 'Chef');
       setAvatar(profile.profileImage ? `http://10.0.2.2:3000${profile.profileImage}` : null);
-      setStats({ recipes: profile.dishes.length, favorites: profile.favoriteDishes.length });
+      setStats({ recipes: profile.dishes.length});
 
       /* trending dishes —— first 8 */
       const { request: trendingReq } = getDishes({ limit: 8 });
@@ -51,7 +51,6 @@ export default function HomeScreen({ navigation }: Props) {
       const { request: recommendedReq } = geRecommendedDishes();
       dishes = (await recommendedReq).data;
       setRecommended(dishes);
-
     } catch (err) {
       console.error('Home fetch error:', err);
     } finally {
@@ -72,7 +71,6 @@ export default function HomeScreen({ navigation }: Props) {
 
           <View style={styles.statRow}>
             <StatBubble icon="chef-hat" label="Recipes" value={stats.recipes} />
-            <StatBubble icon="heart" label="Favorites" value={stats.favorites} />
           </View>
         </View>
 
