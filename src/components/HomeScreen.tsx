@@ -11,7 +11,7 @@ import {
 } from 'react-native';
 import { NavigationProp, useFocusEffect } from '@react-navigation/native';
 import { getProfile } from '../services/profile_service';
-import { getDishes } from '../services/dish_service';
+import { geRecommendedDishes, getDishes, getMadeDishes } from '../services/dish_service';
 import dishPlaceholder from '../assets/dish.png';
 import Icon from 'react-native-vector-icons/MaterialCommunityIcons';
 import { IDish } from '../services/intefaces/dish';
@@ -23,6 +23,8 @@ export default function HomeScreen({ navigation }: Props) {
   const [avatar, setAvatar] = useState<string | null>(null);
   const [stats, setStats] = useState({ recipes: 0, favorites: 0 });
   const [trending, setTrending] = useState<IDish[]>([]);
+  const [made, setMade] = useState<IDish[]>([]);
+  const [recommended, setRecommended] = useState<IDish[]>([]);
   const [loading, setLoading] = useState(true);
 
   const fetchData = async () => {
@@ -36,9 +38,20 @@ export default function HomeScreen({ navigation }: Props) {
       setStats({ recipes: profile.dishes.length, favorites: profile.favoriteDishes.length });
 
       /* trending dishes —— first 8 */
-      const { request: dReq } = getDishes({ limit: 8 });
-      const dishes = (await dReq).data;
+      const { request: trendingReq } = getDishes({ limit: 8 });
+      let dishes = (await trendingReq).data;
       setTrending(dishes.slice(0, 8));
+
+      /* made dishes */
+      const { request: madeReq } = getMadeDishes();
+      dishes = (await madeReq).data;
+      setMade(dishes);
+
+      /* recommended dishes */
+      const { request: recommendedReq } = geRecommendedDishes();
+      dishes = (await recommendedReq).data;
+      setRecommended(dishes);
+    
     } catch (err) {
       console.error('Home fetch error:', err);
     } finally {
@@ -99,58 +112,60 @@ export default function HomeScreen({ navigation }: Props) {
     />
   )}
 
-
-
-    {/* ───────── Favourites ───────── */}
-    {stats.favorites > 0 && (
-      <>
-        <Text style={styles.sectionTitle}>❤️ Your Favourites</Text>
-        <FlatList
-          horizontal
-          data={profile.favoriteDishes.slice(0, 6)}
-          keyExtractor={(item) => item._id}
-          showsHorizontalScrollIndicator={false}
-          contentContainerStyle={{ paddingRight: 10 }}
-          renderItem={({ item }) => (
-            <TouchableOpacity
-              style={styles.trendCard}
-              onPress={() => navigation.navigate('DishDetail', { dishId: item._id })}
-            >
-              <Image
-                source={item.imageUrl ? { uri: item.imageUrl } : dishPlaceholder}
-                style={styles.trendImg}
-              />
-              <Text numberOfLines={1} style={styles.trendName}>{item.name}</Text>
-            </TouchableOpacity>
-          )}
-        />
-      </>
-    )}
-
-    {/* ───────── Categories Grid ───────── */}
-    <Text style={styles.sectionTitle}>🍲 Explore Categories</Text>
-    <View style={styles.catGrid}>
-      {[
-        { label: 'ITALIAN',      cuisine: 'ITALIAN' },
-        { label: 'CHINESE',      cuisine: 'CHINESE' },
-        { label: 'INDIAN',       cuisine: 'INDIAN' },
-        { label: 'MEXICAN',      cuisine: 'MEXICAN' },
-        { label: 'VEGAN',        limitation: 'VEGAN' },
-        { label: 'DESSERTS',     cuisine: 'FRENCH' },
-      ].map((c) => (
+  {/* ───────── Made Dishes ───────── */}
+  <Text style={styles.sectionTitle}>🍽️ Make Again</Text>
+  {loading ? (
+    <ActivityIndicator size="large" color="#1E3A8A" />
+  ) : (
+    <FlatList
+      horizontal
+      data={made}
+      keyExtractor={(item) => item._id}
+      showsHorizontalScrollIndicator={false}
+      style={styles.trendList}              /*  ← gives the row a height  */
+      contentContainerStyle={{ paddingRight: 20 }}
+      renderItem={({ item }) => (
         <TouchableOpacity
-          key={c.label}
-          style={styles.catTile}
-          onPress={() =>
-            navigation.navigate('Search', {
-              preset: { cuisine: c.cuisine || '', limitation: c.limitation || '' },
-            })
-          }
+          style={styles.trendCard}
+          onPress={() => navigation.navigate('DishDetail', { dishId: item._id })}
         >
-          <Text style={styles.catText}>{c.label}</Text>
+          <Image
+            source={item.imageUrl ? { uri: item.imageUrl } : dishPlaceholder}
+            style={styles.trendImg}
+          />
+          <Text numberOfLines={1} style={styles.trendName}>{item.name}</Text>
         </TouchableOpacity>
-      ))}
-    </View>
+      )}
+    />
+  )}
+
+  {/* ───────── Recommended Dishes ───────── */}
+  <Text style={styles.sectionTitle}>Recommended For You</Text>
+
+  {loading ? (
+    <ActivityIndicator size="large" color="#1E3A8A" />
+  ) : (
+    <FlatList
+      horizontal
+      data={recommended}
+      keyExtractor={(item) => item._id}
+      showsHorizontalScrollIndicator={false}
+      style={styles.trendList}              /*  ← gives the row a height  */
+      contentContainerStyle={{ paddingRight: 20 }}
+      renderItem={({ item }) => (
+        <TouchableOpacity
+          style={styles.trendCard}
+          onPress={() => navigation.navigate('DishDetail', { dishId: item._id })}
+        >
+          <Image
+            source={item.imageUrl ? { uri: item.imageUrl } : dishPlaceholder}
+            style={styles.trendImg}
+          />
+          <Text numberOfLines={1} style={styles.trendName}>{item.name}</Text>
+        </TouchableOpacity>
+      )}
+    />
+  )}
   </ScrollView>
 );
 }

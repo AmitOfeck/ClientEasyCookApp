@@ -22,6 +22,22 @@ const getDishes = (filters: {
     return { request, abort: () => abortController.abort() };
 };
 
+const getMadeDishes = () => {
+    const abortController = new AbortController();
+    const request = apiClient.get<IDish[]>('/user/madeBefore', {
+        signal: abortController.signal,
+    });
+    return { request, abort: () => abortController.abort() };
+};
+
+const geRecommendedDishes = () => {
+    const abortController = new AbortController();
+    const request = apiClient.get<IDish[]>('/user/recommended', {
+        signal: abortController.signal,
+    });
+    return { request, abort: () => abortController.abort() };
+};
+
 const getDishById = (id: string) => {
     const abortController = new AbortController();
     const request = apiClient.get<IDish>(`/dish/${id}`, {
@@ -78,4 +94,6 @@ export {
     deleteDish,
     healthifyDish,
     cheapifyDish,
+    geRecommendedDishes,
+    getMadeDishes,
 };
