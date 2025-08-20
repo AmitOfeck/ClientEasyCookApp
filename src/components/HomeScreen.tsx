@@ -85,19 +85,21 @@ export default function HomeScreen({ navigation }: Props) {
         )}
       </View>
 
-      {/* ───────── Recommended Dishes ───────── */}
-      <Text style={styles.sectionTitle}>
-        <Icon name="lightbulb-on-outline" size={20} color="#1E3A8A" /> Recommended For You
-      </Text>
+      {/* ───────── Trending ───────── */}
+      <Text style={styles.sectionTitle}>🔥 Trending Now</Text>
       {loading ? (
         <View style={{ height: 150, justifyContent: 'center', alignItems: 'center', marginBottom: 30 }}>
           <ActivityIndicator size="large" color="#1E3A8A" />
+        </View>
+      ) : trending.length === 0 ? (
+        <View style={{ height: 150, justifyContent: 'center', alignItems: 'center', marginBottom: 30 }}>
+          <Text style={{ color: '#888', fontStyle: 'italic' }}>No trending dishes yet. Be the first to add!</Text>
         </View>
       ) : (
         <FlatList
           horizontal
           nestedScrollEnabled
-          data={recommended}
+          data={trending}
           keyExtractor={(item) => item._id}
           showsHorizontalScrollIndicator={false}
           style={[styles.trendList, { marginBottom: 30 }]}
@@ -117,17 +119,23 @@ export default function HomeScreen({ navigation }: Props) {
         />
       )}
 
-      {/* ───────── Trending ───────── */}
-      <Text style={styles.sectionTitle}>🔥 Trending Now</Text>
+    {/* ───────── Recommended Dishes ───────── */}
+      <Text style={styles.sectionTitle}>
+        <Icon name="lightbulb-on-outline" size={20} color="#1E3A8A" /> Recommended For You
+      </Text>
       {loading ? (
         <View style={{ height: 150, justifyContent: 'center', alignItems: 'center', marginBottom: 30 }}>
           <ActivityIndicator size="large" color="#1E3A8A" />
+        </View>
+      ) : recommended.length === 0 ? (
+        <View style={{ height: 150, justifyContent: 'center', alignItems: 'center', marginBottom: 30 }}>
+          <Text style={{ color: '#888', fontStyle: 'italic' }}>No recommended dishes yet. Time to cook something new!</Text>
         </View>
       ) : (
         <FlatList
           horizontal
           nestedScrollEnabled
-          data={trending}
+          data={recommended}
           keyExtractor={(item) => item._id}
           showsHorizontalScrollIndicator={false}
           style={[styles.trendList, { marginBottom: 30 }]}
@@ -154,6 +162,10 @@ export default function HomeScreen({ navigation }: Props) {
       {loading ? (
         <View style={{ height: 150, justifyContent: 'center', alignItems: 'center', marginBottom: 30 }}>
           <ActivityIndicator size="large" color="#1E3A8A" />
+        </View>
+      ) : made.length === 0 ? (
+        <View style={{ height: 150, justifyContent: 'center', alignItems: 'center', marginBottom: 30 }}>
+          <Text style={{ color: '#888', fontStyle: 'italic' }}>You haven't cooked any dishes yet.</Text>
         </View>
       ) : (
         <FlatList
