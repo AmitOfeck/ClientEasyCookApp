@@ -59,31 +59,7 @@ const CartDetailScreen: React.FC<Props> = ({ route }) => {
     }
   };
 
-  /* ───────── CREATE CART on backend ───────── */
-  const handleCreateCart = async () => {
-    setError(null);
-    setSaving(true);
-    try {
-      await createCart({
-        superId,
-        products,
-        totalCost,
-        deliveryPrice,
-        missingProducts,
-      }).request;
-      Alert.alert('Success', 'Cart created successfully!');
-    } catch (err: any) {
-      const msg =
-        err?.response?.data?.message ||
-        err?.response?.data?.errors?.join('\n') ||
-        'Failed to create cart – please try again.';
-      console.error('[cart] create error:', msg);
-      setError(msg);
-      Alert.alert('Cart creation error', msg);
-    } finally {
-      setSaving(false);
-    }
-  };
+
 
   /* ───────── render product row ───────── */
   const renderItem = ({ item }: { item: typeof products[0] }) => {
@@ -186,30 +162,7 @@ const CartDetailScreen: React.FC<Props> = ({ route }) => {
         </Text>
       )}
 
-      {/* create cart button */}
-      <TouchableOpacity
-        style={[
-          styles.woltButton, // reuse style frame
-          {
-            backgroundColor: '#26A9E0',
-            alignSelf: 'center',
-            width: width * 0.6,
-            marginTop: 10,
-          },
-          saving && { opacity: 0.6 },
-        ]}
-        disabled={saving}
-        onPress={handleCreateCart}
-        activeOpacity={0.85}
-      >
-        {saving ? (
-          <ActivityIndicator color="#fff" />
-        ) : (
-          <Text style={{ color: '#fff', fontWeight: '700', fontSize: 16 }}>
-            Create Cart
-          </Text>
-        )}
-      </TouchableOpacity>
+     
     </View>
   );
 
