@@ -8,6 +8,8 @@ import ShoppingListScreen from "./ShoppingListScreen";
 import CartStackScreen from '../navigation/CartStackScreen'; 
 import SearchScreen from "./SearchScreen";
 import ProfileScreen from "./ProfileScreen";
+import DishDetailScreen from "./DishDetailScreen"; 
+
 
 type TabBarIconProps = {
   color: string;
@@ -62,6 +64,8 @@ const BottomBar: React.FC = () => {
       <Tab.Screen name="Profile" component={ProfileScreen} options={{ tabBarLabel: "Profile" }} />
       {/* <Tab.Screen name="Cart" component={ShoppingListScreen} options={{ tabBarLabel: "Cart" }} /> */} 
       <Tab.Screen name="Cart" component={CartStackScreen} />
+      <Tab.Screen name="DishDetail" component={DishDetailScreen} options={{ tabBarButton: () => null,   tabBarItemStyle: { display: 'none' } }}
+/>
     </Tab.Navigator>
   );
 };

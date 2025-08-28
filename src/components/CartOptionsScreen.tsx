@@ -44,6 +44,7 @@ const CartOptionsScreen: React.FC<{ navigation: NavigationProp; route: any }> = 
 }) => {
   const [cartOptions, setCartOptions] = useState<CartOption[]>(route.params?.cartOptions || []);
   const [loading, setLoading] = useState(cartOptions.length === 0);
+  const [error, setError] = useState<string | null>(null);
 
   const spinAnim = useRef(new Animated.Value(0)).current;
 
@@ -70,10 +71,11 @@ const CartOptionsScreen: React.FC<{ navigation: NavigationProp; route: any }> = 
         try {
           const userId = await AsyncStorage.getItem("userId");
           if (!userId) return;
-          const response = await fetchBestCart(userId);
+          const response = await fetchBestCart();
           setCartOptions(response.data);
-        } catch (err) {
-          // Handle error (could show an error message)
+        } catch (err: any) {
+          console.error("Error fetching cart options:", err);
+          setError(err.response.data?.error || "Failed to load cart options");
         } finally {
           setLoading(false);
         }
@@ -150,6 +152,17 @@ const CartOptionsScreen: React.FC<{ navigation: NavigationProp; route: any }> = 
         <Text style={styles.loadingSubText}>
           This might take a few seconds. Please wait while we check the best supermarket options nearby!
         </Text>
+      </View>
+    );
+  }
+
+  // --- ERROR ---
+  if (error) {
+    return (
+      <View style={styles.emptyWrap}>
+        <Icon name="store-off" size={42} color="#7a8dad" style={{ marginBottom: 10 }} />
+        <Text style={styles.emptyText}>No cart options found</Text>
+        <Text style={styles.emptySubText}>{error}</Text>
       </View>
     );
   }

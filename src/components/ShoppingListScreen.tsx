@@ -1,4 +1,4 @@
-import React, { useState, useCallback } from "react";
+import React, { useState, useCallback, useEffect } from "react";
 import {
   View,
   Text,
@@ -25,10 +25,11 @@ import {
 import { StackNavigationProp } from "@react-navigation/stack";
 import { CartStackParamList } from "../navigation/CartStackScreen";
 import { getFullImageUrl } from "../utils/getFullImageUrl";
+import { getProfile } from "../services/profile_service";
 
 const { width } = Dimensions.get("window");
 const allowedUnits = ["gram", "kg", "ml", "liter"];
-
+type Address = { street: string; city: string; building: number };
 type ShoppingItem = { name: string; unit: string; quantity: number };
 type PreparedDish = { dishId: string; count: number };
 type DishDetails = { _id: string; name: string; imageUrl?: string; details?: string };
@@ -44,6 +45,7 @@ const ShoppingListScreen: React.FC = () => {
   const [editItemIndex, setEditItemIndex] = useState<number | null>(null);
   const [editedQuantity, setEditedQuantity] = useState<string>("0");
   const [selectedUnit, setSelectedUnit] = useState<string>("gram");
+  const [userAdresses, setUserAddresses] = useState<Address[]>([]);
 
   // --- DATA FETCHING ---
   const fetchDishDetails = async (dishes: PreparedDish[]) => {
@@ -60,6 +62,19 @@ const ShoppingListScreen: React.FC = () => {
     } catch (error) {
       console.error("Failed to fetch dish details:", error);
     }
+  };
+
+  const fetchProfile = async () => {
+    setLoading(true);
+    const { request, abort } = getProfile();
+
+    try {
+      const res = await request;
+      setUserAddresses(res.data.addresses || []);
+    } catch (err: any) {
+      console.error('[profile] fetch error:', err?.response?.data ?? err.message);
+    }
+    return () => abort();
   };
 
   const fetchShoppingList = async () => {
@@ -83,7 +98,7 @@ const ShoppingListScreen: React.FC = () => {
     }
   };
 
-  useFocusEffect(useCallback(() => { fetchShoppingList(); }, []));
+  useFocusEffect(useCallback(() => { fetchShoppingList();fetchProfile(); }, []));
 
   // --- LOGIC ---
   const handleGoToCart = () => {
@@ -308,13 +323,34 @@ const ShoppingListScreen: React.FC = () => {
   >
     <Text style={[styles.modernButtonText, styles.clearModernText]}>Clear List</Text>
   </TouchableOpacity>
+<View style={{ width: '50%'}}>
   <TouchableOpacity
-    style={[styles.modernButton, styles.applyModern]}
-    onPress={handleGoToCart}
+    style={[
+      styles.modernButton,
+      styles.applyModern,
+      !userAdresses?.length && { opacity: 0.5 } // dim if disabled
+    ]}
     activeOpacity={0.83}
+    disabled={!userAdresses?.length}
+    onPress={handleGoToCart}
   >
-    <Text style={[styles.modernButtonText, styles.applyModernText]}>GO TO CART</Text>
+    <Text style={[styles.modernButtonText, styles.applyModernText]}>
+      GO TO CART
+    </Text>
   </TouchableOpacity>
+
+  {/* Explaining bubble */}
+  {!userAdresses?.length && (
+    <Text style={{
+      marginTop: 5,
+      color: '#FF4D4F',
+      fontSize: 12,
+      textAlign: 'center'
+    }}>
+      Please add an address to enable
+    </Text>
+  )}
+</View>
 </View>
 
       {/* Edit Modal */}
