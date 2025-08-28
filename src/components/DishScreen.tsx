@@ -462,7 +462,7 @@ const styles = StyleSheet.create({
     flexGrow: 1,
     flexShrink: 1,
     minWidth: "30%",
-    maxWidth: "31%", // כדי שייכנסו 3 בשורה
+    maxWidth: "31%",
     backgroundColor: "#eaf3ff",
     paddingVertical: 13,
     borderRadius: 13,
