@@ -65,6 +65,9 @@ const SearchScreen: React.FC<{ navigation: any }> = ({ navigation }) => {
   const spin = spinAnim.interpolate({ inputRange: [0, 1], outputRange: ["0deg", "360deg"] });
 
   const handleSearch = async () => {
+    setFridgeExpanded(false);
+    setFiltersExpanded(false);
+    setPromptExpanded(false);
     setLoading(true);
     try {
       const { request } = searchDish({

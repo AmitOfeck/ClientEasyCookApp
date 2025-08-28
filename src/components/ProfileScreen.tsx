@@ -178,7 +178,7 @@ export const ProfileScreen = ({ navigation }: { navigation: NavigationProp<any> 
 const styles = StyleSheet.create({
   container: {
     padding: 20,
-    backgroundColor: "#fff",
+    backgroundColor: "#e4f0fd",
   },
   profileContainer: {
     alignItems: "center",

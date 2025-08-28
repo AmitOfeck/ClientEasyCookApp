@@ -207,7 +207,7 @@ const styles = StyleSheet.create({
     paddingTop: 50,
     paddingBottom: 40,
     paddingHorizontal: 20,
-    backgroundColor: '#FFFFFF',
+    backgroundColor: '#e4f0fd',
   },
   /* hero */
   hero: {
