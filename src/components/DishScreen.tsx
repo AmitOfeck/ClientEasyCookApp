@@ -459,8 +459,10 @@ const styles = StyleSheet.create({
     gap: 9,
   },
   gridMiniButton: {
-    flexBasis: "27%",
-    minWidth: 95,
+    flexGrow: 1,
+    flexShrink: 1,
+    minWidth: "30%",
+    maxWidth: "31%", // כדי שייכנסו 3 בשורה
     backgroundColor: "#eaf3ff",
     paddingVertical: 13,
     borderRadius: 13,
@@ -470,7 +472,6 @@ const styles = StyleSheet.create({
     borderWidth: 1.1,
     borderColor: "#eaf3ff",
     elevation: 2,
-    flexShrink: 1,
   },
   gridMiniButtonSelected: {
     backgroundColor: "#f6f8ff",
