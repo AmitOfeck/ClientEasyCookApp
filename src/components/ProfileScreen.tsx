@@ -90,11 +90,16 @@ export const ProfileScreen = ({ navigation }: { navigation: NavigationProp<any> 
     if (!profile?.dishes?.length) return null;
 
     return profile.dishes.map((item, i) => (
-      <View key={i} style={styles.card}>
+      <TouchableOpacity
+        key={i}
+        style={styles.card}
+        onPress={() => navigation.navigate('DishDetail', { dishId: item._id })}
+        activeOpacity={0.7}
+      >
         <Image source={{ uri: getFullImageUrl(item.imageUrl) }} style={styles.cardImage} />
         <Text style={styles.cardTitle} numberOfLines={1}>{item.name}</Text>
         <Text style={styles.cardSubtitle} numberOfLines={2}>{item.details}</Text>
-      </View>
+      </TouchableOpacity>
     ));
   };
 
@@ -248,6 +253,14 @@ const styles = StyleSheet.create({
     borderRadius: 12,
     marginBottom: 15,
     padding: 10,
+    elevation: 2,
+    shadowColor: "#000",
+    shadowOffset: {
+      width: 0,
+      height: 1,
+    },
+    shadowOpacity: 0.22,
+    shadowRadius: 2.22,
   },
   cardImage: {
     width: "100%",
