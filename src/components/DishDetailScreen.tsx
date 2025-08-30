@@ -3,11 +3,13 @@ import {
     View, Text, TouchableOpacity, StyleSheet, Platform, ScrollView, Image, Alert
 } from "react-native";
 import Icon from "react-native-vector-icons/MaterialCommunityIcons";
+import AsyncStorage from "@react-native-async-storage/async-storage";
 import {
     getDishById,
     healthifyDish,
     cheapifyDish
 } from "../services/dish_service";
+import { addDishesToShoppingList } from "../services/shopping_list_service";
 import dishImage from '../assets/dish.png';
 import type { IDish } from "../services/intefaces/dish"; // ודא שמייבא נכון
 import { getFullImageUrl } from "../utils/getFullImageUrl";
@@ -79,6 +81,23 @@ const DishDetailScreen: React.FC<{ navigation: any; route: any }> = ({ navigatio
             Alert.alert("Error", "Failed to make dish cheaper.");
         } finally {
             setProcessing(false);
+        }
+    };
+
+    const handleAddToShoppingList = async () => {
+        if (!dish) return;
+        try {
+            const accessToken = await AsyncStorage.getItem("accessToken");
+            if (!accessToken) {
+                Alert.alert("Error", "Authentication token missing.");
+                return;
+            }
+            const { request } = addDishesToShoppingList([dish._id], accessToken);
+            await request;
+            Alert.alert("Success", "Dish added to your shopping list!");
+        } catch (error) {
+            console.error("Failed to add to shopping list:", error);
+            Alert.alert("Error", "Could not add dish to shopping list.");
         }
     };
 
@@ -171,6 +190,16 @@ const DishDetailScreen: React.FC<{ navigation: any; route: any }> = ({ navigatio
                         </View>
                     )}
                 </View>
+
+                {/* Add to Cart Button */}
+                <TouchableOpacity
+                    style={styles.addToCartButton}
+                    onPress={handleAddToShoppingList}
+                    activeOpacity={0.85}
+                >
+                    <Icon name="cart-plus" size={20} color="#fff" style={{ marginRight: 8 }} />
+                    <Text style={styles.addToCartButtonText}>Add to Shopping List</Text>
+                </TouchableOpacity>
 
                 {/* כפתורים שדרוג */}
                 <View style={styles.variantsBar}>
@@ -319,6 +348,28 @@ const styles = StyleSheet.create({
         color: '#777',
         textAlign: 'center',
         marginBottom: 10,
+    },
+    addToCartButton: {
+        flexDirection: "row",
+        alignItems: "center",
+        justifyContent: "center",
+        backgroundColor: "#2363eb",
+        borderRadius: 16,
+        paddingVertical: 14,
+        paddingHorizontal: 24,
+        marginHorizontal: 20,
+        marginBottom: 16,
+        shadowColor: "#2363eb",
+        shadowOffset: { width: 0, height: 4 },
+        shadowOpacity: 0.3,
+        shadowRadius: 8,
+        elevation: 6,
+    },
+    addToCartButtonText: {
+        fontSize: 16,
+        fontWeight: "700",
+        color: "#fff",
+        letterSpacing: 0.5,
     },
     centered: { flex: 1, justifyContent: "center", alignItems: "center" },
 });
