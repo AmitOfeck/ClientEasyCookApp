@@ -14,11 +14,11 @@ import {
 import { StackScreenProps } from '@react-navigation/stack';
 import { useFocusEffect } from '@react-navigation/native';
 import { CartStackParamList } from '../navigation/CartStackScreen';
-import { createCart } from '../services/cart_service';   // <-- NEW
 const { width } = Dimensions.get('window');
 
 // transparent png please 🙂
 const woltLogo = require('../assets/woltLogo.png');
+const groceryPlaceholder = require('../assets/grocery.png');
 
 type Props = StackScreenProps<CartStackParamList, 'CartDetail'>;
 
@@ -75,7 +75,10 @@ const CartDetailScreen: React.FC<Props> = ({ route }) => {
           isMissing && styles.productCardMissing,
         ]}
       >
-        <Image source={{ uri: item.image_url }} style={styles.productImg} />
+        <Image 
+          source={item.image_url ? { uri: item.image_url } : groceryPlaceholder} 
+          style={styles.productImg} 
+        />
         <View style={styles.productDetails}>
           <Text style={styles.productName} numberOfLines={2}>
             {item.name}
