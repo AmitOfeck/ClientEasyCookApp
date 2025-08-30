@@ -14,7 +14,6 @@ import {
 import { StackScreenProps } from '@react-navigation/stack';
 import { useFocusEffect } from '@react-navigation/native';
 import { CartStackParamList } from '../navigation/CartStackScreen';
-import { createCart } from '../services/cart_service';   // <-- NEW
 const { width } = Dimensions.get('window');
 
 // transparent png please 🙂
