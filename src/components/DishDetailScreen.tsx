@@ -11,8 +11,10 @@ import {
 } from "../services/dish_service";
 import { addDishesToShoppingList } from "../services/shopping_list_service";
 import dishImage from '../assets/dish.png';
-import type { IDish } from "../services/intefaces/dish"; // ודא שמייבא נכון
+import type { IDish } from "../services/intefaces/dish"; 
 import { getFullImageUrl } from "../utils/getFullImageUrl";
+import RecipeSteps from "../components/RecipeSteps"; 
+
 
 // --- Pill (טיפוס פרופס) ---
 type PillProps = {
@@ -186,7 +188,7 @@ const DishDetailScreen: React.FC<{ navigation: any; route: any }> = ({ navigatio
                     {activeTab === "recipe" && (
                         <View>
                             <Text style={styles.cardTitle}>Recipe</Text>
-                            <Text style={styles.recipeText}>{dish.recipe || "No recipe found."}</Text>
+                           <RecipeSteps text={dish.recipe || ""} />
                         </View>
                     )}
                 </View>
