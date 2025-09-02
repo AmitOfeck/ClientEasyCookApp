@@ -159,7 +159,6 @@ const DishDetailScreen: React.FC<{ navigation: any; route: any }> = ({ navigatio
                             <Text style={styles.descText}>{dish.details}</Text>
                             <View style={{ marginTop: 15 }}>
                                 <Text style={styles.statLine}>Ingredients Cost: <Text style={styles.statVal}>₪{dish.ingredientsCost}</Text></Text>
-                                <Text style={styles.statLine}>Average Dish Cost: <Text style={styles.statVal}>₪{dish.averageDishCost}</Text></Text>
                                 <Text style={styles.statLine}>Variant: <Text style={styles.statVal}>{dish.variantType}</Text></Text>
                             </View>
                         </View>
