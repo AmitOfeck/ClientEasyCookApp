@@ -369,49 +369,56 @@ const FridgeScanner: React.FC<Props> = ({
                 ))
               )}
 
-              {/* Manual add row */}
               <View style={styles.addRow}>
-                <TextInput
-                  value={editName}
-                  onChangeText={setEditName}
-                  placeholder="Name"
-                  style={styles.input}
-                  placeholderTextColor="#415c78"
-                />
-                <TextInput
-                  value={editQuantity}
-                  onChangeText={setEditQuantity}
-                  placeholder="Qty"
-                  keyboardType="numeric"
-                  style={[styles.input, styles.qtyInput]}
-                  placeholderTextColor="#415c78"
-                />
-                <View style={styles.unitsRow}>
-                  {ALLOWED_UNITS.map((u) => (
-                    <TouchableOpacity
-                      key={u}
-                      style={[
-                        styles.unitBtn,
-                        editUnit === u && styles.unitBtnSelected,
-                      ]}
-                      onPress={() => setEditUnit(u)}
-                      activeOpacity={0.85}
-                    >
-                      <Text
-                        style={[
-                          styles.unitBtnText,
-                          editUnit === u && styles.unitBtnTextSelected,
-                        ]}
-                      >
-                        {u}
-                      </Text>
-                    </TouchableOpacity>
-                  ))}
-                </View>
-                <TouchableOpacity onPress={handleAddItem} style={styles.addBtn}>
-                  <Icon name="plus" size={18} color="#fff" />
-                </TouchableOpacity>
-              </View>
+  {/* Top row: name + qty */}
+  <View style={styles.addTopRow}>
+    <TextInput
+      value={editName}
+      onChangeText={setEditName}
+      placeholder="Name"
+      style={[styles.input, styles.nameInput]}
+      placeholderTextColor="#415c78"
+    />
+    <TextInput
+      value={editQuantity}
+      onChangeText={setEditQuantity}
+      placeholder="Qty"
+      keyboardType="numeric"
+      style={[styles.input, styles.qtyInput]}
+      placeholderTextColor="#415c78"
+    />
+  </View>
+
+  {/* Bottom row: units + add button */}
+  <View style={styles.addBottomRow}>
+    <View style={styles.unitsRowWrap}>
+      {ALLOWED_UNITS.map((u) => (
+        <TouchableOpacity
+          key={u}
+          style={[
+            styles.unitBtn,
+            editUnit === u && styles.unitBtnSelected,
+          ]}
+          onPress={() => setEditUnit(u)}
+          activeOpacity={0.85}
+        >
+          <Text
+            style={[
+              styles.unitBtnText,
+              editUnit === u && styles.unitBtnTextSelected,
+            ]}
+          >
+            {u}
+          </Text>
+        </TouchableOpacity>
+      ))}
+    </View>
+
+    <TouchableOpacity onPress={handleAddItem} style={styles.addBtn}>
+      <Icon name="plus" size={18} color="#fff" />
+    </TouchableOpacity>
+  </View>
+</View>
             </>
           )}
 
@@ -498,6 +505,8 @@ const styles = StyleSheet.create({
     elevation: 7,
     alignSelf: "center",
   },
+
+  // Header
   cardHeaderRow: {
     flexDirection: "row",
     alignItems: "center",
@@ -540,6 +549,7 @@ const styles = StyleSheet.create({
   thumbOn: { alignSelf: "flex-end" },
   thumbOff: { alignSelf: "flex-start" },
 
+  // Upload / Camera
   selectButton: {
     flexDirection: "row",
     alignItems: "center",
@@ -558,6 +568,7 @@ const styles = StyleSheet.create({
     color: "#2563eb",
   },
 
+  // Spinner
   spinnerRow: {
     flexDirection: "row",
     alignItems: "center",
@@ -569,6 +580,7 @@ const styles = StyleSheet.create({
     fontWeight: "600",
   },
 
+  // List header
   listHeader: {
     flexDirection: "row",
     justifyContent: "space-between",
@@ -596,6 +608,7 @@ const styles = StyleSheet.create({
     fontWeight: "700",
   },
 
+  // Empty state
   emptyText: {
     textAlign: "center",
     color: "#415c78",
@@ -605,6 +618,7 @@ const styles = StyleSheet.create({
     marginVertical: 12,
   },
 
+  // Item row
   itemRow: {
     flexDirection: "row",
     alignItems: "center",
@@ -636,6 +650,7 @@ const styles = StyleSheet.create({
     color: "#415c78",
   },
 
+  // Item actions
   iconBtn: {
     marginLeft: 8,
     padding: 6,
@@ -649,35 +664,58 @@ const styles = StyleSheet.create({
     borderColor: "#f4cccc",
   },
 
+  // ===== Manual add (updated layout) =====
   addRow: {
-    flexDirection: "row",
-    alignItems: "center",
     backgroundColor: "#f7faff",
     borderRadius: 12,
     borderWidth: 1,
     borderColor: "#dbeafe",
     paddingVertical: 10,
-    paddingHorizontal: 8,
+    paddingHorizontal: 10,
     marginTop: 14,
+  },
+
+  // Top row: Name + Qty
+  addTopRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    marginBottom: 8,
   },
   input: {
     backgroundColor: "#fff",
-    flex: 1,
     borderRadius: 8,
     borderWidth: 1,
     borderColor: "#bfdcff",
     paddingHorizontal: 10,
     paddingVertical: 8,
-    marginRight: 6,
     fontSize: 14,
     fontWeight: "600",
     color: "#2c3e50",
   },
+  nameInput: {
+    flex: 1,
+    minWidth: 140,
+    marginRight: 6,
+  },
   qtyInput: {
-    width: 50,
+    width: 74,
     textAlign: "center",
   },
 
+  // Bottom row: Units + Add button
+  addBottomRow: {
+    flexDirection: "row",
+    alignItems: "center",
+  },
+  unitsRowWrap: {
+    flex: 1,
+    flexDirection: "row",
+    flexWrap: "wrap",
+    gap: 6,
+    paddingRight: 8,
+  },
+
+  // (נשמר לשימושים אחרים ברכיב)
   unitsRow: {
     flexDirection: "row",
     marginRight: 6,
@@ -688,6 +726,8 @@ const styles = StyleSheet.create({
     flexWrap: "wrap",
     marginVertical: 12,
   },
+
+  // Unit chip
   unitBtn: {
     borderWidth: 1,
     borderColor: "#2563eb",
@@ -709,13 +749,15 @@ const styles = StyleSheet.create({
     color: "#fff",
   },
 
+  // Add (+)
   addBtn: {
     backgroundColor: "#2563eb",
-    padding: 10,
+    paddingVertical: 10,
+    paddingHorizontal: 12,
     borderRadius: 12,
   },
 
-  // Edit modal styles
+  // ===== Edit modal =====
   modalOverlay: {
     flex: 1,
     backgroundColor: "#00000040",
@@ -794,5 +836,6 @@ const styles = StyleSheet.create({
     fontWeight: "700",
   },
 });
+
 
 export default FridgeScanner;
