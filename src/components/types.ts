@@ -11,8 +11,10 @@ export interface InputFieldProps {
 }
   
   export interface SocialButtonProps {
-    imageUrl: string;
+    localImage?: any;  
+    imageUrl?: string;
     onPress: () => void;
+    disabled?: boolean;  
   }
   
   export interface ActionButtonProps {

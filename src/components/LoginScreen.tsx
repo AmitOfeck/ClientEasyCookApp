@@ -63,6 +63,12 @@ export const LoginScreen = ({ navigation }: { navigation: NavigationProp<any> })
       offlineAccess: true,
       forceCodeForRefreshToken: true,
     });
+    
+    try {
+      GoogleSignin.signOut();
+    } catch (error) {
+      // ignore error
+    }
   }, []);
 
   /* ─────────────────────────  GOOGLE LOGIN  ───────────────────────── */
@@ -70,21 +76,21 @@ export const LoginScreen = ({ navigation }: { navigation: NavigationProp<any> })
     setError(null);
     setBusy(true);
     try {
+      try {
+        await GoogleSignin.signOut();
+      } catch (signOutError) {
+      }
+      
       await GoogleSignin.hasPlayServices({ showPlayServicesUpdateDialog: true });
 
-      const userInfo:   GoogleUser = await GoogleSignin.signIn();
-      const current     = await GoogleSignin.getCurrentUser();
-      const tokens      = await GoogleSignin.getTokens();
+      const userInfo = await GoogleSignin.signIn();
+      const tokens = await GoogleSignin.getTokens();
 
-      const idToken =
-        userInfo?.idToken ??
-        current?.idToken ??
-        tokens?.idToken ??
-        null;
+      const idToken = userInfo?.idToken || tokens?.idToken;
 
       if (!idToken) {
         setError('Google sign-in failed – no token received');
-        console.error('[google] no idToken', { userInfo, current, tokens });
+        console.error('[google] no idToken', { userInfo, tokens });
         setBusy(false);
         return;
       }
@@ -94,15 +100,27 @@ export const LoginScreen = ({ navigation }: { navigation: NavigationProp<any> })
       await saveTokens(data);
       navigation.navigate('Home');
     } catch (err: any) {
+      if (err.message?.includes('Sign-in in progress') || err.message?.includes('ASYNC_OP_IN_PROGRESS')) {
+        try {
+          await GoogleSignin.signOut();
+          setTimeout(() => signInWithGoogle(), 500);
+          return;
+        } catch (signOutError) {
+          console.error('Error signing out:', signOutError);
+        }
+      }
+      
       if (err?.code === statusCodes.SIGN_IN_CANCELLED) {
         /* user tapped away – no banner */
+      } else if (err?.code === statusCodes.IN_PROGRESS) {
+        setError('Sign-in already in progress, please wait');
       } else {
         const msg =
           err?.response?.status === 500
             ? 'Server error during Google sign-in'
             : 'Google sign-in failed';
         setError(msg);
-        console.error('[google] backend:', err?.response?.data ?? err);
+        console.error('[google] error:', err);
       }
     } finally {
       setBusy(false);
@@ -150,7 +168,7 @@ export const LoginScreen = ({ navigation }: { navigation: NavigationProp<any> })
         <Text style={styles.socialText}>Or sign in with</Text>
         <View style={styles.socialButtonsContainer}>
           <SocialButton
-            imageUrl="https://upload.wikimedia.org/wikipedia/commons/thumb/c/c1/Google_%22G%22_logo.svg/1200px-Google_%22G%22_logo.svg.png"
+            localImage={require('../assets/google-logo.png')}
             onPress={signInWithGoogle}
             disabled={busy}
           />
