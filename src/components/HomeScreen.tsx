@@ -35,7 +35,9 @@ export default function HomeScreen({ navigation }: Props) {
       const { request: pReq } = getProfile();
       const profile = (await pReq).data;
       setName(profile.name || 'Chef');
-      setAvatar(profile.profileImage ? `http://10.0.2.2:3000${profile.profileImage}` : null);
+      
+      setAvatar(profile.profileImage ? getFullImageUrl(profile.profileImage) : null);
+      
       setStats({ recipes: profile.dishes.length});
 
       /* trending dishes —— first 8 */

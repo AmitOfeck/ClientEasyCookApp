@@ -38,6 +38,9 @@ const ProfileEditModal: React.FC<Props> = ({
   const [profileImage, setProfileImage] = useState<any>(
     initialData.profileImage || null
   );
+  
+  
+  const [imageChanged, setImageChanged] = useState(false);
 
   const {
     control,
@@ -66,6 +69,7 @@ const ProfileEditModal: React.FC<Props> = ({
     launchImageLibrary({ mediaType: "photo" }, (response) => {
       if (response.assets && response.assets.length > 0) {
         setProfileImage(response.assets[0]);
+        setImageChanged(true); 
       }
     });
   };
@@ -73,11 +77,16 @@ const ProfileEditModal: React.FC<Props> = ({
   /** ─────────────────────────  SUBMIT  ───────────────────────── */
   const onSubmit = (data: any) => {
     if (!isValid) {
-      // This should never fire because button is disabled, but double-guard
       Alert.alert("Error", "Please correct the highlighted fields.");
       return;
     }
-    onSave({ ...data, profileImage });
+    
+    const dataToSave = {
+      ...data,
+      profileImage: imageChanged ? profileImage : undefined
+    };
+    
+    onSave(dataToSave);
   };
 
   /** ─────────────────────────  RENDER  ───────────────────────── */
@@ -188,10 +197,17 @@ const ProfileEditModal: React.FC<Props> = ({
             onPress={pickImage}
             activeOpacity={0.8}
           >
-            <Text style={styles.imagePickerText}>Pick Profile Image</Text>
+            <Text style={styles.imagePickerText}>
+              {imageChanged ? "Change Selected Image" : "Pick Profile Image"}
+            </Text>
           </TouchableOpacity>
           {profileImage && (
-            <Image source={{ uri: profileImage.uri }} style={styles.profileImage} />
+            <View style={styles.imageContainer}>
+              <Image source={{ uri: profileImage.uri }} style={styles.profileImage} />
+              {imageChanged && (
+                <Text style={styles.imageChangedText}>New image selected</Text>
+              )}
+            </View>
           )}
 
           {/* Action buttons */}
@@ -237,6 +253,17 @@ const styles = StyleSheet.create({
         color: "#000",
         alignSelf: "center",
     },
+    errorBanner: {
+        backgroundColor: '#FFE5E5',
+        padding: 10,
+        borderRadius: 8,
+        marginBottom: 15,
+    },
+    errorBannerText: {
+        color: '#B91C1C',
+        textAlign: 'center',
+        fontSize: 14,
+    },
     imagePickerButton: {
         backgroundColor: "#EC888D",
         padding: 10,
@@ -248,12 +275,20 @@ const styles = StyleSheet.create({
         color: "#fff",
         fontWeight: "bold",
     },
+    imageContainer: {
+        alignItems: "center",
+        marginTop: 10,
+    },
     profileImage: {
         width: 100,
         height: 100,
         borderRadius: 50,
-        alignSelf: "center",
-        marginTop: 10,
+    },
+    imageChangedText: {
+        fontSize: 12,
+        color: "#4CAF50",
+        marginTop: 5,
+        fontStyle: "italic",
     },
     buttonRow: {
         flexDirection: "row",

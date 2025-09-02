@@ -8,6 +8,12 @@ import apiClient from "../services/api-client";
 export function getFullImageUrl(path?: string): string {
   if (!path) return "https://via.placeholder.com/150"; // fallback image
 
+  // טיפול במקרה של URL שגוי עם /uploads/https://...
+  if (path.startsWith('/uploads/http://') || path.startsWith('/uploads/https://')) {
+    // הסר את /uploads/ והחזר את ה-URL המקורי
+    return path.replace('/uploads/', '');
+  }
+
   // אם כבר URL מלא, להחזיר כמו שהוא
   if (path.startsWith("http")) return path;
 

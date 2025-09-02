@@ -20,6 +20,7 @@ export const ProfileScreen = ({ navigation }: { navigation: NavigationProp<any> 
   const [loading, setLoading] = useState(true);
   const [editModalVisible, setEditModalVisible] = useState(false);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
+  const [updating, setUpdating] = useState(false); 
 
   /* ───────────  FETCH PROFILE  ─────────── */
   const fetchProfile = async () => {
@@ -51,6 +52,8 @@ export const ProfileScreen = ({ navigation }: { navigation: NavigationProp<any> 
     address: { city?: string; street?: string; building?: number };
     profileImage?: { uri: string; type: string; fileName: string };
   }) => {
+    setUpdating(true); 
+    
     const formData = new FormData();
     formData.append('name', updatedData.name);
     formData.append('userName', updatedData.userName);
@@ -60,28 +63,56 @@ export const ProfileScreen = ({ navigation }: { navigation: NavigationProp<any> 
       formData.append('address', JSON.stringify(updatedData.address));
     }
 
-    if (updatedData.profileImage?.uri && !updatedData.profileImage.uri.startsWith('http')) {
+    if (updatedData.profileImage) {
+      console.log('[profile] Sending new image:', updatedData.profileImage.uri?.substring(0, 50));
       formData.append('profileImage', {
         uri: updatedData.profileImage.uri,
         type: updatedData.profileImage.type || 'image/jpeg',
         name: updatedData.profileImage.fileName || 'profile.jpg',
       } as any);
+    } else {
+      console.log('[profile] No image change detected');
     }
 
     const { request, abort } = updateProfile(formData);
 
     try {
-      await request;
+      const response = await request;
+      console.log('[profile] Update successful:', response.data);
+      
       await fetchProfile();
+      
       setEditModalVisible(false);
+      
+      Alert.alert('Success', 'Profile updated successfully!');
     } catch (err: any) {
       const serverMsg = err?.response?.data?.message ||
         err?.response?.data?.errors?.join('\n') ||
         'Could not update your profile.';
-      console.error('[profile] update error:', serverMsg);
-      Alert.alert('Update failed', serverMsg);
-      setEditModalVisible(false);
+      console.error('[profile] update error:', err?.response?.data || err.message);
+      
+    
+      Alert.alert(
+        'Update failed', 
+        serverMsg,
+        [
+          { 
+            text: 'Try Again', 
+            onPress: () => {
+              
+            }
+          },
+          {
+            text: 'Cancel',
+            onPress: () => setEditModalVisible(false),
+            style: 'cancel'
+          }
+        ]
+      );
+    } finally {
+      setUpdating(false); 
     }
+    
     return () => abort();
   };
 
@@ -115,9 +146,9 @@ export const ProfileScreen = ({ navigation }: { navigation: NavigationProp<any> 
   if (errorMsg) {
     return (
       <View style={styles.loaderContainer}>
-        <Text>{errorMsg}</Text>
-        <TouchableOpacity onPress={fetchProfile} style={{ marginTop: 14 }}>
-          <Text style={{ color: '#1E3A8A', fontWeight: '600' }}>Retry</Text>
+        <Text style={styles.errorText}>{errorMsg}</Text>
+        <TouchableOpacity onPress={fetchProfile} style={styles.retryButton}>
+          <Text style={styles.retryText}>Retry</Text>
         </TouchableOpacity>
       </View>
     );
@@ -133,6 +164,14 @@ export const ProfileScreen = ({ navigation }: { navigation: NavigationProp<any> 
 
   return (
     <ScrollView contentContainerStyle={[styles.container, { flexGrow: 1 }]}>
+      {/* Updating overlay */}
+      {updating && (
+        <View style={styles.updatingOverlay}>
+          <ActivityIndicator size="large" color="#fff" />
+          <Text style={styles.updatingText}>Updating profile...</Text>
+        </View>
+      )}
+      
       {/* top section */}
       <View style={styles.profileContainer}>
         {profile.profileImage ? (
@@ -146,7 +185,11 @@ export const ProfileScreen = ({ navigation }: { navigation: NavigationProp<any> 
           {profile.bio ?? 'My passion is cooking new recipes with my friends.'}
         </Text>
 
-        <TouchableOpacity style={styles.editButton} onPress={handleEditProfile}>
+        <TouchableOpacity 
+          style={[styles.editButton, updating && styles.editButtonDisabled]} 
+          onPress={handleEditProfile}
+          disabled={updating}
+        >
           <Text style={styles.editButtonText}>Edit Profile</Text>
         </TouchableOpacity>
       </View>
@@ -166,7 +209,7 @@ export const ProfileScreen = ({ navigation }: { navigation: NavigationProp<any> 
       {/* modal */}
       <ProfileEditModal
         visible={editModalVisible}
-        onClose={() => setEditModalVisible(false)}
+        onClose={() => !updating && setEditModalVisible(false)}
         onSave={handleSaveProfile}
         initialData={{
           name: profile.name,
@@ -215,6 +258,9 @@ const styles = StyleSheet.create({
     paddingHorizontal: 20,
     borderRadius: 20,
     marginTop: 5,
+  },
+  editButtonDisabled: {
+    opacity: 0.5,
   },
   editButtonText: {
     color: "#1E3A8A",
@@ -282,6 +328,39 @@ const styles = StyleSheet.create({
     justifyContent: "center",
     alignItems: "center",
     paddingTop: 100,
+  },
+  errorText: {
+    fontSize: 16,
+    color: "#B91C1C",
+    marginBottom: 10,
+    textAlign: "center",
+  },
+  retryButton: {
+    marginTop: 14,
+    paddingVertical: 8,
+    paddingHorizontal: 20,
+    backgroundColor: "#1E3A8A",
+    borderRadius: 8,
+  },
+  retryText: {
+    color: "#fff",
+    fontWeight: "600",
+  },
+  updatingOverlay: {
+    position: "absolute",
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+    backgroundColor: "rgba(0,0,0,0.5)",
+    justifyContent: "center",
+    alignItems: "center",
+    zIndex: 1000,
+  },
+  updatingText: {
+    color: "#fff",
+    marginTop: 10,
+    fontSize: 16,
   },
 });
 
