@@ -13,9 +13,10 @@ export const signUpSchema = z.object({
     street: z.string()
       .regex(/^[A-Za-z\u0590-\u05FF\s]*$/, "Only letters allowed") // Allow empty string
       .optional(),
-    building: z.preprocess((val) => val === "" || val === undefined ? undefined : Number(val), 
-      z.number().min(1, "Building must be a number greater than 0").optional()
-    ),
+    building: z.string()
+      .regex(/^\d*$/, "Only numbers allowed")
+      .refine((val) => !/^0+$/.test(val), "Building number cannot be zero") 
+      .optional()
   }).superRefine((data, ctx) => {
     const filledFields = Object.values(data).filter(Boolean).length;
     if (filledFields > 0 && filledFields < Object.keys(data).length) {

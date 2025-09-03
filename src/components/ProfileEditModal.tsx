@@ -52,11 +52,11 @@ const ProfileEditModal: React.FC<Props> = ({
       userName: initialData.userName || "",
       email: initialData.email || "",
       address: {
-        city: initialData.address?.city || "",
-        street: initialData.address?.street || "",
+        city: initialData.address?.city || undefined,
+        street: initialData.address?.street || undefined,
         building:
           typeof initialData.address?.building === "number"
-            ? initialData.address.building
+            ? initialData.address.building.toString()
             : undefined,
       },
     },
@@ -85,6 +85,12 @@ const ProfileEditModal: React.FC<Props> = ({
       ...data,
       profileImage: imageChanged ? profileImage : undefined
     };
+
+    if(Object.keys(data.address).length == 0 || Object.values(data.address).every(v => v === undefined || v === "")) {
+      delete dataToSave.address
+    } else{
+      dataToSave.address.building = data.address.building ? Number(data.address.building) : undefined;
+    }
     
     onSave(dataToSave);
   };
@@ -155,7 +161,7 @@ const ProfileEditModal: React.FC<Props> = ({
             render={({ field }) => (
               <InputField
                 label="City"
-                value={field.value}
+                value={field.value || ""}
                 onChange={field.onChange}
                 error={errors.address?.city?.message}
               />
@@ -169,7 +175,7 @@ const ProfileEditModal: React.FC<Props> = ({
             render={({ field }) => (
               <InputField
                 label="Street"
-                value={field.value}
+                value={field.value || ""}
                 onChange={field.onChange}
                 error={errors.address?.street?.message}
               />
@@ -183,10 +189,9 @@ const ProfileEditModal: React.FC<Props> = ({
             render={({ field }) => (
               <InputField
                 label="Building"
-                value={field.value?.toString() || ""}
-                onChange={(text) => field.onChange(text ? parseInt(text) : "")}
+                value={field.value || ""}
+                onChange={field.onChange}
                 error={errors.address?.building?.message}
-                keyboardType="numeric"
               />
             )}
           />
