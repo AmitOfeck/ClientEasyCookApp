@@ -1,7 +1,7 @@
 import { z } from "zod";
 
 export const signUpSchema = z.object({
-  name: z.string().min(3, "Must be at least 3 characters").regex(/^[A-Za-z\s]+$/, "Only English letters allowed"),
+  name: z.string().min(3, "Must be at least 3 characters").regex(/^[A-Za-z\u0590-\u05FF\s]+$/, "Only English or Hebrew letters allowed"),
   userName: z.string().min(3, "Must be at least 3 characters").regex(/^[A-Za-z0-9]+$/, "Only letters and numbers allowed"),
   email: z.string().email("Invalid email format"),
   password: z.string().min(5, "Must be at least 5 characters"),
