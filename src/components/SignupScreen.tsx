@@ -57,7 +57,7 @@ export const SignUp = ({ navigation }: { navigation: NavigationProp<any> }) => {
       const form = new FormData();
 
       Object.entries(formData).forEach(([key, value]) => {
-        if (key === 'address' && value && typeof value === 'object' && !Array.isArray(value)) {
+        if (key === 'address' && value && typeof value === 'object') {
           const address = { ...value, building: value.building ? Number(value.building) : undefined };
 
           if (Object.values(address).some(v => v !== undefined && v !== "")) {
