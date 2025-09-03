@@ -52,8 +52,8 @@ const ProfileEditModal: React.FC<Props> = ({
       userName: initialData.userName || "",
       email: initialData.email || "",
       address: {
-        city: initialData.address?.city || "",
-        street: initialData.address?.street || "",
+        city: initialData.address?.city || undefined,
+        street: initialData.address?.street || undefined,
         building:
           typeof initialData.address?.building === "number"
             ? initialData.address.building
@@ -85,6 +85,10 @@ const ProfileEditModal: React.FC<Props> = ({
       ...data,
       profileImage: imageChanged ? profileImage : undefined
     };
+
+    if(Object.keys(data.address).length == 0 || Object.values(data.address).every(v => v === undefined || v === "")) {
+      delete dataToSave.address
+    }
     
     onSave(dataToSave);
   };

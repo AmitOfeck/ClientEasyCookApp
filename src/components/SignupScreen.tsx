@@ -55,7 +55,8 @@ export const SignUp = ({ navigation }: { navigation: NavigationProp<any> }) => {
 
       Object.entries(formData).forEach(([key, value]) => {
         if (key === 'address') {
-          form.append(key, JSON.stringify(value));
+          if(Object.keys(JSON.stringify(value)).length == 0 || Object.values(JSON.stringify(value)).every(v => v === undefined || v === ""))
+            form.append(key, JSON.stringify(value));
         } else {
           form.append(key, value);
         }
@@ -188,7 +189,7 @@ export const SignUp = ({ navigation }: { navigation: NavigationProp<any> }) => {
                 <InputField
                   label="Building"
                   value={field.value?.toString() || ""}
-                  onChange={(text) => field.onChange(text ? parseInt(text) : "")}
+                  onChange={(text) => field.onChange(text ? parseInt(text) : "")}                
                   error={errors.address?.building?.message}
                   keyboardType="numeric"
                 />
