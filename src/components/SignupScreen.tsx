@@ -20,6 +20,9 @@ import { InputField } from './InputField';
 import { signUpSchema } from '../utils/validations';
 import { login, register, saveTokens } from '../services/auth_service';
 import { NavigationProp } from '@react-navigation/native';
+import { z } from 'zod';
+
+export type SignUpFormData = z.infer<typeof signUpSchema>;
 
 const { width, height } = Dimensions.get('window');
 
@@ -46,7 +49,7 @@ export const SignUp = ({ navigation }: { navigation: NavigationProp<any> }) => {
   };
 
   /* ────────── submit ───────── */
-  const onSubmit = async (formData: any) => {
+  const onSubmit = async (formData: SignUpFormData) => {
     setServerError(null);
     setLoading(true);
 
@@ -54,9 +57,12 @@ export const SignUp = ({ navigation }: { navigation: NavigationProp<any> }) => {
       const form = new FormData();
 
       Object.entries(formData).forEach(([key, value]) => {
-        if (key === 'address') {
-          if(Object.keys(JSON.stringify(value)).length == 0 || Object.values(JSON.stringify(value)).every(v => v === undefined || v === ""))
-            form.append(key, JSON.stringify(value));
+        if (key === 'address' && value && typeof value === 'object' && !Array.isArray(value)) {
+          const address = { ...value, building: value.building ? Number(value.building) : undefined };
+
+          if (Object.values(address).some(v => v !== undefined && v !== "")) {
+            form.append(key, JSON.stringify(address));
+          }
         } else {
           form.append(key, value);
         }
@@ -186,13 +192,7 @@ export const SignUp = ({ navigation }: { navigation: NavigationProp<any> }) => {
               control={control}
               name="address.building"
               render={({ field }) => (
-                <InputField
-                  label="Building"
-                  value={field.value?.toString() || ""}
-                  onChange={(text) => field.onChange(text ? parseInt(text) : "")}                
-                  error={errors.address?.building?.message}
-                  keyboardType="numeric"
-                />
+                <InputField label="Building" value={field.value || ""} onChange={field.onChange} error={errors.address?.building?.message} />
               )}
             />
           </CollapsibleSection>
