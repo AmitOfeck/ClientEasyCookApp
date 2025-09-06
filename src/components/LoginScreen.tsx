@@ -100,6 +100,8 @@ export const LoginScreen = ({ navigation }: { navigation: NavigationProp<any> })
       await saveTokens(data);
       navigation.navigate('Home');
     } catch (err: any) {
+      console.error('[google] Full error object:', err);
+      
       if (err.message?.includes('Sign-in in progress') || err.message?.includes('ASYNC_OP_IN_PROGRESS')) {
         try {
           await GoogleSignin.signOut();
@@ -112,15 +114,21 @@ export const LoginScreen = ({ navigation }: { navigation: NavigationProp<any> })
       
       if (err?.code === statusCodes.SIGN_IN_CANCELLED) {
         /* user tapped away – no banner */
+        console.log('[google] User cancelled sign-in');
       } else if (err?.code === statusCodes.IN_PROGRESS) {
         setError('Sign-in already in progress, please wait');
+      } else if (err?.code === statusCodes.PLAY_SERVICES_NOT_AVAILABLE) {
+        setError('Google Play Services not available');
+      } else if (err?.response?.status === 500) {
+        setError('Server error during Google sign-in. Please check if the server is configured correctly.');
+        console.error('[google] Server error details:', err?.response?.data);
+      } else if (err?.response?.status === 400) {
+        setError('Invalid Google token. Please try again.');
+      } else if (err?.message?.includes('Network Error')) {
+        setError('Network error. Please check your connection.');
       } else {
-        const msg =
-          err?.response?.status === 500
-            ? 'Server error during Google sign-in'
-            : 'Google sign-in failed';
-        setError(msg);
-        console.error('[google] error:', err);
+        setError('Google sign-in failed. Please try again.');
+        console.error('[google] Unexpected error:', err);
       }
     } finally {
       setBusy(false);
