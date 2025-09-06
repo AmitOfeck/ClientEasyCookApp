@@ -32,11 +32,10 @@ const login = (user: Partial<UserSignIn>) => {
   const abortController = new AbortController();
   const request = apiClient
     .post<AuthData>('/auth/login', user, { signal: abortController.signal })
-    .then(response => {
-      console.log('✅ [auth_service] Login successful');
-      saveTokens(response.data);
-      return response;
-    })
+      .then(response => {
+        console.log('✅ [auth_service] Login successful');
+        return response;
+      })
     .catch(error => {
       console.error('❌ [auth_service] Login failed:', {
         status: error?.response?.status,
@@ -72,8 +71,16 @@ const googleSignIn = (credential: string) => {
       { signal: abortController.signal }
     )
     .then(response => {
-      saveTokens(response.data);
+      console.log('✅ [auth_service] Google login successful');
+      // Token saving is handled in LoginScreen after successful response
       return response;
+    })
+    .catch(error => {
+      console.error('❌ [auth_service] Google login failed:', {
+        status: error?.response?.status,
+        data: error?.response?.data
+      });
+      throw error;
     });
   return { request, abort: () => abortController.abort() };
 };
