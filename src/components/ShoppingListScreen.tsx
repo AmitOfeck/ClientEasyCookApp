@@ -298,7 +298,7 @@ const ShoppingListScreen: React.FC = () => {
     </View>
   )
 ) : (
-  items.length === 0 ? (
+  !items || items.length === 0 ? (
     <View style={styles.emptyStateWrap}>
       <Icon name="playlist-remove" size={40} color="#2563eb" style={{ marginBottom: 8 }} />
       <Text style={styles.emptyStateText}>No ingredients in your list yet.</Text>
