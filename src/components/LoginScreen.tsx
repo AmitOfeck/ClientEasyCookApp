@@ -59,7 +59,7 @@ export const LoginScreen = ({ navigation }: { navigation: NavigationProp<any> })
   useEffect(() => {
     GoogleSignin.configure({
       webClientId:
-        '315425969009-va0ran4bg5km0fqnhvkianoms9d96f64.apps.googleusercontent.com',
+        '24614490832-2c7cmi61vvpojm4seoe26hurrr05q8f6.apps.googleusercontent.com',
       offlineAccess: true,
       forceCodeForRefreshToken: true,
     });
